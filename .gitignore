@@ -1,0 +1,90 @@
+# Any kind of log files created by some editors
+# (swap files or temporary files)
+*~
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+
+# IDE project files: Eclipse, Kdevelop
+.cproject
+.project
+.settings
+.kdev4
+*.kdev4
+*.sublime-project
+*.sublime-workspace
+
+# Python compiled files
+*.pyc
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Output
+*.vtk
+*.vtu
+*.pvd
+*.log-file
+
+# Any kind of archives
+*.zip
+*.tar.gz
+*.tar.gzip
+*.tar.bzip
+
+# Logs and other typical output of runs
+*.log
+*output
+
+# There are people storing LaTeX in the main repository, so these
+# files are LaTeX output.
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.fmt
+*.fot
+*.cb
+*.cb2
+*.dvi
+*.pdf
+*.ptc
+*.acn
+*.acr
+*.glg
+*.glo
+*.gls
+*.glsdefs
+*.lol
+*.idx
+*.ilg
+*.ind
+*.ist

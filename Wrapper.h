@@ -10,3 +10,5 @@ int TMPI_Send(const void *buf, int count, MPI_Datatype, int dest, int tag, MPI_C
 
 int TMPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
  			  MPI_Comm comm, MPI_Status *status);
+
+int TMPI_Finalize(void);

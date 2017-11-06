@@ -28,4 +28,6 @@ int main(int argc, char* argv[]) {
 		TMPI_Recv(&msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		std::cout << "Process 1 received " << msg << " from process 0\n"; 
 	}
+
+	TMPI_Finalize();
 }

@@ -3,18 +3,29 @@
 /* Set the replication factor */
 #define R_FACTOR 2
 
+#define REPLICATE_MASTER 1
+
+int world_rank;
+int world_size;
+int team_rank;
+int team_size;
+
+
 int TMPI_Init(int *argc, char*** argv) {
-	return MPI_Init(argc, argv);
+	MPI_Init(argc, argv);
+	
+	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+	team_size = world_size / R_FACTOR;
+
+	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+	team_rank = world_rank % team_size;
+
+	return MPI_SUCCESS;
 }
 
 int TMPI_Comm_rank(MPI_Comm comm, int *rank) {
 	if (comm == MPI_COMM_WORLD) {
-		int team_size;
-		TMPI_Comm_size(MPI_COMM_WORLD, &team_size);
-
-		int world_rank;
-		MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-		*rank = world_rank % team_size;
+		*rank = team_rank;
 	} 
 	else {	
 		MPI_Comm_rank(comm, rank);
@@ -24,9 +35,7 @@ int TMPI_Comm_rank(MPI_Comm comm, int *rank) {
 
 int TMPI_Comm_size(MPI_Comm comm, int *size) {
 	if (comm == MPI_COMM_WORLD) {
-		int world_size;
-		MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-		*size = world_size / R_FACTOR;
+		*size = team_size;
 	} 
 	else {
 		MPI_Comm_size(comm, size);
@@ -36,11 +45,6 @@ int TMPI_Comm_size(MPI_Comm comm, int *size) {
 
 int TMPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
 	if (comm == MPI_COMM_WORLD) {
-		int team_size;
-		TMPI_Comm_size(MPI_COMM_WORLD, &team_size);
-		int world_rank;
-		TMPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
 		if (world_rank < team_size) {
 			for (int i=0; i < R_FACTOR; i++) {
 				MPI_Send(buf, count, datatype, dest+(i*team_size), tag, comm);	
@@ -57,6 +61,25 @@ int TMPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int t
 int TMPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, 
 			  MPI_Comm comm, MPI_Status *status) {
 	return MPI_Recv(buf, count, datatype, source, tag, comm, status);
+}
+
+int TMPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+               MPI_Comm comm, MPI_Request *request)
+{
+	request = realloc(request, R_FACTOR * sizeof(MPI_Request));
+
+	MPI_Isend(buf, count, datatype, dest, tag, comm, request[0]);
+
+	for (int i=1; i < R_FACTOR; i++) {
+		requests[i] = MPI_Request;
+		MPI_Isend(buf, count, datatype, dest+(i*team_size), tag, comm, requests[i]);
+	}
+}
+
+int TMPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source,
+               int tag, MPI_Comm comm, MPI_Request *request)
+{
+	MPI_Irecv(buf, count, datatype, source, tag, comm, request[world_rank / team_size])
 }
 
 int TMPI_Finalize() {

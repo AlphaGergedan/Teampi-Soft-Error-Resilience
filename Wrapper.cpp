@@ -1,4 +1,6 @@
+#include <stdlib.h>
 #include "Wrapper.h"
+
 
 /* Set the replication factor */
 #define R_FACTOR 2
@@ -66,20 +68,25 @@ int TMPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 int TMPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
                MPI_Comm comm, MPI_Request *request)
 {
-	request = realloc(request, R_FACTOR * sizeof(MPI_Request));
+	request = (MPI_Request *)realloc(request, R_FACTOR * sizeof(MPI_Request));
 
-	MPI_Isend(buf, count, datatype, dest, tag, comm, request[0]);
+	MPI_Isend(buf, count, datatype, dest, tag, comm, &request[0]);
 
 	for (int i=1; i < R_FACTOR; i++) {
-		requests[i] = MPI_Request;
-		MPI_Isend(buf, count, datatype, dest+(i*team_size), tag, comm, requests[i]);
+		MPI_Isend(buf, count, datatype, dest+(i*team_size), tag, comm, &request[i]);
 	}
+	return MPI_SUCCESS;
 }
 
 int TMPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source,
                int tag, MPI_Comm comm, MPI_Request *request)
 {
-	MPI_Irecv(buf, count, datatype, source, tag, comm, request[world_rank / team_size])
+	return MPI_Irecv(buf, count, datatype, source, tag, comm, &request[world_rank / team_size]);
+}
+
+int TMPI_Wait(MPI_Request *request, MPI_Status *status)
+{
+	return MPI_Wait(&request[0], status);
 }
 
 int TMPI_Finalize() {

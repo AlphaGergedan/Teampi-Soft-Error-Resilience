@@ -5,6 +5,12 @@
 /* Set the replication factor */
 #define R_FACTOR 2
 
+
+// Communication strategies
+#define COMM_MODE PARALLEL
+
+// Replication Strategies
+#define REP_MODE CYCLIC
 #define REPLICATE_MASTER 1
 
 int world_rank;
@@ -13,6 +19,30 @@ int team_rank;
 int team_size;
 
 
+int map_rank(int rank)
+{
+	if (REPLICATE_MASTER) {
+		if (REP_MODE == CYCLIC) {
+			return ((rank - 1) % team_size) + 1;
+		}
+		else if (REP_MODE == ADJACENT) {
+			return (rank + R_FACTOR - 1) / R_FACTOR;
+		} else {
+			assert(false);
+		}
+	}
+	else {
+		if (REP_MODE == CYCLIC) {
+			return rank % team_size;
+		}
+		else if (REP_MODE == ADJACENT) {
+			return rank / R_FACTOR;
+		} else {
+			assert(false);
+		}
+	}
+}
+
 int TMPI_Init(int *argc, char*** argv) {
 	MPI_Init(argc, argv);
 	
@@ -20,41 +50,39 @@ int TMPI_Init(int *argc, char*** argv) {
 	team_size = world_size / R_FACTOR;
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-	team_rank = world_rank % team_size;
+	team_rank = map_rank(world_rank);
 
 	return MPI_SUCCESS;
 }
 
 int TMPI_Comm_rank(MPI_Comm comm, int *rank) {
-	if (comm == MPI_COMM_WORLD) {
-		*rank = team_rank;
-	} 
-	else {	
-		MPI_Comm_rank(comm, rank);
-	}
+	assert(comm == MPI_COMM_WORLD);
+
+	*rank = team_rank;
+
 	return MPI_SUCCESS;
 }
 
 int TMPI_Comm_size(MPI_Comm comm, int *size) {
-	if (comm == MPI_COMM_WORLD) {
-		*size = team_size;
-	} 
-	else {
-		MPI_Comm_size(comm, size);
-	}
+	assert(comm == MPI_COMM_WORLD);
+
+	*size = team_size;
+
 	return MPI_SUCCESS;
 }
 
 int TMPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
-	if (comm == MPI_COMM_WORLD) {
-		if (world_rank < team_size) {
-			for (int i=0; i < R_FACTOR; i++) {
-				MPI_Send(buf, count, datatype, dest+(i*team_size), tag, comm);	
-			}
+	assert(comm == MPI_COMM_WORLD);
+
+	if (COMM_MODE == PARALLEL) {
+		// TODO think about ways to implement this
+		MPI_Send(buf, count, datatype, dest+(i*team_size), tag, comm);
+	}
+
+	if (world_rank < team_size) {
+		for (int i=0; i < R_FACTOR; i++) {
+			MPI_Send(buf, count, datatype, dest+(i*team_size), tag, comm);
 		}
-	} 
-	else {
-		MPI_Send(buf, count, datatype, dest, tag, comm);
 	}
 
 	return MPI_SUCCESS;

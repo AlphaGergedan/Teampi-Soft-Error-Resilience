@@ -1,5 +1,7 @@
 #include <mpi.h>
 
+int map_rank(int world_rank, int *team_rank);
+
 int TMPI_Init(int *argc, char*** argv);
 
 int TMPI_Comm_rank(MPI_Comm comm, int *rank);

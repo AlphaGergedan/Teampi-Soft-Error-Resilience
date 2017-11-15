@@ -1,6 +1,10 @@
 #include <mpi.h>
+#include <vector>
 
-int map_rank(int world_rank, int *team_rank);
+int get_R_number();
+int map_world_to_team(int world_rank);
+std::vector<int> map_team_to_world(int rank);
+
 
 int TMPI_Init(int *argc, char*** argv);
 

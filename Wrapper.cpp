@@ -2,14 +2,14 @@
 #include "Wrapper.h"
 
 
-/* Set the replication factor */
+// Set the replication factor
 #define R_FACTOR 2
 
 
 // Communication strategies
 #define COMM_MODE PARALLEL
 
-// Replication Strategies
+// Replication Strategies {CYCLIC, ADJACENT}
 #define REP_MODE CYCLIC
 #define REPLICATE_MASTER 1
 
@@ -18,9 +18,29 @@ int world_size;
 int team_rank;
 int team_size;
 
-
-int map_rank(int rank)
+int get_R_number()
 {
+	if (REPLICATE_MASTER) {
+		if (REP_MODE == CYCLIC) {
+			return world_rank / team_size;
+		}
+		else if (REP_MODE == ADJACENT) {
+			return world_rank % R_FACTOR;
+		}
+	}
+	else {
+		if (REP_MODE == CYCLIC) {
+			return (world_rank - 1) / team_size;
+		}
+		else if (REP_MODE == ADJACENT) {
+			return (world_rank - 1) % R_FACTOR;
+		}
+	}
+}
+
+int map_world_to_team(int rank)
+{
+
 	if (REPLICATE_MASTER) {
 		if (REP_MODE == CYCLIC) {
 			return ((rank - 1) % team_size) + 1;
@@ -43,6 +63,13 @@ int map_rank(int rank)
 	}
 }
 
+std::vector<int> map_team_to_world(int rank)
+{
+
+}
+
+
+
 int TMPI_Init(int *argc, char*** argv) {
 	MPI_Init(argc, argv);
 	
@@ -50,7 +77,7 @@ int TMPI_Init(int *argc, char*** argv) {
 	team_size = world_size / R_FACTOR;
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-	team_rank = map_rank(world_rank);
+	team_rank = map_world_to_team(world_rank);
 
 	return MPI_SUCCESS;
 }
@@ -75,7 +102,7 @@ int TMPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int t
 	assert(comm == MPI_COMM_WORLD);
 
 	if (COMM_MODE == PARALLEL) {
-		// TODO think about ways to implement this
+		// TODO think about ways to implement this --> team array with world ranks in?
 		MPI_Send(buf, count, datatype, dest+(i*team_size), tag, comm);
 	}
 

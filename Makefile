@@ -1,17 +1,18 @@
 CC = mpiicpc
 
-FLAGS = -O2 -Wall
+FLAGS = -Wall
 
 all: HelloWorldTest PingPongTest
 
-HelloWorldTest: HelloWorldTest.o Wrapper.o
-	$(CC) $(FLAGS) HelloWorldTest.o Wrapper.o -o HelloWorldTest
+HelloWorldTest: HelloWorldTest.o libtmpi.so
+	$(CC) $(FLAGS) HelloWorldTest.o -o HelloWorldTest -L. -ltmpi
 
-PingPongTest: PingPongTest.o Wrapper.o
-	$(CC) $(FLAGS) PingPongTest.o Wrapper.o -o PingPongTest
+PingPongTest: PingPongTest.o libtmpi.so
+	$(CC) $(FLAGS) PingPongTest.o -o PingPongTest -L. -ltmpi
 
-Wrapper.o: Wrapper.cpp Wrapper.h
-	$(CC) $(FLAGS) -c Wrapper.cpp -o Wrapper.o
+libtmpi.so: tmpi.cpp tmpi.h
+	$(CC) $(FLAGS) -fpic -c tmpi.cpp -o tmpi.o
+	$(CC) -shared -Wl,-soname,libtmpi.so -o libtmpi.so tmpi.o
 	
 HelloWorldTest.o: HelloWorldTest.cpp
 	$(CC) $(FLAGS) -c HelloWorldTest.cpp -o HelloWorldTest.o
@@ -20,4 +21,4 @@ PingPongTest.o: PingPongTest.cpp
 	$(CC) $(FLAGS) -c PingPongTest.cpp -o PingPongTest.o
 
 clean:
-	rm -rf HelloWorldTest PingPongTest *.o
+	rm -rf HelloWorldTest PingPongTest *.o *.so

@@ -1,3 +1,4 @@
+#ifndef TMPI_H
 #include <mpi.h>
 
 int init_rank();
@@ -34,3 +35,4 @@ int TMPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
 int TMPI_Test(MPI_Request *request, int *flag, MPI_Status *status);
 
 int TMPI_Finalize(void);
+#endif

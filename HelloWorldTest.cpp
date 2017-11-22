@@ -1,6 +1,6 @@
 #include <iostream>
-#include "Wrapper.h"
 
+#include "tmpi.h"
 
 /*
  * This is a simple ping pong MPI code

@@ -4,7 +4,8 @@
 #include <iostream>
 #include <string>
 #include <sstream>
-#include "Wrapper.h"
+
+#include "tmpi.h"
 
 #define MASTER 0
 

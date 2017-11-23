@@ -1,18 +1,18 @@
 #include <iostream>
 
-#include "tmpi.h"
+#include <mpi.h>
 
 /*
  * This is a simple ping pong MPI code
  */
 int main(int argc, char* argv[]) {
-	TMPI_Init(&argc, &argv);
+	MPI_Init(&argc, &argv);
 
 	int size;
-	TMPI_Comm_size(MPI_COMM_WORLD, &size);
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
 
 	int rank;
-	TMPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 	char proc_name[MPI_MAX_PROCESSOR_NAME];
 	int name_len;
@@ -20,5 +20,5 @@ int main(int argc, char* argv[]) {
 
 	std::cout << "Hello world from processor " << proc_name << ", rank " << rank << " out of " << size << "\n";
 
-	TMPI_Finalize();
+	MPI_Finalize();
 }

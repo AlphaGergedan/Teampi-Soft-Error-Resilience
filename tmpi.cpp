@@ -7,27 +7,27 @@
 
 #include "tmpi.h"
 
-#define MASTER 0
+const int MASTER = 0;
 
 // TODO config file for options below
 
 // Set the replication factor
-#define R_FACTOR 2
+const int R_FACTOR = 2;
 
 // Communication strategies
-#define PARALLEL 0
-#define MIRROR 1
-#define COMM_MODE PARALLEL
+enum COMM_MODES { PARALLEL, MIRROR};
+COMM_MODES COMM_MODE = PARALLEL;
 
-// Replication Strategies {CYCLIC, ADJACENT}
-#define CYCLIC 0
-#define ADJACENT 1
-#define REP_MODE CYCLIC
+// Replication Strategies
+enum REP_MODES { CYCLIC, ADJACENT};
+REP_MODES REP_MODE = CYCLIC;
 
 int world_rank;
 int world_size;
 int team_rank;
 int team_size;
+
+
 
 int init_rank() {
   PMPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -121,7 +121,9 @@ int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
   assert(comm == MPI_COMM_WORLD);
 
   if (dest == MASTER) {
-    PMPI_Send(buf, count, datatype, MASTER, tag, comm);
+    if (get_R_number(world_rank) == 0) {
+      PMPI_Send(buf, count, datatype, MASTER, tag, comm);
+    }
   } else if ((COMM_MODE == MIRROR) || (world_rank == MASTER)) {
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Send(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm);
@@ -141,9 +143,9 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
               MPI_Comm comm, MPI_Status *status) {
   assert(comm == MPI_COMM_WORLD);
 
-  if (source == MASTER) {
-    PMPI_Recv(buf, count, datatype, MASTER, tag, comm, status);
-  } else if ((COMM_MODE == MIRROR) || (world_rank == MASTER)) {
+  if ((source == MASTER) || (world_rank == MASTER)) {
+    PMPI_Recv(buf, count, datatype, source, tag, comm, status);
+  } else if (COMM_MODE == MIRROR) {
     // Not very smart right now
     // TODO array of MPI_Status
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
@@ -167,8 +169,10 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
   assert(comm == MPI_COMM_WORLD);
 
   if (dest == MASTER) {
-    PMPI_Isend(buf, count, datatype, MASTER, tag, comm, request);
-  } else if ((COMM_MODE == MIRROR) || (world_rank == MASTER)) {
+    if (get_R_number(world_rank) == 0) {
+      PMPI_Isend(buf, count, datatype, MASTER, tag, comm, request);
+    }
+  } else if (COMM_MODE == MIRROR) {
     request = (MPI_Request *) realloc(request, R_FACTOR * sizeof(MPI_Request));
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Isend(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm,
@@ -190,8 +194,8 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
                MPI_Comm comm, MPI_Request *request) {
   assert(comm == MPI_COMM_WORLD);
 
-  if (source == MASTER) {
-    PMPI_Irecv(buf, count, datatype, MASTER, tag, comm, request);
+  if ((source == MASTER) || (world_rank == MASTER)) {
+    PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
   } else if ((COMM_MODE == MIRROR) || (world_rank == MASTER)) {
     request = (MPI_Request *) realloc(request, R_FACTOR * sizeof(MPI_Request));
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
@@ -211,13 +215,14 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 }
 
 int MPI_Wait(MPI_Request *request, MPI_Status *status) {
-  if ((COMM_MODE == MIRROR) || (world_rank == MASTER)) {
+  if (COMM_MODE == MIRROR) {
     status = (MPI_Status *) realloc(status, R_FACTOR * sizeof(MPI_Status));
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Wait(&request[r_num], &status[r_num]);
     }
   } else if (COMM_MODE == PARALLEL) {
     PMPI_Wait(request, status);
+    status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
   } else {
     assert(false);
     return -1;
@@ -228,13 +233,14 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
 int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status) {
   assert(comm == MPI_COMM_WORLD);
 
-  if ((COMM_MODE == MIRROR) || (world_rank == MASTER)) {
+  if (COMM_MODE == MIRROR) {
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Probe(map_team_to_world(source, r_num), tag, comm, status);
     }
   } else if (COMM_MODE == PARALLEL) {
     int r_num = get_R_number(world_rank);
     PMPI_Probe(map_team_to_world(source, r_num), tag, comm, status);
+    status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
   } else {
     assert(false);
     return -1;
@@ -248,7 +254,7 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
                 MPI_Status *status) {
   assert(comm == MPI_COMM_WORLD);
 
-  if ((COMM_MODE == MIRROR) || (world_rank == MASTER)) {
+  if (COMM_MODE == MIRROR) {
     int r_flag = 0;
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Iprobe(map_team_to_world(source, r_num), tag, comm, &r_flag, status);
@@ -257,6 +263,7 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
   } else if (COMM_MODE == PARALLEL) {
     int r_num = get_R_number(world_rank);
     PMPI_Iprobe(map_team_to_world(source, r_num), tag, comm, flag, status);
+    status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
   } else {
     assert(false);
     return -1;
@@ -265,7 +272,7 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
 }
 
 int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
-  if ((COMM_MODE == MIRROR) || (world_rank == MASTER)) {
+  if (COMM_MODE == MIRROR) {
     status = (MPI_Status *) realloc(status, R_FACTOR * sizeof(MPI_Status));
     int r_flag = 0;
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
@@ -274,6 +281,7 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
     *flag &= r_flag;
   } else if (COMM_MODE == PARALLEL) {
     PMPI_Test(request, flag, status);
+    status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
   } else {
     assert(false);
     return -1;

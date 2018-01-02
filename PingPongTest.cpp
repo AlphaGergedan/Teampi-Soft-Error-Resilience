@@ -15,10 +15,11 @@ int main(int argc, char* argv[]) {
 	int rank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	if (size < 2) {
+	if (size != 2) {
 		std::cout << "2 processors are required" << std::endl;
 		return 0;
 	}
+
 
 	int msg;
 	if (rank == 0) {
@@ -28,6 +29,16 @@ int main(int argc, char* argv[]) {
 	else if (rank == 1) {
 		MPI_Recv(&msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		std::cout << "Process 1 received " << msg << " from process 0\n"; 
+	}
+
+	MPI_Barrier(MPI_COMM_WORLD);
+
+	if (rank == 1) {
+	  msg = 10;
+	  MPI_Send(&msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+	} else if (rank == 0) {
+	  MPI_Recv(&msg, 1, MPI_INT, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    std::cout << "Process 0 received " << msg << " from process 1\n";
 	}
 
 	MPI_Finalize();

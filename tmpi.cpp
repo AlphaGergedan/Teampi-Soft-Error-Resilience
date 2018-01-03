@@ -143,7 +143,7 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
               MPI_Comm comm, MPI_Status *status) {
   assert(comm == MPI_COMM_WORLD);
 
-  if ((source == MASTER) || (world_rank == MASTER)) {
+  if ((source == MASTER) || (world_rank == MASTER) || (source == MPI_ANY_SOURCE)) {
     PMPI_Recv(buf, count, datatype, source, tag, comm, status);
   } else if (COMM_MODE == MIRROR) {
     // Not very smart right now
@@ -194,7 +194,7 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
                MPI_Comm comm, MPI_Request *request) {
   assert(comm == MPI_COMM_WORLD);
 
-  if ((source == MASTER) || (world_rank == MASTER)) {
+  if ((source == MASTER) || (world_rank == MASTER) || (source == MPI_ANY_SOURCE)) {
     PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
   } else if ((COMM_MODE == MIRROR) || (world_rank == MASTER)) {
     request = (MPI_Request *) realloc(request, R_FACTOR * sizeof(MPI_Request));
@@ -233,7 +233,10 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
 int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status) {
   assert(comm == MPI_COMM_WORLD);
 
-  if (COMM_MODE == MIRROR) {
+  if ((source == MASTER) || (world_rank == MASTER) || (source == MPI_ANY_SOURCE)) {
+    PMPI_Probe(source, tag, comm, status);
+    status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
+  } else if (COMM_MODE == MIRROR) {
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Probe(map_team_to_world(source, r_num), tag, comm, status);
     }
@@ -254,7 +257,10 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
                 MPI_Status *status) {
   assert(comm == MPI_COMM_WORLD);
 
-  if (COMM_MODE == MIRROR) {
+  if ((source == MASTER) || (world_rank == MASTER) || (source == MPI_ANY_SOURCE)) {
+    PMPI_Iprobe(source, tag, comm, flag, status);
+    status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
+  } else if (COMM_MODE == MIRROR) {
     int r_flag = 0;
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Iprobe(map_team_to_world(source, r_num), tag, comm, &r_flag, status);

@@ -1,6 +1,6 @@
 CC = mpiicpc
 
-FLAGS = -Wall
+FLAGS = -Wall -std=c++11
 
 all: HelloWorldTest PingPongTest
 

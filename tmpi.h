@@ -3,6 +3,11 @@
 
 #include <mpi.h>
 
+
+void read_config();
+
+void print_config();
+
 /**
  * Sets the global variables for an MPI process
  * @return MPI_SUCCESS
@@ -28,6 +33,12 @@ int map_world_to_team(int world_rank);
  * @return rank mapped to a world/global rank
  */
 int map_team_to_world(int rank, int r_num);
+
+/**
+ * Modify the source of the status to within team_size
+ * @param status to modify
+ */
+void remap_status(MPI_Status *status);
 
 
 /**

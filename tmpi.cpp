@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <algorithm>
 
 #include "tmpi.h"
 
@@ -12,7 +13,7 @@ const int MASTER = 0;
 // TODO config file for options below
 
 // Set the replication factor
-const int R_FACTOR = 2;
+int R_FACTOR = 2;
 
 // Communication strategies
 enum COMM_MODES { PARALLEL, MIRROR};
@@ -27,21 +28,95 @@ int world_size;
 int team_rank;
 int team_size;
 
+void read_config() {
+  int temp_rank;
+  int temp_size;
 
+  std::string filename("tmpi.cfg");
+  std::ifstream f(filename.c_str());
+
+  std::string line;
+
+  while(std::getline(f, line)) {
+    line.erase(std::remove_if(line.begin(), line.end(), std::iswspace), line.end());
+    std::transform(line.begin(), line.end(),line.begin(), ::toupper);
+    std::istringstream iss(line);
+
+    int pos = line.find_first_of('=');
+    std::string key = line.substr(0,pos);
+    std::string val = line.substr(pos+1);
+
+    if (key.compare("R_FACTOR") == 0) {
+      R_FACTOR = std::stoi(val);
+    } else if (key.compare("R_MODE") == 0) {
+      if (val.compare("CYCLIC") == 0) {
+        REP_MODE = CYCLIC;
+      } else if (val.compare("ADJACENT") == 0) {
+        REP_MODE = ADJACENT;
+      } else {
+        std::cout << "Value (" << val << ") for " << key << " not valid\n";
+      }
+    } else if (key.compare("COMM_MODE") == 0) {
+        if (val.compare("PARALLEL") == 0) {
+          COMM_MODE = PARALLEL;
+        } else if (val.compare("MIRROR") == 0) {
+          COMM_MODE = MIRROR;
+        } else {
+          std::cout << "Value (" << val << ") for " << key << " not valid\n";
+        }
+    } else {
+      std::cout << "Key (" << key << ") not recognized\n";
+      std::terminate();
+    }
+  }
+}
+
+void print_config(){
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  if (world_rank == MASTER) {
+    std::cout << "------------TMPI SETTINGS------------\n";
+    std::cout << "R_FACTOR = " << R_FACTOR << "\n";
+
+    std::cout << "REP_MODE = ";
+    if (REP_MODE == CYCLIC) {
+      std::cout << "CYCLIC\n";
+    } else {
+      std::cout << "ADJACENT\n";
+    }
+
+    std::cout << "COMM_MODE = ";
+    if (COMM_MODE == MIRROR) {
+      std::cout << "MIRROR\n";
+    } else {
+      std::cout << "PARALLEL\n";
+    }
+    std::cout << "--------------------------------------\n\n";
+  }
+
+  MPI_Barrier(MPI_COMM_WORLD);
+}
 
 int init_rank() {
+  /**
+   * The application should have no knowledge of the world_size or world_rank
+   */
+  read_config();
+
   PMPI_Comm_size(MPI_COMM_WORLD, &world_size);
   team_size = (world_size - 1) / R_FACTOR;
 
   PMPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
   team_rank = map_world_to_team(world_rank);
 
+  print_config();
+
   return MPI_SUCCESS;
 }
 
 int get_R_number(int rank) {
   if (rank == MASTER) {
-    return 0;
+    return 0; // We do not replicate the master rank
   }
 
   if (REP_MODE == CYCLIC) {
@@ -81,6 +156,12 @@ int map_team_to_world(int rank, int r_num) {
   } else {
     assert(false);
     return -1;
+  }
+}
+
+void remap_status(MPI_Status *status) {
+  if (status != MPI_STATUS_IGNORE) {
+    status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
   }
 }
 
@@ -145,6 +226,7 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 
   if ((source == MASTER) || (world_rank == MASTER) || (source == MPI_ANY_SOURCE)) {
     PMPI_Recv(buf, count, datatype, source, tag, comm, status);
+    remap_status(status);
   } else if (COMM_MODE == MIRROR) {
     // Not very smart right now
     // TODO array of MPI_Status
@@ -156,6 +238,7 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
     int r_num = get_R_number(world_rank);
     PMPI_Recv(buf, count, datatype, map_team_to_world(source, r_num), tag, comm,
              status);
+    remap_status(status);
   } else {
     assert(false);
     return -1;
@@ -171,6 +254,8 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
   if (dest == MASTER) {
     if (get_R_number(world_rank) == 0) {
       PMPI_Isend(buf, count, datatype, MASTER, tag, comm, request);
+    } else {
+      *request = MPI_REQUEST_NULL;
     }
   } else if (COMM_MODE == MIRROR) {
     request = (MPI_Request *) realloc(request, R_FACTOR * sizeof(MPI_Request));
@@ -221,8 +306,9 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
       PMPI_Wait(&request[r_num], &status[r_num]);
     }
   } else if (COMM_MODE == PARALLEL) {
-    PMPI_Wait(request, status);
-    status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
+    int err = PMPI_Wait(request, status);
+//    std::cout << err << "\n";
+    remap_status(status);
   } else {
     assert(false);
     return -1;
@@ -235,7 +321,7 @@ int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status) {
 
   if ((source == MASTER) || (world_rank == MASTER) || (source == MPI_ANY_SOURCE)) {
     PMPI_Probe(source, tag, comm, status);
-    status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
+    remap_status(status);
   } else if (COMM_MODE == MIRROR) {
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Probe(map_team_to_world(source, r_num), tag, comm, status);
@@ -243,7 +329,7 @@ int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status) {
   } else if (COMM_MODE == PARALLEL) {
     int r_num = get_R_number(world_rank);
     PMPI_Probe(map_team_to_world(source, r_num), tag, comm, status);
-    status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
+    remap_status(status);
   } else {
     assert(false);
     return -1;
@@ -259,7 +345,7 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
 
   if ((source == MASTER) || (world_rank == MASTER) || (source == MPI_ANY_SOURCE)) {
     PMPI_Iprobe(source, tag, comm, flag, status);
-    status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
+    remap_status(status);
   } else if (COMM_MODE == MIRROR) {
     int r_flag = 0;
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
@@ -269,7 +355,7 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
   } else if (COMM_MODE == PARALLEL) {
     int r_num = get_R_number(world_rank);
     PMPI_Iprobe(map_team_to_world(source, r_num), tag, comm, flag, status);
-    status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
+    remap_status(status);
   } else {
     assert(false);
     return -1;
@@ -286,8 +372,9 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
     }
     *flag &= r_flag;
   } else if (COMM_MODE == PARALLEL) {
-    PMPI_Test(request, flag, status);
-    status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
+    int err = PMPI_Test(request, flag, status);
+//    std::cout << err << "\n";
+    remap_status(status);
   } else {
     assert(false);
     return -1;

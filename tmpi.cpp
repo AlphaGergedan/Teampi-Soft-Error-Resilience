@@ -34,6 +34,9 @@ void read_config() {
 
   std::string filename("tmpi.cfg");
   std::ifstream f(filename.c_str());
+  if (!f) {
+    return; // Config file does not exist: leave as defaults
+  }
 
   std::string line;
 

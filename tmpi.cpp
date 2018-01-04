@@ -260,8 +260,13 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
     } else {
       *request = MPI_REQUEST_NULL;
     }
-  } else if (COMM_MODE == MIRROR) {
-    request = (MPI_Request *) realloc(request, R_FACTOR * sizeof(MPI_Request));
+  } else if ((COMM_MODE == MIRROR) || (world_rank == MASTER)) {
+    MPI_Request* new_request = (MPI_Request *)malloc(R_FACTOR * sizeof(MPI_Request));
+    request = new_request;
+//    request = (MPI_Request *) realloc(request, R_FACTOR * sizeof(MPI_Request));
+//    for (int i=0; i < R_FACTOR; i++) {
+//      request[i] = new MPI_Request();
+//    }
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Isend(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm,
                 &request[r_num]);
@@ -284,8 +289,13 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 
   if ((source == MASTER) || (world_rank == MASTER) || (source == MPI_ANY_SOURCE)) {
     PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
-  } else if ((COMM_MODE == MIRROR) || (world_rank == MASTER)) {
-    request = (MPI_Request *) realloc(request, R_FACTOR * sizeof(MPI_Request));
+  } else if (COMM_MODE == MIRROR) {
+    MPI_Request* new_request = (MPI_Request *)malloc(R_FACTOR * sizeof(MPI_Request));
+    request = new_request;
+//    request = (MPI_Request *) realloc(request, R_FACTOR * sizeof(MPI_Request));
+//    for (int i=0; i < R_FACTOR; i++) {
+//      request[i] = new MPI_Request();
+//    }
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Irecv(buf, count, datatype, map_team_to_world(source, r_num), tag,
                 comm, &request[r_num]);
@@ -310,7 +320,6 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
     }
   } else if (COMM_MODE == PARALLEL) {
     int err = PMPI_Wait(request, status);
-//    std::cout << err << "\n";
     remap_status(status);
   } else {
     assert(false);

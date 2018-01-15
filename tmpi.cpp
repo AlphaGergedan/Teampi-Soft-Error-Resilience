@@ -10,18 +10,11 @@
 
 const int MASTER = 0;
 
-// TODO config file for options below
+int R_FACTOR;
 
-// Set the replication factor
-int R_FACTOR = 2;
+CommunicationModes CommMode;
 
-// Communication strategies
-enum COMM_MODES { PARALLEL, MIRROR};
-COMM_MODES COMM_MODE = PARALLEL;
-
-// Replication Strategies
-enum REP_MODES { CYCLIC, ADJACENT};
-REP_MODES REP_MODE = CYCLIC;
+ReplicationModes RepMode;
 
 int world_rank;
 int world_size;
@@ -35,7 +28,11 @@ void read_config() {
   std::string filename("tmpi.cfg");
   std::ifstream f(filename.c_str());
   if (!f) {
-    return; // Config file does not exist: leave as defaults
+    // Config file does not exist: leave as defaults
+    R_FACTOR = 2;
+    CommMode = CommunicationModes::Parallel;
+    RepMode = ReplicationModes::Cyclic;
+    return;
   }
 
   std::string line;
@@ -53,17 +50,17 @@ void read_config() {
       R_FACTOR = std::stoi(val);
     } else if (key.compare("R_MODE") == 0) {
       if (val.compare("CYCLIC") == 0) {
-        REP_MODE = CYCLIC;
+        RepMode = ReplicationModes::Cyclic;
       } else if (val.compare("ADJACENT") == 0) {
-        REP_MODE = ADJACENT;
+        RepMode = ReplicationModes::Adjacent;
       } else {
         std::cout << "Value (" << val << ") for " << key << " not valid\n";
       }
     } else if (key.compare("COMM_MODE") == 0) {
         if (val.compare("PARALLEL") == 0) {
-          COMM_MODE = PARALLEL;
+          CommMode = CommunicationModes::Parallel;
         } else if (val.compare("MIRROR") == 0) {
-          COMM_MODE = MIRROR;
+          CommMode = CommunicationModes::Mirror;
         } else {
           std::cout << "Value (" << val << ") for " << key << " not valid\n";
         }
@@ -82,14 +79,14 @@ void print_config(){
     std::cout << "R_FACTOR = " << R_FACTOR << "\n";
 
     std::cout << "REP_MODE = ";
-    if (REP_MODE == CYCLIC) {
+    if (RepMode == ReplicationModes::Cyclic) {
       std::cout << "CYCLIC\n";
     } else {
       std::cout << "ADJACENT\n";
     }
 
     std::cout << "COMM_MODE = ";
-    if (COMM_MODE == MIRROR) {
+    if (CommMode == CommunicationModes::Mirror) {
       std::cout << "MIRROR\n";
     } else {
       std::cout << "PARALLEL\n";
@@ -122,9 +119,9 @@ int get_R_number(int rank) {
     return 0; // We do not replicate the master rank
   }
 
-  if (REP_MODE == CYCLIC) {
+  if (RepMode == ReplicationModes::Cyclic) {
     return (rank - 1) / team_size;
-  } else if (REP_MODE == ADJACENT) {
+  } else if (RepMode == ReplicationModes::Adjacent) {
     return (rank - 1) % R_FACTOR;
   } else {
     assert(false);
@@ -137,9 +134,9 @@ int map_world_to_team(int rank) {
     return 0;
   }
 
-  if (REP_MODE == CYCLIC) {
+  if (RepMode == ReplicationModes::Cyclic) {
     return ((rank - 1) % team_size) + 1;
-  } else if (REP_MODE == ADJACENT) {
+  } else if (RepMode == ReplicationModes::Adjacent) {
     return ((rank - 1) / R_FACTOR) + 1;
   } else {
     assert(false);
@@ -152,9 +149,9 @@ int map_team_to_world(int rank, int r_num) {
     return 0;
   }
 
-  if (REP_MODE == CYCLIC) {
+  if (RepMode == ReplicationModes::Cyclic) {
     return rank + (r_num * team_size);
-  } else if (REP_MODE == ADJACENT) {
+  } else if (RepMode == ReplicationModes::Adjacent) {
     return rank + r_num;
   } else {
     assert(false);
@@ -208,11 +205,11 @@ int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
     if (get_R_number(world_rank) == 0) {
       PMPI_Send(buf, count, datatype, MASTER, tag, comm);
     }
-  } else if ((COMM_MODE == MIRROR) || (world_rank == MASTER)) {
+  } else if ((CommMode == CommunicationModes::Mirror) || (world_rank == MASTER)) {
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Send(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm);
     }
-  } else if (COMM_MODE == PARALLEL) {
+  } else if (CommMode == CommunicationModes::Parallel) {
     int r_num = get_R_number(world_rank);
     PMPI_Send(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm);
   } else {
@@ -230,14 +227,14 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
   if ((source == MASTER) || (world_rank == MASTER) || (source == MPI_ANY_SOURCE)) {
     PMPI_Recv(buf, count, datatype, source, tag, comm, status);
     remap_status(status);
-  } else if (COMM_MODE == MIRROR) {
+  } else if (CommMode == CommunicationModes::Mirror) {
     // Not very smart right now
     // TODO array of MPI_Status
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Recv(buf, count, datatype, map_team_to_world(source, r_num), tag,
                comm, status);
     }
-  } else if (COMM_MODE == PARALLEL) {
+  } else if (CommMode == CommunicationModes::Parallel) {
     int r_num = get_R_number(world_rank);
     PMPI_Recv(buf, count, datatype, map_team_to_world(source, r_num), tag, comm,
              status);
@@ -260,7 +257,7 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
     } else {
       *request = MPI_REQUEST_NULL;
     }
-  } else if ((COMM_MODE == MIRROR) || (world_rank == MASTER)) {
+  } else if ((CommMode == CommunicationModes::Mirror) || (world_rank == MASTER)) {
     MPI_Request* new_request = (MPI_Request *)malloc(R_FACTOR * sizeof(MPI_Request));
     request = new_request;
 //    request = (MPI_Request *) realloc(request, R_FACTOR * sizeof(MPI_Request));
@@ -271,7 +268,7 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
       PMPI_Isend(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm,
                 &request[r_num]);
     }
-  } else if (COMM_MODE == PARALLEL) {
+  } else if (CommMode == CommunicationModes::Parallel) {
     int r_num = get_R_number(world_rank);
     PMPI_Isend(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm,
               request);
@@ -289,7 +286,7 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 
   if ((source == MASTER) || (world_rank == MASTER) || (source == MPI_ANY_SOURCE)) {
     PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
-  } else if (COMM_MODE == MIRROR) {
+  } else if (CommMode == CommunicationModes::Mirror) {
     MPI_Request* new_request = (MPI_Request *)malloc(R_FACTOR * sizeof(MPI_Request));
     request = new_request;
 //    request = (MPI_Request *) realloc(request, R_FACTOR * sizeof(MPI_Request));
@@ -300,7 +297,7 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
       PMPI_Irecv(buf, count, datatype, map_team_to_world(source, r_num), tag,
                 comm, &request[r_num]);
     }
-  } else if (COMM_MODE == PARALLEL) {
+  } else if (CommMode == CommunicationModes::Parallel) {
     int r_num = get_R_number(world_rank);
     PMPI_Irecv(buf, count, datatype, map_team_to_world(source, r_num), tag, comm,
               request);
@@ -313,12 +310,12 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 }
 
 int MPI_Wait(MPI_Request *request, MPI_Status *status) {
-  if (COMM_MODE == MIRROR) {
+  if (CommMode == CommunicationModes::Mirror) {
     status = (MPI_Status *) realloc(status, R_FACTOR * sizeof(MPI_Status));
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Wait(&request[r_num], &status[r_num]);
     }
-  } else if (COMM_MODE == PARALLEL) {
+  } else if (CommMode == CommunicationModes::Parallel) {
     int err = PMPI_Wait(request, status);
     remap_status(status);
   } else {
@@ -334,11 +331,11 @@ int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status) {
   if ((source == MASTER) || (world_rank == MASTER) || (source == MPI_ANY_SOURCE)) {
     PMPI_Probe(source, tag, comm, status);
     remap_status(status);
-  } else if (COMM_MODE == MIRROR) {
+  } else if (CommMode == CommunicationModes::Mirror) {
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Probe(map_team_to_world(source, r_num), tag, comm, status);
     }
-  } else if (COMM_MODE == PARALLEL) {
+  } else if (CommMode == CommunicationModes::Parallel) {
     int r_num = get_R_number(world_rank);
     PMPI_Probe(map_team_to_world(source, r_num), tag, comm, status);
     remap_status(status);
@@ -358,13 +355,13 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
   if ((source == MASTER) || (world_rank == MASTER) || (source == MPI_ANY_SOURCE)) {
     PMPI_Iprobe(source, tag, comm, flag, status);
     remap_status(status);
-  } else if (COMM_MODE == MIRROR) {
+  } else if (CommMode == CommunicationModes::Mirror) {
     int r_flag = 0;
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Iprobe(map_team_to_world(source, r_num), tag, comm, &r_flag, status);
       *flag &= r_flag;
     }
-  } else if (COMM_MODE == PARALLEL) {
+  } else if (CommMode == CommunicationModes::Parallel) {
     int r_num = get_R_number(world_rank);
     PMPI_Iprobe(map_team_to_world(source, r_num), tag, comm, flag, status);
     remap_status(status);
@@ -376,14 +373,14 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
 }
 
 int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
-  if (COMM_MODE == MIRROR) {
+  if (CommMode == CommunicationModes::Mirror) {
     status = (MPI_Status *) realloc(status, R_FACTOR * sizeof(MPI_Status));
     int r_flag = 0;
     for (int r_num = 0; r_num < R_FACTOR; r_num++) {
       PMPI_Test(&request[r_num], &r_flag, &status[r_num]);
     }
     *flag &= r_flag;
-  } else if (COMM_MODE == PARALLEL) {
+  } else if (CommMode == CommunicationModes::Parallel) {
     int err = PMPI_Test(request, flag, status);
 //    std::cout << err << "\n";
     remap_status(status);

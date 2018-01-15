@@ -4,6 +4,10 @@
 #include <mpi.h>
 
 
+enum class CommunicationModes { Parallel, Mirror };
+
+enum class ReplicationModes { Cyclic, Adjacent };
+
 void read_config();
 
 void print_config();

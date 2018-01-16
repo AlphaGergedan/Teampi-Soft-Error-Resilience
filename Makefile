@@ -1,6 +1,6 @@
 CC = mpiicpc
 
-FLAGS = -Wall -std=c++11
+FLAGS = -Wall -std=c++11 -O0 -g3
 
 testdir = tests
 

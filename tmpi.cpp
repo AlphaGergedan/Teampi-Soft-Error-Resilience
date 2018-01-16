@@ -261,6 +261,7 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
       lut.insert(request);
     }
   } else if ((CommMode == CommunicationModes::Mirror) || (world_rank == MASTER)) {
+    //TODO check if this works properly and not just when there is enough space to extend!
     request = (MPI_Request*)realloc(request, R_FACTOR * sizeof(MPI_Request));
     if (world_rank == MASTER) {
       lut.insert(request);
@@ -300,7 +301,10 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 //    }
   } else if (CommMode == CommunicationModes::Parallel) {
     int r_num = get_R_number(world_rank);
-    PMPI_Irecv(buf, count, datatype, map_team_to_world(source, r_num), tag, comm,
+    std::cout << "Source before: " << source << "\n";
+    source = map_team_to_world(source, r_num);
+    std::cout << "Source after: " << source << "\n";
+    PMPI_Irecv(buf, count, datatype, source, tag, comm,
               request);
   } else {
     assert(false);

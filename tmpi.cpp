@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+#include <set>
 
 #include "tmpi.h"
 
@@ -20,6 +21,8 @@ int world_rank;
 int world_size;
 int team_rank;
 int team_size;
+
+std::set<MPI_Request*> lut;
 
 void read_config() {
   int temp_rank;
@@ -255,19 +258,17 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
     if (get_R_number(world_rank) == 0) {
       PMPI_Isend(buf, count, datatype, MASTER, tag, comm, request);
     } else {
-      *request = MPI_REQUEST_NULL;
+      lut.insert(request);
     }
   } else if ((CommMode == CommunicationModes::Mirror) || (world_rank == MASTER)) {
-    MPI_Request* new_request = (MPI_Request *)malloc(R_FACTOR * sizeof(MPI_Request));
-    request = new_request;
-//    request = (MPI_Request *) realloc(request, R_FACTOR * sizeof(MPI_Request));
-//    for (int i=0; i < R_FACTOR; i++) {
-//      request[i] = new MPI_Request();
-//    }
-    for (int r_num = 0; r_num < R_FACTOR; r_num++) {
-      PMPI_Isend(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm,
-                &request[r_num]);
+    request = (MPI_Request*)realloc(request, R_FACTOR * sizeof(MPI_Request));
+    if (world_rank == MASTER) {
+      lut.insert(request);
     }
+    for (int r_num = 0; r_num < R_FACTOR; r_num++) {
+      PMPI_Isend(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm, &request[r_num]);
+    }
+//    std::cout << "Request @ send: " << request << "\n";
   } else if (CommMode == CommunicationModes::Parallel) {
     int r_num = get_R_number(world_rank);
     PMPI_Isend(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm,
@@ -287,16 +288,16 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
   if ((source == MASTER) || (world_rank == MASTER) || (source == MPI_ANY_SOURCE)) {
     PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
   } else if (CommMode == CommunicationModes::Mirror) {
-    MPI_Request* new_request = (MPI_Request *)malloc(R_FACTOR * sizeof(MPI_Request));
-    request = new_request;
+////    MPI_Request* new_request = (MPI_Request *)malloc(R_FACTOR * sizeof(MPI_Request));
+////    request = new_request;
 //    request = (MPI_Request *) realloc(request, R_FACTOR * sizeof(MPI_Request));
 //    for (int i=0; i < R_FACTOR; i++) {
 //      request[i] = new MPI_Request();
 //    }
-    for (int r_num = 0; r_num < R_FACTOR; r_num++) {
-      PMPI_Irecv(buf, count, datatype, map_team_to_world(source, r_num), tag,
-                comm, &request[r_num]);
-    }
+//    for (int r_num = 0; r_num < R_FACTOR; r_num++) {
+//      PMPI_Irecv(buf, count, datatype, map_team_to_world(source, r_num), tag,
+//                comm, &request[r_num]);
+//    }
   } else if (CommMode == CommunicationModes::Parallel) {
     int r_num = get_R_number(world_rank);
     PMPI_Irecv(buf, count, datatype, map_team_to_world(source, r_num), tag, comm,
@@ -316,8 +317,16 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
       PMPI_Wait(&request[r_num], &status[r_num]);
     }
   } else if (CommMode == CommunicationModes::Parallel) {
-    int err = PMPI_Wait(request, status);
-    remap_status(status);
+        if ((lut.find(request) != lut.end()) && (world_rank == MASTER)) {;
+          PMPI_Wait(request, status);
+          remap_status(status);
+        } else if (lut.find(request) != lut.end()) {
+          if (status != MPI_STATUS_IGNORE) {
+            status->MPI_SOURCE = MASTER;
+          }
+        } else {
+          PMPI_Wait(request, status);
+        }
   } else {
     assert(false);
     return -1;
@@ -381,9 +390,18 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
     }
     *flag &= r_flag;
   } else if (CommMode == CommunicationModes::Parallel) {
-    int err = PMPI_Test(request, flag, status);
-//    std::cout << err << "\n";
-    remap_status(status);
+    if ((lut.find(request) != lut.end()) && (world_rank == MASTER)) {
+      PMPI_Test(request, flag, status);
+      remap_status(status);
+    } else if (lut.find(request) != lut.end()) {
+      *flag = 1;
+      status->MPI_SOURCE = MASTER;
+    } else {
+      PMPI_Test(request, flag, status);
+
+    }
+
+//    }
   } else {
     assert(false);
     return -1;

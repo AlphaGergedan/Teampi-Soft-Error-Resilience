@@ -301,9 +301,7 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 //    }
   } else if (CommMode == CommunicationModes::Parallel) {
     int r_num = get_R_number(world_rank);
-    std::cout << "Source before: " << source << "\n";
     source = map_team_to_world(source, r_num);
-    std::cout << "Source after: " << source << "\n";
     PMPI_Irecv(buf, count, datatype, source, tag, comm,
               request);
   } else {
@@ -330,10 +328,15 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
           }
         } else {
           PMPI_Wait(request, status);
+          remap_status(status);
         }
+
   } else {
     assert(false);
     return -1;
+  }
+  if ((status->MPI_SOURCE == 4098) || (status->MPI_SOURCE == 4099)) {
+    std::cout << "\n\nHERE\n\n";
   }
   return MPI_SUCCESS;
 }
@@ -352,11 +355,14 @@ int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status) {
     int r_num = get_R_number(world_rank);
     PMPI_Probe(map_team_to_world(source, r_num), tag, comm, status);
     remap_status(status);
+
   } else {
     assert(false);
     return -1;
   }
-
+  if ((status->MPI_SOURCE == 4098) || (status->MPI_SOURCE == 4099)) {
+    std::cout << "\n\nHERE\n\n";
+  }
   return MPI_SUCCESS;
 
 }
@@ -378,9 +384,13 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
     int r_num = get_R_number(world_rank);
     PMPI_Iprobe(map_team_to_world(source, r_num), tag, comm, flag, status);
     remap_status(status);
+
   } else {
     assert(false);
     return -1;
+  }
+  if ((status->MPI_SOURCE == 4098) || (status->MPI_SOURCE == 4099)) {
+    std::cout << "\n\nHERE\n\n";
   }
   return MPI_SUCCESS;
 }
@@ -402,13 +412,14 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
       status->MPI_SOURCE = MASTER;
     } else {
       PMPI_Test(request, flag, status);
-
+      remap_status(status);
     }
-
-//    }
   } else {
     assert(false);
     return -1;
+  }
+  if ((status->MPI_SOURCE == 4098) || (status->MPI_SOURCE == 4099)) {
+    std::cout << "\n\nHERE\n\n";
   }
   return MPI_SUCCESS;
 }

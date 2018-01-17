@@ -5,7 +5,8 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
-#include <set>
+#include <map>
+#include <vector>
 
 #include "tmpi.h"
 
@@ -22,7 +23,7 @@ int world_size;
 int team_rank;
 int team_size;
 
-std::set<MPI_Request*> lut;
+std::map<MPI_Request*, std::vector<MPI_Request*>> lut;
 
 void read_config() {
   int temp_rank;
@@ -258,18 +259,23 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
     if (get_R_number(world_rank) == 0) {
       PMPI_Isend(buf, count, datatype, MASTER, tag, comm, request);
     } else {
-      lut.insert(request);
+      lut.insert(std::map<MPI_Request*, std::vector<MPI_Request*>>::value_type(request, std::vector<MPI_Request*>()));
     }
   } else if ((CommMode == CommunicationModes::Mirror) || (world_rank == MASTER)) {
-    //TODO check if this works properly and not just when there is enough space to extend!
-    request = (MPI_Request*)realloc(request, R_FACTOR * sizeof(MPI_Request));
+//    std::vector<MPI_Request*> newRequests(R_FACTOR-1);
     if (world_rank == MASTER) {
-      lut.insert(request);
+      lut.insert(std::map<MPI_Request*, std::vector<MPI_Request*>>::value_type(request, std::vector<MPI_Request*>(R_FACTOR-1)));
     }
-    for (int r_num = 0; r_num < R_FACTOR; r_num++) {
-      PMPI_Isend(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm, &request[r_num]);
+    for (int r = 0; r < R_FACTOR; r++) {
+      MPI_Request *req;
+      if (r > 0) {
+        req = new MPI_Request();
+        lut[request][r-1] = req;
+      } else {
+        req = request;
+      }
+      PMPI_Isend(buf, count, datatype, map_team_to_world(dest, r), tag, comm, req);
     }
-//    std::cout << "Request @ send: " << request << "\n";
   } else if (CommMode == CommunicationModes::Parallel) {
     int r_num = get_R_number(world_rank);
     PMPI_Isend(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm,
@@ -278,7 +284,6 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
     assert(false);
     return -1;
   }
-
   return MPI_SUCCESS;
 }
 
@@ -319,9 +324,11 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
       PMPI_Wait(&request[r_num], &status[r_num]);
     }
   } else if (CommMode == CommunicationModes::Parallel) {
-        if ((lut.find(request) != lut.end()) && (world_rank == MASTER)) {;
+        if ((lut.find(request) != lut.end()) && (world_rank == MASTER)) {
+          MPI_Status* statusArray = new MPI_Status[R_FACTOR];
           PMPI_Wait(request, status);
           remap_status(status);
+          PMPI_Waitall(R_FACTOR-1, lut.at(request)[0], MPI_STATUS_IGNORE);
         } else if (lut.find(request) != lut.end()) {
           if (status != MPI_STATUS_IGNORE) {
             status->MPI_SOURCE = MASTER;

@@ -262,7 +262,6 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
       lut.insert(std::map<MPI_Request*, std::vector<MPI_Request*>>::value_type(request, std::vector<MPI_Request*>()));
     }
   } else if ((CommMode == CommunicationModes::Mirror) || (world_rank == MASTER)) {
-//    std::vector<MPI_Request*> newRequests(R_FACTOR-1);
     if (world_rank == MASTER) {
       lut.insert(std::map<MPI_Request*, std::vector<MPI_Request*>>::value_type(request, std::vector<MPI_Request*>(R_FACTOR-1)));
     }
@@ -325,7 +324,6 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
     }
   } else if (CommMode == CommunicationModes::Parallel) {
         if ((lut.find(request) != lut.end()) && (world_rank == MASTER)) {
-          MPI_Status* statusArray = new MPI_Status[R_FACTOR];
           PMPI_Wait(request, status);
           remap_status(status);
           PMPI_Waitall(R_FACTOR-1, lut.at(request)[0], MPI_STATUS_IGNORE);
@@ -341,9 +339,6 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
   } else {
     assert(false);
     return -1;
-  }
-  if ((status->MPI_SOURCE == 4098) || (status->MPI_SOURCE == 4099)) {
-    std::cout << "\n\nHERE\n\n";
   }
   return MPI_SUCCESS;
 }
@@ -396,9 +391,6 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
     assert(false);
     return -1;
   }
-  if ((status->MPI_SOURCE == 4098) || (status->MPI_SOURCE == 4099)) {
-    std::cout << "\n\nHERE\n\n";
-  }
   return MPI_SUCCESS;
 }
 
@@ -414,6 +406,7 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
     if ((lut.find(request) != lut.end()) && (world_rank == MASTER)) {
       PMPI_Test(request, flag, status);
       remap_status(status);
+      PMPI_Testall(R_FACTOR-1, lut.at(request)[0],flag, MPI_STATUS_IGNORE);
     } else if (lut.find(request) != lut.end()) {
       *flag = 1;
       status->MPI_SOURCE = MASTER;
@@ -421,12 +414,10 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
       PMPI_Test(request, flag, status);
       remap_status(status);
     }
+
   } else {
     assert(false);
     return -1;
-  }
-  if ((status->MPI_SOURCE == 4098) || (status->MPI_SOURCE == 4099)) {
-    std::cout << "\n\nHERE\n\n";
   }
   return MPI_SUCCESS;
 }

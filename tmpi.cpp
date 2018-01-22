@@ -362,9 +362,7 @@ int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status) {
     assert(false);
     return -1;
   }
-  if ((status->MPI_SOURCE == 4098) || (status->MPI_SOURCE == 4099)) {
-    std::cout << "\n\nHERE\n\n";
-  }
+
   return MPI_SUCCESS;
 
 }
@@ -407,6 +405,7 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
       PMPI_Test(request, flag, status);
       remap_status(status);
       PMPI_Testall(R_FACTOR-1, lut.at(request)[0],flag, MPI_STATUS_IGNORE);
+      std::cout << "Flag: " << *flag << "\n\n";
     } else if (lut.find(request) != lut.end()) {
       *flag = 1;
       status->MPI_SOURCE = MASTER;

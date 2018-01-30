@@ -3,6 +3,17 @@
 
 #include <mpi.h>
 
+#ifdef LOGDEBUG
+#define logDebug(messageStream) \
+   { \
+      std::cout << "[TMPI]    [rank " << team_rank << "/" << world_rank << "]    " << messageStream << std::endl; \
+      \
+   }
+#else
+#define logDebug(messageStream) \
+   { \
+   }
+#endif
 
 enum class CommunicationModes { Parallel, Mirror };
 

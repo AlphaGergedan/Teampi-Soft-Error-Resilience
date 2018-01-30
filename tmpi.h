@@ -8,6 +8,8 @@ enum class CommunicationModes { Parallel, Mirror };
 
 enum class ReplicationModes { Cyclic, Adjacent };
 
+std::string getEnvString(std::string const& key);
+
 void read_config();
 
 void print_config();

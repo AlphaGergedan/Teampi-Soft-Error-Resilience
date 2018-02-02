@@ -154,6 +154,8 @@ int MPI_Init(int *argc, char*** argv) {
 
   init_rank();
 
+  logDebug("Initialised");
+
   return MPI_SUCCESS;
 }
 
@@ -161,6 +163,7 @@ int MPI_Init_thread( int *argc, char ***argv, int required, int *provided ) {
   PMPI_Init_thread(argc, argv, required, provided);
 
   init_rank();
+  logDebug("Initialised");
 
   return MPI_SUCCESS;
 }
@@ -169,6 +172,7 @@ int MPI_Comm_rank(MPI_Comm comm, int *rank) {
   assert(comm == MPI_COMM_WORLD);
 
   *rank = team_rank;
+  logDebug("Returning rank " << *rank);
 
   return MPI_SUCCESS;
 }
@@ -177,6 +181,7 @@ int MPI_Comm_size(MPI_Comm comm, int *size) {
   assert(comm == MPI_COMM_WORLD);
 
   *size = team_size;
+  logDebug("Returning size " << *size);
 
   return MPI_SUCCESS;
 }
@@ -185,7 +190,9 @@ int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
               int tag, MPI_Comm comm) {
   assert(comm == MPI_COMM_WORLD);
   int err = 0;
-
+  //  if (world_rank != team_rank) {
+  //    logDebug("HERE");
+  //  }
   int r_num = get_R_number(world_rank);
   err |= PMPI_Send(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm);
   logDebug("Send to rank " << map_team_to_world(dest, r_num) << " with tag " << tag);
@@ -239,8 +246,10 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 int MPI_Wait(MPI_Request *request, MPI_Status *status) {
   int err = 0;
 
+  logDebug("Wait initialised");
   err |= PMPI_Wait(request, status);
   remap_status(status);
+  logDebug("Wait completed");
 
   return err;
 }

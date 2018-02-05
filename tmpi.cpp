@@ -45,7 +45,7 @@ void read_config() {
   } else if (env.empty()){
     RepMode = ReplicationModes::Cyclic;
   } else{
-    std::cout << "Value (" << env << ") for " << "R_MODE" << " not valid\n";
+    std::cerr << "Value (" << env << ") for " << "R_MODE" << " not valid\n";
   }
 
   env = getEnvString("COMM_MODE");
@@ -56,7 +56,7 @@ void read_config() {
   } else if (env.empty()){
     CommMode = CommunicationModes::Parallel;
   } else{
-    std::cout << "Value (" << env << ") for " << "COMM_MODE" << " not valid\n";
+    std::cerr << "Value (" << env << ") for " << "COMM_MODE" << " not valid\n";
   }
 }
 
@@ -64,26 +64,26 @@ void print_config(){
   MPI_Barrier(MPI_COMM_WORLD);
 
   if (world_rank == MASTER) {
-    std::cout << "------------TMPI SETTINGS------------\n";
-    std::cout << "R_FACTOR = " << R_FACTOR << "\n";
+    std::cerr << "------------TMPI SETTINGS------------\n";
+    std::cerr << "R_FACTOR = " << R_FACTOR << "\n";
 
-    std::cout << "REP_MODE = ";
+    std::cerr << "REP_MODE = ";
     if (RepMode == ReplicationModes::Cyclic) {
-      std::cout << "CYCLIC\n";
+      std::cerr << "CYCLIC\n";
     } else {
-      std::cout << "ADJACENT\n";
+      std::cerr << "ADJACENT\n";
     }
 
-    std::cout << "COMM_MODE = ";
+    std::cerr << "COMM_MODE = ";
     if (CommMode == CommunicationModes::Mirror) {
-      std::cout << "MIRROR\n";
+      std::cerr << "MIRROR\n";
     } else {
-      std::cout << "PARALLEL\n";
+      std::cerr << "PARALLEL\n";
     }
 
-    std::cout << "Team size: " << team_size << "\n";
-    std::cout << "Total ranks: " << world_size << "\n";
-    std::cout << "--------------------------------------\n\n";
+    std::cerr << "Team size: " << team_size << "\n";
+    std::cerr << "Total ranks: " << world_size << "\n";
+    std::cerr << "--------------------------------------\n\n";
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -168,6 +168,12 @@ int MPI_Init_thread( int *argc, char ***argv, int required, int *provided ) {
   return MPI_SUCCESS;
 }
 
+int MPI_Is_thread_main(int* flag) {
+  // See header documentation
+  *flag = get_R_number(world_rank) + 1;
+  return MPI_SUCCESS;
+}
+
 int MPI_Comm_rank(MPI_Comm comm, int *rank) {
   assert(comm == MPI_COMM_WORLD);
 
@@ -249,7 +255,7 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
   logDebug("Wait initialised");
   err |= PMPI_Wait(request, status);
   remap_status(status);
-  logDebug("Wait completed");
+  logDebug("Wait completed (SOURCE=" << status->MPI_SOURCE << ", TAG=" << status->MPI_TAG << ")");
 
   return err;
 }

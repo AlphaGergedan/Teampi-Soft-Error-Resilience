@@ -2,31 +2,17 @@ CC = mpiicpc
 
 FLAGS = -Wall -std=c++11 -O0 -g3 -DLOGDEBUG
 
-testdir = tests
-
-all: HelloWorldTest PingPongTest NonBlockingTest libtmpi.so
-
-NonBlockingTest: NonBlockingTest.o libtmpi.so
-	$(CC) $(FLAGS) NonBlockingTest.o -o $(testdir)/NonBlockingTest -L. -ltmpi
-
-HelloWorldTest: HelloWorldTest.o libtmpi.so
-	$(CC) $(FLAGS) HelloWorldTest.o -o $(testdir)/HelloWorldTest -L. -ltmpi
-
-PingPongTest: PingPongTest.o libtmpi.so
-	$(CC) $(FLAGS) PingPongTest.o -o $(testdir)/PingPongTest -L. -ltmpi
+all: libtmpi.so UnitTests 
 
 libtmpi.so: tmpi.cpp tmpi.h
 	$(CC) $(FLAGS) -fpic -c tmpi.cpp -o tmpi.o
 	$(CC) -shared -Wl,-soname,libtmpi.so -o libtmpi.so tmpi.o
 
-NonBlockingTest.o: NonBlockingTest.cpp
-	$(CC) $(FLAGS) -c NonBlockingTest.cpp -o NonBlockingTest.o
-	
-HelloWorldTest.o: HelloWorldTest.cpp
-	$(CC) $(FLAGS) -c HelloWorldTest.cpp -o HelloWorldTest.o
+UnitTests: UnitTests.o libtmpi.so
+	$(CC) $(FLAGS) UnitTests.o -o UnitTests -L. -ltmpi
 
-PingPongTest.o: PingPongTest.cpp
-	$(CC) $(FLAGS) -c PingPongTest.cpp -o PingPongTest.o
+UnitTests.o: UnitTests.cpp
+	$(CC) $(FLAGS) -c UnitTests.cpp -o UnitTests.o
 
 clean:
-	rm tests/* *.o *.so
+	rm UnitTests *.o *.so

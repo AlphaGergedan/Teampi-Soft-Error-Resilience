@@ -1,0 +1,9 @@
+[TMPI]    [rank 0/2]    Initialised
+[TMPI]    [rank 0/2]    Returning rank 0
+[TMPI]    [rank 0/2]    Returning size 2
+Hello world from processor bxps, rank 0 out of 2
+[TMPI]    [rank 0/2]    Send to rank 3 with tag 0
+[TMPI]    [rank 0/2]    Receive from rank 3 with tag 0
+[TMPI]    [rank 0/2]    Isend to rank 3 with tag 0
+[TMPI]    [rank 0/2]    Wait initialised
+[TMPI]    [rank 0/2]    Wait completed (SOURCE=0, TAG=-1)

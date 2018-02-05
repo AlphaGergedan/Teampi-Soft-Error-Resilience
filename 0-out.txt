@@ -1,0 +1,8 @@
+<<< STARTING TEST: Hello World >>>
+Hello world from processor bxps, rank 0 out of 2
+### TEST FINISHED: Hello World ###
+
+<<< STARTING TEST: Ping Pong >>>
+### TEST FINISHED: Ping Pong ###
+
+<<< STARTING TEST: Non Blocking >>>

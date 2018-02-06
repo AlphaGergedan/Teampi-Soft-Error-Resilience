@@ -6,9 +6,7 @@
 #ifdef LOGDEBUG
 #define logDebug(messageStream) \
    { \
-      if (get_R_number(world_rank) > 0) { \
       std::cout << "[TMPI]    [rank " << team_rank << "/" << world_rank << "]    " << messageStream << std::endl; \
-      } \
    }
 #else
 #define logDebug(messageStream) \

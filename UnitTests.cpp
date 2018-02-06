@@ -4,8 +4,6 @@
 #include <locale>
 #include <cassert>
 
-#define IS_REAL_MASTER  ((rank == 0) && (r_num == 1))
-
 void helloWorldTest(int rank, int size) {
   char proc_name[MPI_MAX_PROCESSOR_NAME];
   int name_len;
@@ -58,7 +56,7 @@ void nonBlockingTest(int rank, int size) {
     }
   }
   else if (rank == 1) {
-    MPI_Irecv(&msg, 1, MPI_INT, 0, 1, MPI_COMM_WORLD, request);
+    MPI_Irecv(&msg, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, request);
     MPI_Test(request, &flag, &status);
     if (!flag) {
       MPI_Wait(request, &status);
@@ -84,13 +82,13 @@ void runTest(std::string testName, std::function<void(int,int)> test, int rank, 
   MPI_Barrier(MPI_COMM_WORLD);
   int r_num;
   MPI_Is_thread_main(&r_num);
-  if (IS_REAL_MASTER)
+  if ((rank == 0) && (r_num == 1))
     std::cout << "<<< STARTING TEST: " << testName << " >>>" << std::endl;
   MPI_Barrier(MPI_COMM_WORLD);
   test(rank, size);
 
   MPI_Barrier(MPI_COMM_WORLD);
-  if (IS_REAL_MASTER)
+  if ((rank == 0) && (r_num == 1))
     std::cout << "### TEST FINISHED: " << testName << " ###" << std::endl << std::endl;
   MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -105,9 +103,9 @@ int main(int argc, char *argv[]) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-  runTest("Hello World", helloWorldTest, rank, size);
-
-  runTest("Ping Pong", pingPongTest, rank, size);
+//  runTest("Hello World", helloWorldTest, rank, size);
+//
+//  runTest("Ping Pong", pingPongTest, rank, size);
 
   runTest("Non Blocking", nonBlockingTest, rank, size);
 

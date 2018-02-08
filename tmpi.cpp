@@ -47,21 +47,35 @@ void read_config() {
 
 void print_config(){
   MPI_Barrier(MPI_COMM_WORLD);
+  double my_time = MPI_Wtime();
+  MPI_Barrier(MPI_COMM_WORLD);
+  double times[world_size];
+
+  MPI_Gather(&my_time, 1, MPI_DOUBLE, times, 1, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+
+  MPI_Barrier(MPI_COMM_WORLD);
 
   if (world_rank == MASTER) {
-    std::cerr << "------------TMPI SETTINGS------------\n";
-    std::cerr << "R_FACTOR = " << R_FACTOR << "\n";
+    std::cout << "------------TMPI SETTINGS------------\n";
+    std::cout << "R_FACTOR = " << R_FACTOR << "\n";
 
-    std::cerr << "REP_MODE = ";
+    std::cout << "REP_MODE = ";
     if (RepMode == ReplicationModes::Cyclic) {
-      std::cerr << "CYCLIC\n";
+      std::cout << "CYCLIC\n";
     } else {
-      std::cerr << "ADJACENT\n";
+      std::cout << "ADJACENT\n";
     }
 
-    std::cerr << "Team size: " << team_size << "\n";
-    std::cerr << "Total ranks: " << world_size << "\n";
-    std::cerr << "--------------------------------------\n\n";
+    std::cout << "Team size: " << team_size << "\n";
+    std::cout << "Total ranks: " << world_size << "\n\n";
+
+
+    if (world_rank == MASTER) {
+      for (int i=0; i < world_size; i++) {
+        std::cout << "Tshift(" << i << ") = " << times[i] - times[0] << "\n";
+      }
+    }
+    std::cout << "--------------------------------------\n\n";
   }
 
   MPI_Barrier(MPI_COMM_WORLD);

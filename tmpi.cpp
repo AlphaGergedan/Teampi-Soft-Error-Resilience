@@ -37,7 +37,7 @@ void read_config() {
   env = getEnvString("R_FACTOR");
   R_FACTOR = env.empty() ? 2 : std::stoi(env);
 
-  env = getEnvString("R_MODE");
+  env = getEnvString("REP_MODE");
   if (env.compare("CYCLIC") == 0) {
     RepMode = ReplicationModes::Cyclic;
   } else if (env.compare("ADJACENT") == 0) {
@@ -45,7 +45,7 @@ void read_config() {
   } else if (env.empty()){
     RepMode = ReplicationModes::Cyclic;
   } else{
-    std::cerr << "Value (" << env << ") for " << "R_MODE" << " not valid\n";
+    std::cerr << "Value (" << env << ") for " << "REP_MODE" << " not valid\n";
   }
 
   env = getEnvString("COMM_MODE");
@@ -207,9 +207,7 @@ int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
               int tag, MPI_Comm comm) {
   assert(comm == MPI_COMM_WORLD);
   int err = 0;
-  //  if (world_rank != team_rank) {
-  //    logDebug("HERE");
-  //  }
+
   int r_num = get_R_number(world_rank);
   err |= PMPI_Send(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm);
   logDebug("Send to rank " << map_team_to_world(dest, r_num) << " with tag " << tag);

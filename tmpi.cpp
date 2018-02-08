@@ -14,16 +14,12 @@ const int MASTER = 0;
 
 int R_FACTOR;
 
-CommunicationModes CommMode;
-
 ReplicationModes RepMode;
 
 int world_rank;
 int world_size;
 int team_rank;
 int team_size;
-
-std::map<MPI_Request*, std::vector<MPI_Request*>> lut;
 
 std::string getEnvString(std::string const& key)
 {
@@ -47,17 +43,6 @@ void read_config() {
   } else{
     std::cerr << "Value (" << env << ") for " << "REP_MODE" << " not valid\n";
   }
-
-  env = getEnvString("COMM_MODE");
-  if (env.compare("PARALLEL") == 0) {
-    CommMode = CommunicationModes::Parallel;
-  } else if (env.compare("MIRROR") == 0) {
-    CommMode = CommunicationModes::Mirror;
-  } else if (env.empty()){
-    CommMode = CommunicationModes::Parallel;
-  } else{
-    std::cerr << "Value (" << env << ") for " << "COMM_MODE" << " not valid\n";
-  }
 }
 
 void print_config(){
@@ -72,13 +57,6 @@ void print_config(){
       std::cerr << "CYCLIC\n";
     } else {
       std::cerr << "ADJACENT\n";
-    }
-
-    std::cerr << "COMM_MODE = ";
-    if (CommMode == CommunicationModes::Mirror) {
-      std::cerr << "MIRROR\n";
-    } else {
-      std::cerr << "PARALLEL\n";
     }
 
     std::cerr << "Team size: " << team_size << "\n";

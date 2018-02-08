@@ -118,30 +118,38 @@ int get_R_number(int rank) {
   }
 }
 
-//TODO: check if SOURCE == MPI_ANY_SOURCE
+
 int map_world_to_team(int rank) {
-  switch(RepMode) {
-    case ReplicationModes::Cyclic:
-      return rank % team_size;
-    case ReplicationModes::Adjacent:
-      return rank / R_FACTOR;
-    default:
-      assert(false);
-      return -1;
+  if (rank == MPI_ANY_SOURCE) {
+    return MPI_ANY_SOURCE;
+  } else {
+    switch(RepMode) {
+      case ReplicationModes::Cyclic:
+        return rank % team_size;
+      case ReplicationModes::Adjacent:
+        return rank / R_FACTOR;
+      default:
+        assert(false);
+        return -1;
+    }
   }
+
 }
 
 
-//TODO: check if SOURCE == MPI_ANY_SOURCE
 int map_team_to_world(int rank, int r_num) {
-  switch(RepMode) {
-    case ReplicationModes::Cyclic:
-      return rank + (r_num * team_size);
-    case ReplicationModes::Adjacent:
-      return rank + r_num;
-    default:
-      assert(false);
-      return -1;
+  if (rank == MPI_ANY_SOURCE) {
+    return MPI_ANY_SOURCE;
+  } else {
+    switch(RepMode) {
+      case ReplicationModes::Cyclic:
+        return rank + (r_num * team_size);
+      case ReplicationModes::Adjacent:
+        return rank + r_num;
+      default:
+        assert(false);
+        return -1;
+    }
   }
 }
 

@@ -1,6 +1,6 @@
 CC = mpiicpc
 
-FLAGS = -Wall -std=c++11 -O0 -g3 -DLOGDEBUG
+FLAGS = -Wall -std=c++11 -O0 -g3
 
 all: libtmpi.so UnitTests 
 

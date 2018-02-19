@@ -24,6 +24,8 @@ void read_config();
 
 void print_config();
 
+void output_timing();
+
 /**
  * Sets the global variables for an MPI process
  * @return MPI_SUCCESS
@@ -147,6 +149,8 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
                 MPI_Status *status);
 
 int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status);
+
+int MPI_Barrier(MPI_Comm comm);
 
 int MPI_Finalize(void);
 #endif

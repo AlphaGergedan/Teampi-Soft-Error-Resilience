@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <map>
 #include <vector>
+#include <stddef.h>
 
 #include "tmpi.h"
 
@@ -20,6 +21,22 @@ int world_rank;
 int world_size;
 int team_rank;
 int team_size;
+
+struct Timing {
+  int numWaits;
+  double waitTime;
+
+  int numBarriers;
+  double barrierTime;
+
+  int numSends;
+  double sendTime;
+
+  int numRecvs;
+  double recvTime;
+
+  int numTests;
+} timer = {0,0,0,0,0,0,0,0,0};
 
 std::string getEnvString(std::string const& key)
 {
@@ -81,11 +98,64 @@ void print_config(){
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
+void output_timing() {
+  int count = 9;
+  int array_of_blocklengths[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1};
+  MPI_Aint array_of_displacements[] = { offsetof( Timing, numWaits),
+                                        offsetof( Timing, waitTime),
+                                        offsetof( Timing, numBarriers),
+                                        offsetof( Timing, barrierTime),
+                                        offsetof( Timing, numSends),
+                                        offsetof( Timing, sendTime),
+                                        offsetof( Timing, numRecvs),
+                                        offsetof( Timing, recvTime),
+                                        offsetof( Timing, numTests),
+                                      };
+  MPI_Datatype array_of_types[] = { MPI_INT, MPI_DOUBLE, MPI_INT, MPI_DOUBLE, MPI_INT, MPI_DOUBLE, MPI_INT, MPI_DOUBLE, MPI_INT };
+  MPI_Datatype tmp_type, mpi_timer_type;
+  MPI_Aint lb, extent;
+
+  MPI_Type_create_struct(count, array_of_blocklengths, array_of_displacements, array_of_types, &tmp_type);
+  MPI_Type_get_extent(tmp_type, &lb, &extent);
+  MPI_Type_create_resized( tmp_type, lb, extent, &mpi_timer_type);
+  MPI_Type_commit(&mpi_timer_type);
+
+  Timing timers[world_size];
+  MPI_Gather(&timer, 1, mpi_timer_type, timers, 1, mpi_timer_type, MASTER, MPI_COMM_WORLD);
+
+  if (world_rank == MASTER) {
+    char sep = ',';
+    std::ofstream f;
+    f.open("timings.csv");
+    f << "world_rank,team_rank,replica,numWaits,waitTime,numBarriers,barrierTime,numSends,sendTime,numRecvs,recvTime,numTests\n";
+    for (int rank=0; rank < world_size; rank++) {
+      f << rank << sep
+        << map_world_to_team(rank) << sep
+        << get_R_number(rank) << sep
+        << timers[rank].numWaits << sep
+        << timers[rank].waitTime << sep
+        << timers[rank].numBarriers << sep
+        << timers[rank].barrierTime << sep
+        << timers[rank].numSends << sep
+        << timers[rank].sendTime << sep
+        << timers[rank].numRecvs << sep
+        << timers[rank].recvTime << sep
+        << timers[rank].numTests << sep
+        << std::endl;
+    }
+    f.close();
+  }
+}
+
+
 int init_rank() {
   /**
    * The application should have no knowledge of the world_size or world_rank
    */
   read_config();
+
+  timer.numWaits = 0;
+  timer.waitTime = 0.0;
 
   PMPI_Comm_size(MPI_COMM_WORLD, &world_size);
   team_size = (world_size) / R_FACTOR;
@@ -201,7 +271,11 @@ int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
   int err = 0;
 
   int r_num = get_R_number(world_rank);
+  double start = MPI_Wtime();
   err |= PMPI_Send(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm);
+  double delta = MPI_Wtime() - start;
+  timer.numSends++;
+  timer.sendTime += delta;
   logDebug("Send to rank " << map_team_to_world(dest, r_num) << " with tag " << tag);
 
   return err;
@@ -214,8 +288,12 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
   int err = 0;
 
   int r_num = get_R_number(world_rank);
+  double start = MPI_Wtime();
   err |= PMPI_Recv(buf, count, datatype, map_team_to_world(source, r_num), tag, comm,
            status);
+  double delta = MPI_Wtime() - start;
+  timer.numRecvs++;
+  timer.recvTime += delta;
   logDebug("Receive from rank " << map_team_to_world(source, r_num) << " with tag " << tag);
   remap_status(status);
 
@@ -252,11 +330,18 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 
 int MPI_Wait(MPI_Request *request, MPI_Status *status) {
   int err = 0;
-
   logDebug("Wait initialised");
+  double start = MPI_Wtime();
   err |= PMPI_Wait(request, status);
+  double delta = MPI_Wtime() - start;
+  timer.numWaits++;
+  timer.waitTime += delta;
   remap_status(status);
-  logDebug("Wait completed (STATUS_SOURCE=" << status->MPI_SOURCE << ",STATUS_TAG=" << status->MPI_TAG << ")");
+  logDebug("Wait completed in "
+      << delta << "s "
+      <<"(STATUS_SOURCE=" << status->MPI_SOURCE
+      << ",STATUS_TAG=" << status->MPI_TAG
+      << ")");
 
   return err;
 }
@@ -266,6 +351,7 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
 
   err |= PMPI_Test(request, flag, status);
   remap_status(status);
+  timer.numTests++;
   logDebug("Test completed ("
       << "FLAG=" << *flag
       << ",STATUS_SOURCE=" << status->MPI_SOURCE
@@ -320,7 +406,21 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
   return err;
 }
 
+int MPI_Barrier(MPI_Comm comm) {
+  assert(comm == MPI_COMM_WORLD);
+
+  int err = 0;
+  double start = MPI_Wtime();
+  err |= PMPI_Barrier(comm);
+  double delta = MPI_Wtime() - start;
+  timer.numBarriers++;
+  timer.barrierTime += delta;
+
+  return err;
+}
+
 int MPI_Finalize() {
   logDebug("Finalize");
+  output_timing();
   return PMPI_Finalize();
 }

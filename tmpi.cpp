@@ -15,8 +15,6 @@ const int MASTER = 0;
 
 int R_FACTOR;
 
-ReplicationModes RepMode;
-
 int world_rank;
 int world_size;
 int team_rank;
@@ -50,16 +48,6 @@ void read_config() {
   env = getEnvString("R_FACTOR");
   R_FACTOR = env.empty() ? 2 : std::stoi(env);
 
-  env = getEnvString("REP_MODE");
-  if (env.compare("CYCLIC") == 0) {
-    RepMode = ReplicationModes::Cyclic;
-  } else if (env.compare("ADJACENT") == 0) {
-    RepMode = ReplicationModes::Adjacent;
-  } else if (env.empty()){
-    RepMode = ReplicationModes::Cyclic;
-  } else{
-    std::cerr << "Value (" << env << ") for " << "REP_MODE" << " not valid\n";
-  }
 }
 
 void print_config(){
@@ -76,20 +64,13 @@ void print_config(){
     std::cout << "------------TMPI SETTINGS------------\n";
     std::cout << "R_FACTOR = " << R_FACTOR << "\n";
 
-    std::cout << "REP_MODE = ";
-    if (RepMode == ReplicationModes::Cyclic) {
-      std::cout << "CYCLIC\n";
-    } else {
-      std::cout << "ADJACENT\n";
-    }
-
     std::cout << "Team size: " << team_size << "\n";
     std::cout << "Total ranks: " << world_size << "\n\n";
 
 
     if (world_rank == MASTER) {
       for (int i=0; i < world_size; i++) {
-        std::cout << "Tshift(" << i << ") = " << times[i] - times[0] << "\n";
+        std::cout << "Tshift(" << i << "->" << map_world_to_team(i) << "->" << map_team_to_world(map_world_to_team(i),get_R_number(i)) << ") = " << times[i] - times[0] << "\n";
       }
     }
     std::cout << "--------------------------------------\n\n";
@@ -165,18 +146,17 @@ int init_rank() {
 
   print_config();
 
+  int r_num = get_R_number(world_rank);
+  assert(world_rank == map_team_to_world(map_world_to_team(world_rank), r_num));
+
   return MPI_SUCCESS;
 }
 
 int get_R_number(int rank) {
-  switch(RepMode) {
-    case ReplicationModes::Cyclic:
-      return rank / team_size;
-    case ReplicationModes::Adjacent:
-      return rank % R_FACTOR;
-    default:
-      assert(false);
-      return -1;
+  if (rank < R_FACTOR) {
+    return rank;
+  } else {
+    return (rank - R_FACTOR) / (team_size - 1);
   }
 }
 
@@ -185,17 +165,12 @@ int map_world_to_team(int rank) {
   if (rank == MPI_ANY_SOURCE) {
     return MPI_ANY_SOURCE;
   } else {
-    switch(RepMode) {
-      case ReplicationModes::Cyclic:
-        return rank % team_size;
-      case ReplicationModes::Adjacent:
-        return rank / R_FACTOR;
-      default:
-        assert(false);
-        return -1;
+    if (rank < R_FACTOR) {
+      return MASTER;
+    } else {
+      return 1 + ((rank - R_FACTOR) % (team_size - 1));
     }
   }
-
 }
 
 
@@ -203,17 +178,14 @@ int map_team_to_world(int rank, int r_num) {
   if (rank == MPI_ANY_SOURCE) {
     return MPI_ANY_SOURCE;
   } else {
-    switch(RepMode) {
-      case ReplicationModes::Cyclic:
-        return rank + (r_num * team_size);
-      case ReplicationModes::Adjacent:
-        return rank + r_num;
-      default:
-        assert(false);
-        return -1;
+    if (rank == MASTER) {
+      return r_num;
+    } else {
+      return (rank + R_FACTOR) + (r_num * (team_size -1)) - 1;
     }
   }
 }
+
 
 void remap_status(MPI_Status *status) {
   if (status != MPI_STATUS_IGNORE) {

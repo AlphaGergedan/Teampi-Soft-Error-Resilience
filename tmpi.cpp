@@ -6,6 +6,7 @@
 #include <sstream>
 #include <algorithm>
 #include <map>
+#include <set>
 #include <vector>
 #include <stddef.h>
 
@@ -25,13 +26,14 @@ struct Timing {
   enum Method {Send, Recv, Isend, Irecv};
 
   std::map<const void*,double> sendLog;
-  std::map<void*,double> recvLog;
-  std::map<void*,double> iSendStartLog;
-  std::map<void*,double> iSendEndLog;
-  std::map<void*,double> iRecvStartLog;
-  std::map<void*,double> iRecvEndLog;
+  std::map<const void*,double> recvLog;
+  std::map<const void*,double> iSendStartLog;
+  std::map<const void*,double> iSendEndLog;
+  std::map<const void*,double> iRecvStartLog;
+  std::map<const void*,double> iRecvEndLog;
 
-  std::map<void*,double> testLUT;
+  std::map<MPI_Request*, const void*> sendLUT;
+  std::map<MPI_Request*, const void*> recvLUT;
 
   double startTime;
 
@@ -131,12 +133,46 @@ void output_timing() {
 //    }
 //    f.close();
 //  }
-  if ((team_rank == 1) && (get_R_number(world_rank) == 0)) {
-    int i = 0;
+  int i = 0;
+  if ((team_rank == 2)) {
+    i = 0;
     for (const auto& p : timer.sendLog) {
       i++;
-      std::cout << "Send " << i << p.second - timer.startTime << "\n";
+      std::cout << "Send " << i << "=" <<  p.second - timer.startTime << "\n";
     }
+
+    i = 0;
+    for (const auto& p : timer.recvLog) {
+      i++;
+      std::cout << "Recv " << i << "=" << p.second - timer.startTime << "\n";
+    }
+
+    i = 0;
+    for (const auto& p : timer.iSendStartLog) {
+      i++;
+      std::cout << "iSendStart " << i << "=" << p.second - timer.startTime << "\n";
+    }
+
+    i = 0;
+    for (const auto& p : timer.iSendEndLog) {
+      i++;
+      std::cout << "iSendEnd " << i << "=" << p.second - timer.startTime << "\n";
+    }
+
+
+    i = 0;
+    for (const auto& p : timer.iRecvStartLog) {
+      i++;
+      std::cout << "iRecvStart " << i << "=" << p.second - timer.startTime << "\n";
+    }
+
+    i = 0;
+    for (const auto& p : timer.iRecvEndLog) {
+      i++;
+      std::cout << "iRecvEnd " << i << "=" << p.second - timer.startTime << "\n";
+    }
+
+
   }
 
 }
@@ -267,7 +303,8 @@ int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
   int r_num = get_R_number(world_rank);
   err |= PMPI_Send(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm);
 
-  timer.sendLog.insert(std::make_pair(buf, MPI_Wtime()));
+  if (tag == 3)
+    timer.sendLog.insert(std::make_pair(buf, MPI_Wtime()));
 
   logDebug("Send to rank " << map_team_to_world(dest, r_num) << " with tag " << tag);
 
@@ -282,6 +319,8 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 
   int r_num = get_R_number(world_rank);
   err |= PMPI_Recv(buf, count, datatype, map_team_to_world(source, r_num), tag, comm, status);
+  if (tag == 3)
+    timer.recvLog.insert(std::make_pair(buf, MPI_Wtime()));
   remap_status(status);
   logDebug("Receive from rank " << map_team_to_world(source, r_num) << " with tag " << tag);
 
@@ -296,6 +335,11 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
 
   int r_num = get_R_number(world_rank);
   err |= PMPI_Isend(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm, request);
+  if (tag == 3) {
+    timer.iSendStartLog.insert(std::make_pair(buf, MPI_Wtime()));
+    timer.sendLUT.insert(std::make_pair(request, buf));
+  }
+
   logDebug("Isend to rank " << map_team_to_world(dest, r_num) << " with tag " << tag);
 
   return err;
@@ -310,6 +354,12 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
   int r_num = get_R_number(world_rank);
   source = map_team_to_world(source, r_num);
   err |= PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
+
+  if (tag == 3) {
+    timer.iRecvStartLog.insert(std::make_pair(buf, MPI_Wtime()));
+    timer.recvLUT.insert(std::make_pair(request, buf));
+  }
+
   logDebug("Ireceive from rank " << map_team_to_world(source, r_num) << " with tag " << tag);
 
   return err;
@@ -320,6 +370,15 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
   logDebug("Wait initialised");
 
   err |= PMPI_Wait(request, status);
+
+  auto buf = timer.sendLUT.find(request);
+  if (buf != timer.sendLUT.end()) {
+    timer.iSendEndLog.insert(std::make_pair(buf->second, MPI_Wtime()));
+  }
+  buf = timer.recvLUT.find(request);
+  if (buf != timer.recvLUT.end()) {
+    timer.iRecvEndLog.insert(std::make_pair(buf->second, MPI_Wtime()));
+  }
 
   remap_status(status);
   logDebug("Wait completed "
@@ -334,6 +393,17 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
   int err = 0;
 
   err |= PMPI_Test(request, flag, status);
+  if (*flag) {
+    auto buf = timer.sendLUT.find(request);
+    if (buf != timer.sendLUT.end()) {
+      timer.iSendEndLog.insert(std::make_pair(buf->second, MPI_Wtime()));
+    }
+    buf = timer.recvLUT.find(request);
+    if (buf != timer.recvLUT.end()) {
+      timer.iRecvEndLog.insert(std::make_pair(buf->second, MPI_Wtime()));
+    }
+  }
+
   remap_status(status);
 
   logDebug("Test completed ("

@@ -54,6 +54,8 @@ int map_team_to_world(int rank, int r_num);
  */
 void remap_status(MPI_Status *status);
 
+void checkIterationSize(int tag, MPI_Datatype datatype);
+
 
 /**
  * Sets up the MPI library and initialises the process

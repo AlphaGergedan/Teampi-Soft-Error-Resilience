@@ -51,6 +51,8 @@ void read_config() {
 }
 
 void print_config(){
+  assert(world_size % R_FACTOR == 0);
+
   MPI_Barrier(MPI_COMM_WORLD);
   double my_time = MPI_Wtime();
   MPI_Barrier(MPI_COMM_WORLD);
@@ -134,9 +136,6 @@ int init_rank() {
    * The application should have no knowledge of the world_size or world_rank
    */
   read_config();
-
-  timer.numWaits = 0;
-  timer.waitTime = 0.0;
 
   PMPI_Comm_size(MPI_COMM_WORLD, &world_size);
   team_size = (world_size) / R_FACTOR;
@@ -275,7 +274,12 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
                int tag, MPI_Comm comm, MPI_Request *request) {
   assert(comm == MPI_COMM_WORLD);
-
+  if (tag == 3) {
+//    std::cout << "READ ACTION: " << *((const int *)(buf+8)) << "\n";
+    int *size;
+    MPI_Type_size(datatype, size);
+    std::cout << "SIZEOF: " << *size << "\n";
+  }
   int err = 0;
 
   int r_num = get_R_number(world_rank);

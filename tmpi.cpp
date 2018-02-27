@@ -13,7 +13,7 @@
 #include "tmpi.h"
 
 const int MASTER = 0;
-const int ITAG = 0;
+const int ITAG = 3;
 
 int R_FACTOR;
 
@@ -116,17 +116,17 @@ void output_timing() {
   f << "\n";
 
   f.close();
-//  MPI_Barrier(MPI_COMM_WORLD);
-//  for (int i = 0; i < world_size; i++) {
-//    if (i == world_rank) {
-//      std::cout << "RANK " << i << "\n";
-//      std::cout << "iSendStartLog: " << timer.iSendStartLog.size() << "\n";
-//      std::cout << "iSendEndLog: " << timer.iSendEndLog.size() << "\n";
-//      std::cout << "iRecvStartLog: " << timer.iRecvStartLog.size() << "\n";
-//      std::cout << "iRecvEndLog: " << timer.iRecvEndLog.size() << "\n";
-//    }
-//    MPI_Barrier(MPI_COMM_WORLD);
-//  }
+  MPI_Barrier(MPI_COMM_WORLD);
+  for (int i = 0; i < world_size; i++) {
+    if (i == world_rank) {
+      std::cout << "RANK " << i << "\n";
+      std::cout << "iSendStartLog: " << timer.iSendStartLog.size() << "\n";
+      std::cout << "iSendEndLog: " << timer.iSendEndLog.size() << "\n";
+      std::cout << "iRecvStartLog: " << timer.iRecvStartLog.size() << "\n";
+      std::cout << "iRecvEndLog: " << timer.iRecvEndLog.size() << "\n";
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
 }
 
 

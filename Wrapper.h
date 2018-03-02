@@ -3,60 +3,6 @@
 
 #include <mpi.h>
 
-#ifdef LOGDEBUG
-#define logDebug(messageStream) \
-   { \
-      std::cout << "[TMPI]    [rank " << team_rank << "/" << world_rank << "]    " << messageStream << std::endl; \
-   }
-#else
-#define logDebug(messageStream) \
-   { \
-   }
-#endif
-
-std::string getEnvString(std::string const& key);
-
-void read_config();
-
-void print_config();
-
-void output_timing();
-
-/**
- * Sets the global variables for an MPI process
- * @return MPI_SUCCESS
- */
-int init_rank();
-
-/**
- * @param rank of process
- * @return which replica rank is [0..R_FACTOR]
- */
-int get_R_number(int rank);
-
-/**
- * @param world_rank
- * @return world_rank mapped to a team_rank
- */
-int map_world_to_team(int world_rank);
-
-/**
- *
- * @param rank of a replica
- * @param r_num specifying which replica rank is
- * @return rank mapped to a world/global rank
- */
-int map_team_to_world(int rank, int r_num);
-
-/**
- * Modify the source of the status to within team_size
- * @param status to modify
- */
-void remap_status(MPI_Status *status);
-
-void checkIterationSize(int tag, MPI_Datatype datatype);
-
-
 /**
  * Sets up the MPI library and initialises the process
  * @param argc

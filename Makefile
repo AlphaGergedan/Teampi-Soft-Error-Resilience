@@ -2,8 +2,8 @@ CC=mpiicpc
 CFLAGS += -fPIC -g -Wall -std=c++11
 LDFLAGS += -shared
 
-SOURCES = $(shell echo *.cpp)
-HEADERS = $(shell echo *.h)
+SOURCES = $(shell echo src/*.cpp)
+HEADERS = $(shell echo src/*.h)
 OBJECTS = $(SOURCES:.cpp=.o)
 
 TARGET = libtmpi.so

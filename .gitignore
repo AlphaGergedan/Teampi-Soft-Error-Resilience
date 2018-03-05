@@ -1,4 +1,5 @@
-tests/*
+UnitTests
+
 
 # Any kind of log files created by some editors
 # (swap files or temporary files)
@@ -11,6 +12,7 @@ tests/*
 .project
 .settings
 .kdev4
+*.pydevproject
 *.kdev4
 *.sublime-project
 *.sublime-workspace

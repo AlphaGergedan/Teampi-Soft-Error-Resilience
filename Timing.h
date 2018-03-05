@@ -17,10 +17,10 @@ enum NonBlockingType {iSend, iRecv};
 
 void initialise();
 
-const std::vector<double>& getISendStartTimes() const;
-const std::vector<double>& getISendEndTimes() const;
-const std::vector<double>& getIRecvStartTimes() const;
-const std::vector<double>& getIRecvEndTimes() const;
+const std::vector<double>& getISendStartTimes();
+const std::vector<double>& getISendEndTimes();
+const std::vector<double>& getIRecvStartTimes();
+const std::vector<double>& getIRecvEndTimes();
 
 void startNonBlocking(Timing::NonBlockingType type, int tag, MPI_Request *request);
 

@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <string>
 
+
 int getWorldRank();
 
 int getWorldSize();
@@ -59,8 +60,6 @@ int map_team_to_world(int rank, int r_num);
  * @param status to modify
  */
 void remap_status(MPI_Status *status);
-
-
 
 
 #endif /* RANKOPERATIONS_H_ */

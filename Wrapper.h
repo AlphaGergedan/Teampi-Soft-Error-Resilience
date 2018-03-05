@@ -1,5 +1,5 @@
-#ifndef TMPI_H
-#define TMPI_H
+#ifndef WRAPPER_H
+#define WRAPPER_H
 
 #include <mpi.h>
 
@@ -47,9 +47,7 @@ int MPI_Comm_size(MPI_Comm comm, int *size);
 
 
 /**
- * Sends message to dest + all replicas in mirror mode or host rank == master
- * Sends message to dest in parallel mode
- * Sends to master only if dest==master
+ * Sends only to the corresponding replica of dest
  * @return
  */
 int MPI_Send(const void *buf, int count, MPI_Datatype, int dest, int tag,
@@ -57,9 +55,7 @@ int MPI_Send(const void *buf, int count, MPI_Datatype, int dest, int tag,
 
 
 /**
- * Recv from master only if source is master
- * Recv from source + all replicas in mirror mode
- * Recv from source in parallel mode
+ * Receive from the corresponding replica of source
  * @return
  */
 int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
@@ -80,11 +76,6 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
 int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
                MPI_Comm comm, MPI_Request *request);
 
-/**
- * @param request an array in mirror mode (per replica), single request object in parallel
- * @param status an array in mirror mode (per replica), single status object in parallel
- * @return
- */
 int MPI_Wait(MPI_Request *request, MPI_Status *status);
 
 int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status);

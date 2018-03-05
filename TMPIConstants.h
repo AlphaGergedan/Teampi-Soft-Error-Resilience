@@ -11,6 +11,4 @@
 const int MASTER = 0;
 const int ITAG = 3;
 
-
-
 #endif /* TMPICONSTANTS_H_ */

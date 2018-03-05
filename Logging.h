@@ -19,6 +19,9 @@
    }
 #endif
 
+/**
+ * Used as a quick as easy debugging tool, always output.
+ */
 #define logDebug(messageStream) \
    { \
       std::cout.flush(); \

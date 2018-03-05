@@ -1,0 +1,15 @@
+RankOperations.o: RankOperations.cpp /usr/include/stdc-predef.h RankOperations.h \
+ /opt/intel/compilers_and_libraries_2018.0.128/linux/mpi/intel64/include/mpi.h \
+ /opt/intel/compilers_and_libraries_2018.0.128/linux/mpi/intel64/include/mpio.h \
+ /opt/intel/compilers_and_libraries_2018.0.128/linux/mpi/intel64/include/mpicxx.h \
+ TMPIConstants.h Timing.h Logging.h
+Timing.o: Timing.cpp /usr/include/stdc-predef.h Timing.h \
+ /opt/intel/compilers_and_libraries_2018.0.128/linux/mpi/intel64/include/mpi.h \
+ /opt/intel/compilers_and_libraries_2018.0.128/linux/mpi/intel64/include/mpio.h \
+ /opt/intel/compilers_and_libraries_2018.0.128/linux/mpi/intel64/include/mpicxx.h \
+ TMPIConstants.h
+Wrapper.o: Wrapper.cpp /usr/include/stdc-predef.h Wrapper.h \
+ /opt/intel/compilers_and_libraries_2018.0.128/linux/mpi/intel64/include/mpi.h \
+ /opt/intel/compilers_and_libraries_2018.0.128/linux/mpi/intel64/include/mpio.h \
+ /opt/intel/compilers_and_libraries_2018.0.128/linux/mpi/intel64/include/mpicxx.h \
+ RankOperations.h TMPIConstants.h Logging.h Timing.h

@@ -76,7 +76,7 @@ void print_config(){
         std::cout << "Tshift(" << i << "->" << map_world_to_team(i) << "->" << map_team_to_world(map_world_to_team(i),get_R_number(i)) << ") = " << times[i] - times[0] << "\n";
       }
     }
-    std::cout << "--------------------------------------\n\n";
+    std::cout << "---------------------------------------\n\n";
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -89,7 +89,7 @@ void output_timing() {
   filename << "timings-" << world_rank << "-" << team_rank << "-" << get_R_number(world_rank) << ".csv";
   std::ofstream f;
   f.open(filename.str().c_str());
-//  f << "world_rank,team_rank,replica,numWaits,waitTime,numBarriers,barrierTime,numSends,sendTime,numRecvs,recvTime,numTests\n";
+
   f << "iSendStart";
   for (const auto& t : Timing::getISendStartTimes()) {
     f << "," << t;
@@ -199,7 +199,6 @@ void remap_status(MPI_Status *status) {
     logInfo("remap status source " << status->MPI_SOURCE << " to " << map_world_to_team(status->MPI_SOURCE));
     status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
     if (status->MPI_TAG == 3) {
-//      std::cout << "HERE\n";
     }
   }
 }

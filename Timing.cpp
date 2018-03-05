@@ -29,23 +29,23 @@ void initialise() {
   startTime = MPI_Wtime();
 }
 
-const std::vector<double>& Timing::getISendStartTimes() const {
+const std::vector<double>& Timing::getISendStartTimes() {
   return timer.iSendStart;
 }
 
-const std::vector<double>& Timing::getISendEndTimes() const {
+const std::vector<double>& Timing::getISendEndTimes() {
   return timer.iSendEnd;
 }
 
-const std::vector<double>& Timing::getIRecvStartTimes() const {
+const std::vector<double>& Timing::getIRecvStartTimes() {
   return timer.iRecvStart;
 }
 
-const std::vector<double>& Timing::getIRecvEndTimes() const {
+const std::vector<double>& Timing::getIRecvEndTimes() {
   return timer.iRecvEnd;
 }
 
-void startNonBlocking(Timing::NonBlockingType type, int tag, MPI_Request *request) {
+void Timing::startNonBlocking(Timing::NonBlockingType type, int tag, MPI_Request *request) {
   switch(type) {
     case Timing::NonBlockingType::iSend:
       if (tag == ITAG) {
@@ -65,7 +65,7 @@ void startNonBlocking(Timing::NonBlockingType type, int tag, MPI_Request *reques
   }
 }
 
-void endNonBlocking(MPI_Request *request, MPI_Status *status) {
+void Timing::endNonBlocking(MPI_Request *request, MPI_Status *status) {
   if (status->MPI_TAG == ITAG) {
     auto buf = timer.sendLUT.find(request);
     if (buf != timer.sendLUT.end()) {

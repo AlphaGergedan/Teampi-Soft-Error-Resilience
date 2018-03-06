@@ -2,9 +2,9 @@ CC=mpiicpc
 CFLAGS += -fPIC -g -Wall -std=c++11
 LDFLAGS += -shared
 
-SOURCES = $(shell echo src/*.cpp)
-HEADERS = $(shell echo src/*.h)
-OBJECTS = $(SOURCES:.cpp=.o)
+SRC = RankOperations.cpp Timing.cpp Wrapper.cpp
+DEP = RankOperations.h Timing.h Wrapper.h TMPIConstants.h Logging.h
+OBJECTS = $(SRC:.cpp=.o)
 
 TARGET = libtmpi.so
 
@@ -12,12 +12,12 @@ TARGET = libtmpi.so
 
 all: $(TARGET)
 
-%.o: %.cpp
+%.o: %.cpp $(DEP)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 	
 $(TARGET) : $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $(TARGET) 
+	$(CC) $(LDFLAGS) $^ -o $@
 
 clean:
 	rm -f $(OBJECTS) $(TARGET)

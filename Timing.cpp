@@ -25,7 +25,7 @@ struct Timer {
 
 static struct Timer timer;
 
-void initialise() {
+void Timing::initialise() {
   startTime = MPI_Wtime();
 }
 

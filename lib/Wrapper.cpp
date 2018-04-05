@@ -9,8 +9,6 @@ int MPI_Init(int *argc, char*** argv) {
 
   init_rank();
 
-  logInfo("Initialised with size: " << getTeamSize() << " / " << getWorldSize());
-
   return MPI_SUCCESS;
 }
 
@@ -18,7 +16,6 @@ int MPI_Init_thread( int *argc, char ***argv, int required, int *provided ) {
   PMPI_Init_thread(argc, argv, required, provided);
 
   init_rank();
-  logInfo("Initialised with size: " << getTeamSize() << " / " << getWorldSize());
 
   return MPI_SUCCESS;
 }
@@ -33,7 +30,7 @@ int MPI_Comm_rank(MPI_Comm comm, int *rank) {
   assert(comm == MPI_COMM_WORLD);
 
   *rank = getTeamRank();
-  logInfo("Returning rank " << *rank);
+//  logInfo("Returning rank " << *rank);
 
   return MPI_SUCCESS;
 }
@@ -42,7 +39,7 @@ int MPI_Comm_size(MPI_Comm comm, int *size) {
   assert(comm == MPI_COMM_WORLD);
 
   *size = getTeamSize();
-  logInfo("Returning size " << *size);
+//  logInfo("Returning size " << *size);
 
   return MPI_SUCCESS;
 }
@@ -56,7 +53,13 @@ int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
   int r_num = get_R_number(getWorldRank());
   err |= PMPI_Send(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm);
 
-  logInfo("Send to rank " << map_team_to_world(dest, r_num) << " with tag " << tag);
+  logInfo(
+      "Send to rank " <<
+      dest <<
+      "/" <<
+      map_team_to_world(dest, r_num) <<
+      " with tag " <<
+      tag);
 
   return err;
 }
@@ -71,7 +74,14 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
   err |= PMPI_Recv(buf, count, datatype, map_team_to_world(source, r_num), tag, comm, status);
 
   remap_status(status);
-  logInfo("Receive from rank " << map_team_to_world(source, r_num) << " with tag " << tag);
+
+  logInfo(
+      "Receive from rank " <<
+      source <<
+      "/" <<
+      map_team_to_world(source, r_num) <<
+      " with tag " <<
+      tag);
 
   return err;
 }
@@ -86,7 +96,13 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
   err |= PMPI_Isend(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm, request);
   Timing::startNonBlocking(Timing::NonBlockingType::iSend, tag, request);
 
-  logInfo("Isend to rank " << map_team_to_world(dest, r_num) << " with tag " << tag);
+  logInfo(
+      "Isend to rank " <<
+      dest <<
+      "/" <<
+      map_team_to_world(dest, r_num) <<
+      " with tag " <<
+      tag);
 
   return err;
 }
@@ -103,7 +119,13 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 
   Timing::startNonBlocking(Timing::NonBlockingType::iRecv, tag, request);
 
-  logInfo("Ireceive from rank " << map_team_to_world(source, r_num) << " with tag " << tag);
+  logInfo(
+      "Receive from rank " <<
+      source <<
+      "/" <<
+      map_team_to_world(source, r_num) <<
+      " with tag " <<
+      tag);
 
   return err;
 }
@@ -121,6 +143,22 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
       <<"(STATUS_SOURCE=" << status->MPI_SOURCE
       << ",STATUS_TAG=" << status->MPI_TAG
       << ")");
+
+  return err;
+}
+
+int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]) {
+  int err = 0;
+
+  logInfo("Waitall initialised with " << count << " requests");
+
+  err |= PMPI_Waitall(count, array_of_requests, array_of_statuses);
+
+  for (int i = 0; i < count; i++) {
+    remap_status(&array_of_statuses[i]);
+  }
+
+  logInfo("Waitall completed with " << count << " requests");
 
   return err;
 }
@@ -200,8 +238,11 @@ int MPI_Barrier(MPI_Comm comm) {
 }
 
 int MPI_Finalize() {
-  logInfo("Finalize");
-  output_timing();
+  logInfo("Start finalize");
+  //output_timing();
 
   return PMPI_Finalize();
+//  logInfo("End finalize");
+//
+//  return 0;
 }

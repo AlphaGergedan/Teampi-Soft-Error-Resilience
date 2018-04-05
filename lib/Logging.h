@@ -8,10 +8,16 @@
 #ifndef LOGGING_H_
 #define LOGGING_H_
 
+//#define LOGINFO
+
+#include <iostream>
+
 #ifdef LOGINFO
 #define logInfo(messageStream) \
    { \
-      std::cout << "[TMPI]    [rank " << team_rank << "/" << world_rank << "]    " << messageStream << std::endl; \
+      std::cout.flush(); \
+      std::cout << "[TMPI]    [rank " << getTeamRank() << "/" << getWorldRank() << "]    " << messageStream << std::endl; \
+      std::cout.flush(); \
    }
 #else
 #define logInfo(messageStream) \
@@ -25,7 +31,7 @@
 #define logDebug(messageStream) \
    { \
       std::cout.flush(); \
-      std::cout << "[TMPI]    [rank " << team_rank << "/" << world_rank << "]    " << messageStream << std::endl; \
+      std::cout << "[TMPI]    [rank " << getTeamRank() << "/" << getWorldRank << "]    " << messageStream << std::endl; \
       std::cout.flush(); \
    }
 

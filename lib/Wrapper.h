@@ -78,6 +78,8 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 
 int MPI_Wait(MPI_Request *request, MPI_Status *status);
 
+int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]);
+
 int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status);
 
 int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,

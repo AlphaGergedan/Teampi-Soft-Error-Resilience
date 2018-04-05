@@ -3,7 +3,7 @@ CFLAGS += -g -Wall -std=c++11
 
 
 TARGET = UnitTests
-LIB = ../libtmpi.so
+LIB = ../lib/libtmpi.so
 
 
 all: $(LIB) $(TARGET) 
@@ -13,15 +13,15 @@ all: $(LIB) $(TARGET)
 
 	
 $(TARGET) : UnitTests.o
-	$(CC) $(CFLAGS) $^ -o $@ -L../ -ltmpi
+	$(CC) $(CFLAGS) $^ -o $@ -L../lib -ltmpi
 
 .PHONY : $(LIB)
 
 $(LIB):
-	make -C ..
+	make -C ../lib
 
 .PHONY : clean
 
 clean:
 	rm -f UnitTests.o $(TARGET)
-	make clean -C ..
+	make clean -C ../lib

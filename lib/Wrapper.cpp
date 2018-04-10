@@ -51,7 +51,7 @@ int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
   int err = 0;
 
   int r_num = get_R_number(getWorldRank());
-  err |= PMPI_Send(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm);
+  err |= PMPI_Send(buf, count, datatype, dest, tag, getCommunicator());
 
   logInfo(
       "Send to rank " <<
@@ -71,7 +71,7 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
   int err = 0;
 
   int r_num = get_R_number(getWorldRank());
-  err |= PMPI_Recv(buf, count, datatype, map_team_to_world(source, r_num), tag, comm, status);
+  err |= PMPI_Recv(buf, count, datatype, source, tag, getCommunicator(), status);
 
   remap_status(status);
 
@@ -93,7 +93,7 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
   int err = 0;
 
   int r_num = get_R_number(getWorldRank());
-  err |= PMPI_Isend(buf, count, datatype, map_team_to_world(dest, r_num), tag, comm, request);
+  err |= PMPI_Isend(buf, count, datatype, dest, tag, getCommunicator(), request);
   Timing::startNonBlocking(Timing::NonBlockingType::iSend, tag, request);
 
   logInfo(
@@ -114,8 +114,8 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
   int err = 0;
 
   int r_num = get_R_number(getWorldRank());
-  source = map_team_to_world(source, r_num);
-  err |= PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
+
+  err |= PMPI_Irecv(buf, count, datatype, source, tag, getCommunicator(), request);
 
   Timing::startNonBlocking(Timing::NonBlockingType::iRecv, tag, request);
 
@@ -192,7 +192,7 @@ int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status) {
       << tag
       << ")");
   int r_num = get_R_number(getWorldRank());
-  err |= PMPI_Probe(map_team_to_world(source, r_num), tag, comm, status);
+  err |= PMPI_Probe(source, tag, getCommunicator(), status);
   remap_status(status);
   logInfo(
       "Probe finished ("
@@ -213,7 +213,7 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
   int err = 0;
 
   int r_num = get_R_number(getWorldRank());
-  err |= PMPI_Iprobe(map_team_to_world(source, r_num), tag, comm, flag, status);
+  err |= PMPI_Iprobe(source, tag, getCommunicator(), flag, status);
   remap_status(status);
   logInfo(
       "Iprobe finished ("
@@ -232,13 +232,15 @@ int MPI_Barrier(MPI_Comm comm) {
 
   int err = 0;
 
-  err |= PMPI_Barrier(comm);
+  err |= PMPI_Barrier(getCommunicator());
 
   return err;
 }
 
 int MPI_Finalize() {
   logInfo("Start finalize");
+
+  freeCommunicator();
   //output_timing();
 
   return PMPI_Finalize();

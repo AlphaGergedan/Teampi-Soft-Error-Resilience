@@ -21,6 +21,10 @@ int getTeamRank();
 
 int getTeamSize();
 
+MPI_Comm getCommunicator();
+
+int freeCommunicator();
+
 std::string getEnvString(std::string const& key);
 
 void read_config();

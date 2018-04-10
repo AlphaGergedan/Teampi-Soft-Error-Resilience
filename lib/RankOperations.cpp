@@ -24,6 +24,7 @@
 
 
 static int R_FACTOR;
+static MPI_Comm MPI_COMM_REP;
 static int world_rank;
 static int world_size;
 static int team_rank;
@@ -43,6 +44,14 @@ int getTeamRank() {
 
 int getTeamSize() {
   return team_size;
+}
+
+MPI_Comm getCommunicator() {
+  return MPI_COMM_REP;
+}
+
+int freeCommunicator() {
+  return MPI_Comm_free(&MPI_COMM_REP);
 }
 
 std::string getEnvString(std::string const& key)
@@ -145,26 +154,29 @@ int init_rank() {
   read_config();
 
   PMPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  team_size = (world_size) / R_FACTOR;
-
   PMPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-  team_rank = map_world_to_team(world_rank);
+  team_size = world_size / R_FACTOR;
+
+  int color = world_rank / team_size;
+
+  PMPI_Comm_split(MPI_COMM_WORLD, color, world_rank, &MPI_COMM_REP);
+
+  PMPI_Comm_rank(MPI_COMM_REP, &team_rank);
+
+  PMPI_Comm_size(MPI_COMM_REP, &team_size);
+
+  assert(team_size == (world_size / R_FACTOR));
 
   print_config();
 
   int r_num = get_R_number(world_rank);
   assert(world_rank == map_team_to_world(map_world_to_team(world_rank), r_num));
 
-
   return MPI_SUCCESS;
 }
 
 int get_R_number(int rank) {
-  if (rank < R_FACTOR) {
-    return rank;
-  } else {
-    return (rank - R_FACTOR) / (team_size - 1);
-  }
+  return rank / team_size;
 }
 
 
@@ -172,11 +184,7 @@ int map_world_to_team(int rank) {
   if (rank == MPI_ANY_SOURCE) {
     return MPI_ANY_SOURCE;
   } else {
-    if (rank < R_FACTOR) {
-      return MASTER;
-    } else {
-      return 1 + ((rank - R_FACTOR) % (team_size - 1));
-    }
+    return rank % team_size;
   }
 }
 
@@ -185,11 +193,7 @@ int map_team_to_world(int rank, int r_num) {
   if (rank == MPI_ANY_SOURCE) {
     return MPI_ANY_SOURCE;
   } else {
-    if (rank == MASTER) {
-      return r_num;
-    } else {
-      return (rank + R_FACTOR) + (r_num * (team_size -1)) - 1;
-    }
+    return rank + r_num * team_size;
   }
 }
 
@@ -198,8 +202,6 @@ void remap_status(MPI_Status *status) {
   if (status != MPI_STATUS_IGNORE) {
     logInfo("remap status source " << status->MPI_SOURCE << " to " << map_world_to_team(status->MPI_SOURCE));
     status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
-    if (status->MPI_TAG == 3) {
-    }
   }
 }
 

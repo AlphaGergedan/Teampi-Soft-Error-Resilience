@@ -192,16 +192,20 @@ int map_world_to_team(int rank) {
 int map_team_to_world(int rank, int r_num) {
   if (rank == MPI_ANY_SOURCE) {
     return MPI_ANY_SOURCE;
-  } else {
-    return rank + r_num * team_size;
   }
+
+  if (r_num < 0) {
+    r_num = get_R_number(world_rank);
+  }
+
+  return rank + r_num * team_size;
 }
 
 
 void remap_status(MPI_Status *status) {
-  if (status != MPI_STATUS_IGNORE) {
-    logInfo("remap status source " << status->MPI_SOURCE << " to " << map_world_to_team(status->MPI_SOURCE));
+  if ((status != MPI_STATUS_IGNORE) && (status != MPI_STATUSES_IGNORE)) {
     status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
+    logInfo("remap status source " << status->MPI_SOURCE << " to " << map_world_to_team(status->MPI_SOURCE));
   }
 }
 

@@ -57,7 +57,7 @@ int map_world_to_team(int world_rank);
  * @param r_num specifying which replica rank is
  * @return rank mapped to a world/global rank
  */
-int map_team_to_world(int rank, int r_num);
+int map_team_to_world(int rank, int r_num=-1);
 
 /**
  * Modify the source of the status to within team_size

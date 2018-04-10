@@ -2,17 +2,20 @@ CC=mpiicpc
 CFLAGS += -g -Wall -std=c++11
 
 
-TARGET = MasterWorker
+TARGETS = MasterWorker VectorAdd
 LIB = ../lib/libtmpi.so
 
 
-all: $(LIB) $(TARGET) 
+all: $(LIB) $(TARGETS) 
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $< -o $@
 
 	
-$(TARGET) : MasterWorker.o
+MasterWorker : MasterWorker.o
+	$(CC) $(CFLAGS) $^ -o $@ -L../lib -ltmpi
+
+VectorAdd : VectorAdd.o
 	$(CC) $(CFLAGS) $^ -o $@ -L../lib -ltmpi
 
 .PHONY : $(LIB)
@@ -23,5 +26,5 @@ $(LIB):
 .PHONY : clean
 
 clean:
-	rm -f MasterWorker.o $(TARGET)
+	rm -f *.o $(TARGETS)
 	make clean -C ../lib

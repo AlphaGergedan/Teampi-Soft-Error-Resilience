@@ -15,10 +15,13 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include "../lib/Timing.h"
+
+
 const int MASTER = 0;
-const int DATA_LENGTH = 100;
+const int DATA_LENGTH = 3e7;
 
-
+#define TMPI
 
 int main(int argc, char* argv[]) {
   MPI_Init(&argc, &argv);
@@ -47,6 +50,10 @@ int main(int argc, char* argv[]) {
       c[i] = 0.0;
     }
 
+#ifdef TMPI
+    MPI_Wtime();
+#endif
+
     std::cout << "Master initialised arrays\n";
 
     // Send data to workers
@@ -56,9 +63,18 @@ int main(int argc, char* argv[]) {
       MPI_Isend(a+offset, WORKER_LENGTH, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, &send_reqs[(i-1)*2]);
       MPI_Isend(b+offset, WORKER_LENGTH, MPI_DOUBLE, i, 1, MPI_COMM_WORLD, &send_reqs[(i-1)*2+1]);
     }
+
+#ifdef TMPI
+    MPI_Wtime();
+#endif
+
     std::cout << "Master initialised Isends\n";
     MPI_Waitall(NUM_WORKERS*2, send_reqs, MPI_STATUSES_IGNORE);
     std::cout << "Master finished sending\n";
+
+#ifdef TMPI
+    MPI_Wtime();
+#endif
 
     // Receive results from workers
     MPI_Request recv_reqs[NUM_WORKERS];
@@ -66,8 +82,18 @@ int main(int argc, char* argv[]) {
       int offset = (i-1) * WORKER_LENGTH;
       MPI_Irecv(c+offset, WORKER_LENGTH, MPI_DOUBLE, i, 2, MPI_COMM_WORLD, &recv_reqs[(i-1)]);
     }
+
+#ifdef TMPI
+    MPI_Wtime();
+#endif
+
     std::cout << "Master initialised Irecv\n";
     MPI_Waitall(NUM_WORKERS, recv_reqs, MPI_STATUSES_IGNORE);
+
+#ifdef TMPI
+    MPI_Wtime();
+#endif
+
     std::cout << "Master finished receiving\n";
 
   } else {
@@ -80,23 +106,52 @@ int main(int argc, char* argv[]) {
       b[i] = 0.0;
       c[i] = 0.0;
     }
+
+#ifdef TMPI
+    MPI_Wtime();
+#endif
+
     std::cout << "Worker initialised arrays\n";
 
     MPI_Request recv_reqs[2];
     MPI_Irecv(a, WORKER_LENGTH, MPI_DOUBLE, MASTER, 0, MPI_COMM_WORLD, &recv_reqs[0]);
     MPI_Irecv(b, WORKER_LENGTH, MPI_DOUBLE, MASTER, 1, MPI_COMM_WORLD, &recv_reqs[1]);
+
+#ifdef TMPI
+    MPI_Wtime();
+#endif
+
     std::cout << "Worker initialised receive\n";
     MPI_Waitall(2, recv_reqs, MPI_STATUSES_IGNORE);
+
+#ifdef TMPI
+    MPI_Wtime();
+#endif
+
     std::cout << "Worker received arrays\n";
 
     for (int i = 0; i < WORKER_LENGTH; i++) {
       c[i] = a[i] + b[i];
     }
 
+#ifdef TMPI
+    MPI_Wtime();
+#endif
+
     MPI_Request send_req;
     MPI_Isend(c, WORKER_LENGTH, MPI_DOUBLE, MASTER, 2, MPI_COMM_WORLD, &send_req);
+
+#ifdef TMPI
+    MPI_Wtime();
+#endif
+
     std::cout << "Worker initialised send\n";
     MPI_Wait(&send_req, MPI_STATUS_IGNORE);
+
+#ifdef TMPI
+    MPI_Wtime();
+#endif
+
     std::cout << "Worker completed send\n";
   }
 

@@ -89,5 +89,7 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status);
 
 int MPI_Barrier(MPI_Comm comm);
 
+double MPI_Wtime();
+
 int MPI_Finalize(void);
 #endif

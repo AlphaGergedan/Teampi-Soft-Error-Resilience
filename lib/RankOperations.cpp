@@ -6,21 +6,14 @@
  */
 
 #include "RankOperations.h"
-#include "TMPIConstants.h"
-#include "Timing.h"
-#include "Logging.h"
 
-#include <stdlib.h>
 #include <cassert>
-#include <fstream>
+#include <cstdlib>
 #include <iostream>
-#include <string>
-#include <sstream>
-#include <algorithm>
-#include <map>
-#include <set>
-#include <vector>
-#include <stddef.h>
+
+#include "Logging.h"
+#include "Timing.h"
+#include "TMPIConstants.h"
 
 
 static int R_FACTOR;
@@ -89,52 +82,6 @@ void print_config(){
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
-}
-
-void output_timing() {
-
-  char sep = ',';
-  std::ostringstream filename;
-  filename << "timings-" << world_rank << "-" << team_rank << "-" << get_R_number(world_rank) << ".csv";
-  std::ofstream f;
-  f.open(filename.str().c_str());
-
-  f << "iSendStart";
-  for (const auto& t : Timing::getISendStartTimes()) {
-    f << "," << t;
-  }
-  f << "\n";
-
-  f << "iSendEnd";
-  for (const auto& t : Timing::getISendEndTimes()) {
-    f << "," << t;
-  }
-  f << "\n";
-
-  f << "iRecvStart";
-  for (const auto& t : Timing::getIRecvStartTimes()) {
-    f << "," << t;
-  }
-  f << "\n";
-
-  f << "iRecvEnd";
-  for (const auto& t : Timing::getIRecvEndTimes()) {
-    f << "," << t;
-  }
-  f << "\n";
-
-  f.close();
-  MPI_Barrier(MPI_COMM_WORLD);
-  for (int i = 0; i < world_size; i++) {
-    if (i == world_rank) {
-      std::cout << "RANK " << i << "\n";
-      std::cout << "iSendStartLog: " << Timing::getISendStartTimes().size() << "\n";
-      std::cout << "iSendEndLog: " << Timing::getISendEndTimes().size() << "\n";
-      std::cout << "iRecvStartLog: " << Timing::getIRecvStartTimes().size() << "\n";
-      std::cout << "iRecvEndLog: " << Timing::getIRecvEndTimes().size() << "\n";
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
 }
 
 void read_config() {

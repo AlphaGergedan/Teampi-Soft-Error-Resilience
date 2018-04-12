@@ -1,7 +1,9 @@
 #include "Wrapper.h"
-#include "RankOperations.h"
-#include "TMPIConstants.h"
+
+#include <cassert>
+
 #include "Logging.h"
+#include "RankOperations.h"
 #include "Timing.h"
 
 int MPI_Init(int *argc, char*** argv) {
@@ -237,14 +239,16 @@ int MPI_Barrier(MPI_Comm comm) {
   return err;
 }
 
+double MPI_Wtime() {
+  TMPI_Synchronise();
+  return PMPI_Wtime();
+}
+
 int MPI_Finalize() {
   logInfo("Finalize");
 
   freeCommunicator();
-  //output_timing();
+  Timing::outputTiming();
 
   return PMPI_Finalize();
-//  logInfo("End finalize");
-//
-//  return 0;
 }

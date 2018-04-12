@@ -9,7 +9,6 @@
 #define RANKOPERATIONS_H_
 
 #include <mpi.h>
-#include <assert.h>
 #include <string>
 
 

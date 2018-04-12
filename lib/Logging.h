@@ -9,9 +9,6 @@
 #define LOGGING_H_
 
 #include <iostream>
-#define LOGINFO
-
-
 
 #ifdef LOGINFO
 #define logInfo(messageStream) \

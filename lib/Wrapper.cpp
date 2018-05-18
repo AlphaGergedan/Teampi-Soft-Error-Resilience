@@ -247,6 +247,9 @@ double MPI_Wtime() {
 int MPI_Finalize() {
   logInfo("Finalize");
 
+  // Wait for all replicas before finalising
+  PMPI_Barrier(MPI_COMM_WORLD);
+
   freeCommunicator();
   Timing::outputTiming();
 

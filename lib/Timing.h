@@ -15,7 +15,23 @@ void TMPI_Synchronise();
 
 namespace Timing {
 
-enum NonBlockingType {iSend, iRecv};
+enum markType {
+  Generic,
+  Initialize,
+  Finalize,
+  Send,
+  Recv,
+  ISendStart,
+  ISendFinish,
+  IRecvStart,
+  IRecvFinish,
+  WaitStart,
+  WaitFinish,
+  BarrierStart,
+  BarrierFinish
+};
+
+void markTimeline(markType type);
 
 void initialise();
 
@@ -25,9 +41,6 @@ const std::vector<double>& getIRecvStartTimes();
 const std::vector<double>& getIRecvEndTimes();
 const std::vector<double>& getSyncPoints();
 
-void startNonBlocking(Timing::NonBlockingType type, int tag, MPI_Request *request);
-
-void endNonBlocking(MPI_Request *request, MPI_Status *status);
 
 void outputTiming();
 

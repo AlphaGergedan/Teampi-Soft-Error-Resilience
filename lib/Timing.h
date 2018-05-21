@@ -28,7 +28,7 @@ enum markType {
   WaitStart,
   WaitFinish,
   BarrierStart,
-  BarrierFinish
+  BarrierFinishtype
 };
 
 void markTimeline(markType type);

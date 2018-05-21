@@ -33,6 +33,7 @@ struct Timer {
 
 
 void Timing::markTimeline(Timing::markType type) {
+#ifdef TMPI_TIMING
     switch (type) {
       case Timing::markType::Initialize:
         timer.startTime = PMPI_Wtime();
@@ -47,9 +48,11 @@ void Timing::markTimeline(Timing::markType type) {
         // Other unsupported options fall through
         break;
     }
+#endif
 }
 
 void Timing::outputTiming() {
+#ifdef TMPI_TIMING
   char sep = ',';
   std::ostringstream filename;
   filename << "timings-" << getWorldRank() << "-" << getTeamRank() << "-" << get_R_number(getWorldRank()) << ".csv";
@@ -68,5 +71,6 @@ void Timing::outputTiming() {
   f << "\n";
 
   f.close();
+#endif
 }
 

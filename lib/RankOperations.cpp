@@ -119,6 +119,8 @@ int init_rank() {
   int r_num = get_R_number(world_rank);
   assert(world_rank == map_team_to_world(map_world_to_team(world_rank), r_num));
 
+  Timing::markTimeline(Timing::markType::Initialize);
+
   return MPI_SUCCESS;
 }
 

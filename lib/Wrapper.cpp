@@ -240,12 +240,15 @@ int MPI_Barrier(MPI_Comm comm) {
 }
 
 double MPI_Wtime() {
-  TMPI_Synchronise();
-  return PMPI_Wtime();
+  double t = PMPI_Wtime();
+  Timing::markTimeline(Timing::markType::Generic);
+  return t;
 }
 
 int MPI_Finalize() {
   logInfo("Finalize");
+
+  Timing::markTimeline(Timing::markType::Finalize);
 
   // Wait for all replicas before finalising
   PMPI_Barrier(MPI_COMM_WORLD);

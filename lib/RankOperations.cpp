@@ -96,7 +96,6 @@ int init_rank() {
   /**
    * The application should have no knowledge of the world_size or world_rank
    */
-  Timing::initialise();
 
   read_config();
 

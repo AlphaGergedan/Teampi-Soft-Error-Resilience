@@ -89,6 +89,21 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status);
 
 int MPI_Barrier(MPI_Comm comm);
 
+int MPI_Bcast( void *buffer, int count, MPI_Datatype datatype, int root,
+               MPI_Comm comm );
+
+int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
+                  MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
+
+int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                 void *recvbuf, int recvcount, MPI_Datatype recvtype,
+                 MPI_Comm comm);
+
+int MPI_Alltoallv(const void *sendbuf, const int *sendcounts,
+                  const int *sdispls, MPI_Datatype sendtype, void *recvbuf,
+                  const int *recvcounts, const int *rdispls, MPI_Datatype recvtype,
+                  MPI_Comm comm);
+
 double MPI_Wtime();
 
 int MPI_Finalize(void);

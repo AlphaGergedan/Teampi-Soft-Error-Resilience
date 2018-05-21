@@ -239,6 +239,49 @@ int MPI_Barrier(MPI_Comm comm) {
   return err;
 }
 
+int MPI_Bcast( void *buffer, int count, MPI_Datatype datatype, int root,
+               MPI_Comm comm ) {
+  assert(comm == MPI_COMM_WORLD);
+
+  int err = 0;
+  err |= PMPI_Bcast(buffer, count, datatype, root, getCommunicator());
+
+  return err;
+}
+
+int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
+                  MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
+  assert(comm == MPI_COMM_WORLD);
+
+  int err = 0;
+  err |= PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getCommunicator());
+
+  return err;
+}
+
+int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                 void *recvbuf, int recvcount, MPI_Datatype recvtype,
+                 MPI_Comm comm) {
+  assert(comm == MPI_COMM_WORLD);
+
+  int err = 0;
+  err |= PMPI_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, getCommunicator());
+
+  return err;
+}
+
+int MPI_Alltoallv(const void *sendbuf, const int *sendcounts,
+                  const int *sdispls, MPI_Datatype sendtype, void *recvbuf,
+                  const int *recvcounts, const int *rdispls, MPI_Datatype recvtype,
+                  MPI_Comm comm) {
+  assert(comm == MPI_COMM_WORLD);
+
+  int err = 0;
+  err |= PMPI_Alltoallv(sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts, rdispls, recvtype, getCommunicator());
+
+  return err;
+}
+
 double MPI_Wtime() {
   double t = PMPI_Wtime();
   Timing::markTimeline(Timing::markType::Generic);
@@ -257,4 +300,13 @@ int MPI_Finalize() {
   Timing::outputTiming();
 
   return PMPI_Finalize();
+}
+
+int MPI_Abort(MPI_Comm comm, int errorcode) {
+  assert(comm == MPI_COMM_WORLD);
+
+  int err = 0;
+  err |= PMPI_Abort(getCommunicator(), errorcode);
+
+  return err;
 }

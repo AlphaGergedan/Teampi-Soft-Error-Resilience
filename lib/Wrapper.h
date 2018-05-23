@@ -107,4 +107,6 @@ int MPI_Alltoallv(const void *sendbuf, const int *sendcounts,
 double MPI_Wtime();
 
 int MPI_Finalize(void);
+
+int MPI_Abort(MPI_Comm comm, int errorcode);
 #endif

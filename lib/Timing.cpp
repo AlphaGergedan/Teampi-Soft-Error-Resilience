@@ -41,9 +41,9 @@ void Timing::markTimeline(Timing::markType type) {
       case Timing::markType::Finalize:
         timer.endTime = PMPI_Wtime() - timer.startTime;
         break;
-      case Timing::markType::Generic:
-        timer.syncPoints.push_back(PMPI_Wtime() - timer.startTime);
-        break;
+//      case Timing::markType::Generic:
+//        timer.syncPoints.push_back(PMPI_Wtime() - timer.startTime);
+//        break;
       default:
         // Other unsupported options fall through
         break;
@@ -64,7 +64,7 @@ void Timing::outputTiming() {
   f << "startTime" << sep << timer.startTime << "\n";
   f << "endTime" << sep << timer.endTime << "\n";
 
-  f << "syncPoints" << sep;
+  f << "syncPoints";
   for (const auto& t : timer.syncPoints) {
     f << sep << t;
   }

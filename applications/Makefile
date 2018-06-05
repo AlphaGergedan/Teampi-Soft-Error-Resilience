@@ -1,9 +1,11 @@
 CC=mpiicpc
 CFLAGS += -g -Wall -std=c++11
+LFLAGS += -L../lib -ltmpi
 
 
-TARGETS = MasterWorker VectorAdd
+TARGETS = bin/MasterWorker bin/VectorAdd bin/Latency
 LIB = ../lib/libtmpi.so
+
 
 
 all: $(LIB) $(TARGETS) 
@@ -12,11 +14,23 @@ all: $(LIB) $(TARGETS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 	
-MasterWorker : MasterWorker.o
-	$(CC) $(CFLAGS) $^ -o $@ -L../lib -ltmpi
+bin/MasterWorker : bin/MasterWorker.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LFLAGS)
 
-VectorAdd : VectorAdd.o
-	$(CC) $(CFLAGS) $^ -o $@ -L../lib -ltmpi
+bin/VectorAdd : bin/VectorAdd.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LFLAGS)
+	
+bin/Latency : bin/Latency.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LFLAGS)
+	
+bin/MasterWorker.o : MasterWorker/MasterWorker.cpp
+	$(CC) $(CFLAGS) -c $^ -o $@ $(LFLAGS)
+
+bin/VectorAdd.o : VectorAdd/VectorAdd.cpp
+	$(CC) $(CFLAGS) -c $^ -o $@ $(LFLAGS)
+	
+bin/Latency.o : Latency/Latency.cpp
+	$(CC) $(CFLAGS) -c $^ -o $@ $(LFLAGS)
 
 .PHONY : $(LIB)
 
@@ -26,5 +40,5 @@ $(LIB):
 .PHONY : clean
 
 clean:
-	rm -f *.o $(TARGETS)
+	rm -f bin/*.o $(TARGETS)
 	make clean -C ../lib

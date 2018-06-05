@@ -1,6 +1,5 @@
-UnitTests
-
-
+applications/bin
+tests/UnitTests
 # Any kind of log files created by some editors
 # (swap files or temporary files)
 *~

@@ -15,8 +15,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "../lib/Timing.h"
-
+#ifdef TMPI
+#include "../../lib/Timing.h"
+#endif
 
 const int MASTER = 0;
 const int DATA_LENGTH = 3e7;

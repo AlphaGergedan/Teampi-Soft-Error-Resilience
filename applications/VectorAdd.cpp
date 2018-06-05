@@ -2,7 +2,7 @@
  * VectorAdd.cpp
  *
  *  Created on: 10 Apr 2018
- *      Author: Ben Hazelwood
+ *      Author: Ben Hazelwood Hazelwood
  *
  *  Create array on master
  *  Send to workers

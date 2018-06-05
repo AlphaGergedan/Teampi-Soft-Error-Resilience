@@ -2,7 +2,7 @@
  * RankOperations.h
  *
  *  Created on: 2 Mar 2018
- *      Author: ben
+ *      Author: Ben Hazelwood
  */
 
 #ifndef RANKOPERATIONS_H_
@@ -20,9 +20,11 @@ int getTeamRank();
 
 int getTeamSize();
 
-MPI_Comm getCommunicator();
+int getNumberOfReplicas();
 
-int freeCommunicator();
+MPI_Comm getReplicaCommunicator();
+
+int freeReplicaCommunicator();
 
 std::string getEnvString(std::string const& key);
 

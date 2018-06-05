@@ -2,7 +2,7 @@
  * MasterWorker.cpp
  *
  *  Created on: 5 Apr 2018
- *      Author: ben
+ *      Author: Ben Hazelwood
  */
 #include <iostream>
 #include <mpi.h>
@@ -10,7 +10,7 @@
 
 const int MASTER = 0;
 
-const int DATA_LENGTH = 1e8;
+const int DATA_LENGTH = 1e7;
 
 int main(int argc, char* argv[]) {
   MPI_Init(&argc, &argv);

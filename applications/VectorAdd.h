@@ -2,7 +2,7 @@
  * VectorAdd.h
  *
  *  Created on: 10 Apr 2018
- *      Author: ben
+ *      Author: Ben Hazelwood
  */
 
 #ifndef APPLICATIONS_VECTORADD_H_

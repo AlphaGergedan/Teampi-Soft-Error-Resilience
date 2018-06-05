@@ -1,5 +1,5 @@
 CC=mpiicpc
-CFLAGS += -fPIC -g -Wall -std=c++11 -DTMPI_TIMING
+CFLAGS += -fPIC -g -Wall -std=c++11
 LDFLAGS += -shared
 
 SRC = RankOperations.cpp Timing.cpp Wrapper.cpp

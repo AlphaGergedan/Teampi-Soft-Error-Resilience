@@ -2,7 +2,7 @@
  * TMPIConstants.h
  *
  *  Created on: 2 Mar 2018
- *      Author: ben
+ *      Author: Ben Hazelwood
  */
 
 #ifndef TMPICONSTANTS_H_

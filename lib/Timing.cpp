@@ -2,7 +2,7 @@
  * Timing.cpp
  *
  *  Created on: 2 Mar 2018
- *      Author: ben
+ *      Author: Ben Hazelwood
  */
 
 #include "Timing.h"
@@ -15,6 +15,7 @@
 #include <utility>
 
 #include "RankOperations.h"
+#include "TMPIConstants.h"
 #include "Logging.h"
 
 struct Timer {
@@ -33,12 +34,14 @@ struct Timer {
 
 
 void Timing::markTimeline(Timing::markType type) {
-#ifdef TMPI_TIMING
+//#ifdef TMPI_TIMING
     switch (type) {
       case Timing::markType::Initialize:
+        PMPI_Barrier(getReplicaCommunicator());
         timer.startTime = PMPI_Wtime();
         break;
       case Timing::markType::Finalize:
+        PMPI_Barrier(getReplicaCommunicator());
         timer.endTime = PMPI_Wtime() - timer.startTime;
         break;
 //      case Timing::markType::Generic:
@@ -48,29 +51,61 @@ void Timing::markTimeline(Timing::markType type) {
         // Other unsupported options fall through
         break;
     }
-#endif
+//#endif
 }
 
 void Timing::outputTiming() {
-#ifdef TMPI_TIMING
-  char sep = ',';
-  std::ostringstream filename;
-  filename << "timings-" << getWorldRank() << "-" << getTeamRank() << "-" << get_R_number(getWorldRank()) << ".csv";
-  std::ofstream f;
-  f.open(filename.str().c_str());
+  std::cout.flush();
+  PMPI_Barrier(MPI_COMM_WORLD);
 
-  logInfo("Writing timings to " << filename);
-
-  f << "startTime" << sep << timer.startTime << "\n";
-  f << "endTime" << sep << timer.endTime << "\n";
-
-  f << "syncPoints";
-  for (const auto& t : timer.syncPoints) {
-    f << sep << t;
+  if ((getTeamRank() == MASTER) && (getWorldRank() != MASTER)) {
+    PMPI_Send(&timer.endTime, 1, MPI_DOUBLE, MASTER, 0, MPI_COMM_WORLD);
   }
-  f << "\n";
 
-  f.close();
+  if (getWorldRank() == MASTER) {
+    std::cout << std::endl;
+    std::cout << "----------TMPI_TIMING----------\n";
+    std::cout << "timing_file=";
+#ifdef TMPI_TIMING
+    std::cout << "tmpi_filename.csv";
+#else
+    std::cout << "timing_not_enabled";
 #endif
+    std::cout << "\n";
+    std::cout << "num_replicas=" << getNumberOfReplicas() << "\n";
+    for (int i=0; i < getNumberOfReplicas(); i++) {
+      double rEndTime = 0.0;
+      if (i == MASTER) {
+        rEndTime = timer.endTime;
+      } else {
+        PMPI_Recv(&rEndTime, 1, MPI_DOUBLE, map_team_to_world(MASTER, i), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      }
+
+      std::cout << "replica_" << i << "=" << rEndTime << "\n";
+    }
+    std::cout << "-------------------------------\n";
+  }
+  std::cout.flush();
+  PMPI_Barrier(MPI_COMM_WORLD);
+//#ifdef TMPI_TIMING
+//  char sep = ',';
+//  std::ostringstream filename;
+//  filename << "timings-" << getWorldRank() << "-" << getTeamRank() << "-" << get_R_number(getWorldRank()) << ".csv";
+//  std::ofstream f;
+//  f.open(filename.str().c_str());
+//
+//  logInfo("Writing timings to " << filename);
+//
+//  f << "startTime" << sep << timer.startTime << "\n";
+//  f << "endTime" << sep << timer.endTime << "\n";
+//
+//  f << "syncPoints";
+//  for (const auto& t : timer.syncPoints) {
+//    f << sep << t;
+//  }
+//  f << "\n";
+//
+//  f.close();
+//#endif
 }
 

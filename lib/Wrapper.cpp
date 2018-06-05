@@ -1,6 +1,7 @@
 #include "Wrapper.h"
 
 #include <cassert>
+#include <unistd.h>
 
 #include "Logging.h"
 #include "RankOperations.h"
@@ -56,7 +57,7 @@ int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
 
   int err = 0;
 
-  err |= PMPI_Send(buf, count, datatype, dest, tag, getCommunicator());
+  err |= PMPI_Send(buf, count, datatype, dest, tag, getReplicaCommunicator());
 
   logInfo(
       "Send to rank " <<
@@ -75,7 +76,7 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 
   int err = 0;
 
-  err |= PMPI_Recv(buf, count, datatype, source, tag, getCommunicator(), status);
+  err |= PMPI_Recv(buf, count, datatype, source, tag, getReplicaCommunicator(), status);
 
   remap_status(status);
 
@@ -96,7 +97,7 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
 
   int err = 0;
 
-  err |= PMPI_Isend(buf, count, datatype, dest, tag, getCommunicator(), request);
+  err |= PMPI_Isend(buf, count, datatype, dest, tag, getReplicaCommunicator(), request);
 //  Timing::startNonBlocking(Timing::NonBlockingType::iSend, tag, request);
 
   logInfo(
@@ -116,7 +117,7 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 
   int err = 0;
 
-  err |= PMPI_Irecv(buf, count, datatype, source, tag, getCommunicator(), request);
+  err |= PMPI_Irecv(buf, count, datatype, source, tag, getReplicaCommunicator(), request);
 
 //  Timing::startNonBlocking(Timing::NonBlockingType::iRecv, tag, request);
 
@@ -195,7 +196,7 @@ int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status) {
       << tag
       << ")");
 
-  err |= PMPI_Probe(source, tag, getCommunicator(), status);
+  err |= PMPI_Probe(source, tag, getReplicaCommunicator(), status);
   remap_status(status);
   logInfo(
       "Probe finished ("
@@ -215,7 +216,7 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
 
   int err = 0;
 
-  err |= PMPI_Iprobe(source, tag, getCommunicator(), flag, status);
+  err |= PMPI_Iprobe(source, tag, getReplicaCommunicator(), flag, status);
   remap_status(status);
   logInfo(
       "Iprobe finished ("
@@ -234,7 +235,7 @@ int MPI_Barrier(MPI_Comm comm) {
 
   int err = 0;
 
-  err |= PMPI_Barrier(getCommunicator());
+  err |= PMPI_Barrier(getReplicaCommunicator());
 
   return err;
 }
@@ -244,7 +245,7 @@ int MPI_Bcast( void *buffer, int count, MPI_Datatype datatype, int root,
   assert(comm == MPI_COMM_WORLD);
 
   int err = 0;
-  err |= PMPI_Bcast(buffer, count, datatype, root, getCommunicator());
+  err |= PMPI_Bcast(buffer, count, datatype, root, getReplicaCommunicator());
 
   return err;
 }
@@ -254,7 +255,7 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
   assert(comm == MPI_COMM_WORLD);
 
   int err = 0;
-  err |= PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getCommunicator());
+  err |= PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getReplicaCommunicator());
 
   return err;
 }
@@ -265,7 +266,7 @@ int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
   assert(comm == MPI_COMM_WORLD);
 
   int err = 0;
-  err |= PMPI_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, getCommunicator());
+  err |= PMPI_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, getReplicaCommunicator());
 
   return err;
 }
@@ -277,7 +278,7 @@ int MPI_Alltoallv(const void *sendbuf, const int *sendcounts,
   assert(comm == MPI_COMM_WORLD);
 
   int err = 0;
-  err |= PMPI_Alltoallv(sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts, rdispls, recvtype, getCommunicator());
+  err |= PMPI_Alltoallv(sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts, rdispls, recvtype, getReplicaCommunicator());
 
   return err;
 }
@@ -296,7 +297,7 @@ int MPI_Finalize() {
   // Wait for all replicas before finalising
   PMPI_Barrier(MPI_COMM_WORLD);
 
-  freeCommunicator();
+  freeReplicaCommunicator();
   Timing::outputTiming();
 
   return PMPI_Finalize();
@@ -306,7 +307,7 @@ int MPI_Abort(MPI_Comm comm, int errorcode) {
   assert(comm == MPI_COMM_WORLD);
 
   int err = 0;
-  err |= PMPI_Abort(getCommunicator(), errorcode);
+  err |= PMPI_Abort(getReplicaCommunicator(), errorcode);
 
   return err;
 }

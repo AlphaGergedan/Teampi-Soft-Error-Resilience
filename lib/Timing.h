@@ -2,7 +2,7 @@
  * Timing.h
  *
  *  Created on: 2 Mar 2018
- *      Author: ben
+ *      Author: Ben Hazelwood
  */
 
 #ifndef TIMING_H_

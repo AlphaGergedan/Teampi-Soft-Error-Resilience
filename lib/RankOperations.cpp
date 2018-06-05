@@ -2,7 +2,7 @@
  * RankOperations.cpp
  *
  *  Created on: 2 Mar 2018
- *      Author: ben
+ *      Author: Ben Hazelwood
  */
 
 #include "RankOperations.h"
@@ -17,7 +17,8 @@
 
 
 static int R_FACTOR;
-static MPI_Comm MPI_COMM_REP;
+static MPI_Comm TMPI_COMM_REP;
+static MPI_Comm TMPI_COMM_WORLD;
 static int world_rank;
 static int world_size;
 static int team_rank;
@@ -39,12 +40,24 @@ int getTeamSize() {
   return team_size;
 }
 
-MPI_Comm getCommunicator() {
-  return MPI_COMM_REP;
+int getNumberOfReplicas() {
+  return getWorldSize() / getTeamSize();
 }
 
-int freeCommunicator() {
-  return MPI_Comm_free(&MPI_COMM_REP);
+MPI_Comm getReplicaCommunicator() {
+  return TMPI_COMM_REP;
+}
+
+int freeReplicaCommunicator() {
+  return MPI_Comm_free(&TMPI_COMM_REP);
+}
+
+MPI_Comm getTMPICommunicator() {
+  return TMPI_COMM_WORLD;
+}
+
+int freeTMPICommunicator() {
+  return MPI_Comm_free(&TMPI_COMM_WORLD);
 }
 
 std::string getEnvString(std::string const& key)
@@ -56,14 +69,14 @@ std::string getEnvString(std::string const& key)
 void print_config(){
   assert(world_size % R_FACTOR == 0);
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  PMPI_Barrier(MPI_COMM_WORLD);
   double my_time = MPI_Wtime();
-  MPI_Barrier(MPI_COMM_WORLD);
+  PMPI_Barrier(MPI_COMM_WORLD);
   double times[world_size];
 
-  MPI_Gather(&my_time, 1, MPI_DOUBLE, times, 1, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+  PMPI_Gather(&my_time, 1, MPI_DOUBLE, times, 1, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  PMPI_Barrier(MPI_COMM_WORLD);
 
   if (world_rank == MASTER) {
     std::cout << "------------TMPI SETTINGS------------\n";
@@ -81,7 +94,7 @@ void print_config(){
     std::cout << "---------------------------------------\n\n";
   }
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  PMPI_Barrier(MPI_COMM_WORLD);
 }
 
 void read_config() {
@@ -105,11 +118,13 @@ int init_rank() {
 
   int color = world_rank / team_size;
 
-  PMPI_Comm_split(MPI_COMM_WORLD, color, world_rank, &MPI_COMM_REP);
+  PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_WORLD);
 
-  PMPI_Comm_rank(MPI_COMM_REP, &team_rank);
+  PMPI_Comm_split(MPI_COMM_WORLD, color, world_rank, &TMPI_COMM_REP);
 
-  PMPI_Comm_size(MPI_COMM_REP, &team_size);
+  PMPI_Comm_rank(TMPI_COMM_REP, &team_rank);
+
+  PMPI_Comm_size(TMPI_COMM_REP, &team_size);
 
   assert(team_size == (world_size / R_FACTOR));
 

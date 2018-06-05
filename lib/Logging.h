@@ -2,7 +2,7 @@
  * Logging.h
  *
  *  Created on: 2 Mar 2018
- *      Author: ben
+ *      Author: Ben Hazelwood
  */
 
 #ifndef LOGGING_H_

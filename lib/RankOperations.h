@@ -26,6 +26,9 @@ MPI_Comm getReplicaCommunicator();
 
 int freeReplicaCommunicator();
 
+MPI_Comm getTMPICommunicator();
+int freeTMPICommunicator();
+
 std::string getEnvString(std::string const& key);
 
 void read_config();

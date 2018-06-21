@@ -44,9 +44,9 @@ void Timing::markTimeline(Timing::markType type) {
         PMPI_Barrier(getReplicaCommunicator());
         timer.endTime = PMPI_Wtime() - timer.startTime;
         break;
-//      case Timing::markType::Generic:
-//        timer.syncPoints.push_back(PMPI_Wtime() - timer.startTime);
-//        break;
+      case Timing::markType::Generic:
+        timer.syncPoints.push_back(PMPI_Wtime() - timer.startTime);
+        break;
       default:
         // Other unsupported options fall through
         break;
@@ -58,9 +58,11 @@ void Timing::outputTiming() {
   std::cout.flush();
   PMPI_Barrier(MPI_COMM_WORLD);
 
+  // Output simple replica timings
   if ((getTeamRank() == MASTER) && (getWorldRank() != MASTER)) {
-    PMPI_Send(&timer.endTime, 1, MPI_DOUBLE, MASTER, 0, MPI_COMM_WORLD);
+    PMPI_Send(&timer.endTime, 1, MPI_DOUBLE, MASTER, 0, getTMPICommunicator());
   }
+
 
   if (getWorldRank() == MASTER) {
     std::cout << std::endl;
@@ -78,7 +80,7 @@ void Timing::outputTiming() {
       if (i == MASTER) {
         rEndTime = timer.endTime;
       } else {
-        PMPI_Recv(&rEndTime, 1, MPI_DOUBLE, map_team_to_world(MASTER, i), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        PMPI_Recv(&rEndTime, 1, MPI_DOUBLE, map_team_to_world(MASTER, i), 0, getTMPICommunicator(), MPI_STATUS_IGNORE);
       }
 
       std::cout << "replica_" << i << "=" << rEndTime << "\n";
@@ -87,25 +89,33 @@ void Timing::outputTiming() {
   }
   std::cout.flush();
   PMPI_Barrier(MPI_COMM_WORLD);
-//#ifdef TMPI_TIMING
-//  char sep = ',';
-//  std::ostringstream filename;
-//  filename << "timings-" << getWorldRank() << "-" << getTeamRank() << "-" << get_R_number(getWorldRank()) << ".csv";
-//  std::ofstream f;
-//  f.open(filename.str().c_str());
-//
-//  logInfo("Writing timings to " << filename);
-//
-//  f << "startTime" << sep << timer.startTime << "\n";
-//  f << "endTime" << sep << timer.endTime << "\n";
-//
-//  f << "syncPoints";
-//  for (const auto& t : timer.syncPoints) {
-//    f << sep << t;
-//  }
-//  f << "\n";
-//
-//  f.close();
-//#endif
+
+  // Write Generic Sync points to files
+  char sep = ',';
+  std::ostringstream filename;
+  std::string outputFolder("tmpi-timings");
+  filename << outputFolder << "/"
+      << "timings" << "-"
+      << getWorldRank() << "-"
+      << getTeamRank() << "-"
+      << get_R_number(getWorldRank())
+      << ".csv";
+  std::ofstream f;
+  f.open(filename.str().c_str());
+
+  logInfo("Writing timings to " << filename);
+
+  f << "startTime" << sep << timer.startTime << "\n";
+  f << "endTime" << sep << timer.endTime << "\n";
+
+  f << "syncPoints";
+  for (const double& t : timer.syncPoints) {
+    f << sep << t;
+  }
+  f << "\n";
+
+  f.close();
+
+  PMPI_Barrier(MPI_COMM_WORLD);
 }
 

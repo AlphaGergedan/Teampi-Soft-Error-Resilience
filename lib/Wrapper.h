@@ -106,6 +106,12 @@ int MPI_Alltoallv(const void *sendbuf, const int *sendcounts,
 
 double MPI_Wtime();
 
+int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                int dest, int sendtag,
+                void *recvbuf, int recvcount, MPI_Datatype recvtype,
+                int source, int recvtag,
+                MPI_Comm comm, MPI_Status *status);
+
 int MPI_Finalize(void);
 
 int MPI_Abort(MPI_Comm comm, int errorcode);

@@ -6,6 +6,7 @@
 #include "Logging.h"
 #include "RankOperations.h"
 #include "Timing.h"
+#include "TMPIConstants.h"
 
 int MPI_Init(int *argc, char*** argv) {
   int err = 0;
@@ -287,6 +288,22 @@ double MPI_Wtime() {
   double t = PMPI_Wtime();
   Timing::markTimeline(Timing::markType::Generic);
   return t;
+}
+
+int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                int dest, int sendtag,
+                void *recvbuf, int recvcount, MPI_Datatype recvtype,
+                int source, int recvtag,
+                MPI_Comm comm, MPI_Status *status) {
+  if (comm == MPI_COMM_SELF) {
+    Timing::markTimeline(Timing::markType::Generic);
+    std::cout << "HERE\n";
+  } else {
+    assert(comm == MPI_COMM_WORLD);
+    //@TODO: remap status?
+    MPI_Sendrecv(sendbuf, sendcount, sendtype,dest,sendtag,recvbuf,recvcount,recvtype,source,recvtag, getReplicaCommunicator(),status);
+  }
+  return MPI_SUCCESS;
 }
 
 int MPI_Finalize() {

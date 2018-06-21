@@ -41,7 +41,7 @@ int getTeamSize() {
 }
 
 int getNumberOfReplicas() {
-  return getWorldSize() / getTeamSize();
+  return R_FACTOR;
 }
 
 MPI_Comm getReplicaCommunicator() {
@@ -132,6 +132,14 @@ int init_rank() {
 
   int r_num = get_R_number(world_rank);
   assert(world_rank == map_team_to_world(map_world_to_team(world_rank), r_num));
+
+  // Usually we do not want std::cout from all replicas
+#ifndef REPLICAS_OUTPUT
+  if (get_R_number(world_rank) > 0) {
+    std::cout.setstate(std::ios_base::failbit);
+//    std::cerr.setstate(std::ios_base::failbit);
+  }
+#endif
 
   Timing::markTimeline(Timing::markType::Initialize);
 

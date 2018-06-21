@@ -32,20 +32,20 @@ struct Timer {
   std::set<MPI_Request*> recvLUT;
 } timer;
 
-
 void Timing::markTimeline(Timing::markType type) {
 //#ifdef TMPI_TIMING
     switch (type) {
       case Timing::markType::Initialize:
         PMPI_Barrier(getReplicaCommunicator());
         timer.startTime = PMPI_Wtime();
+
         break;
       case Timing::markType::Finalize:
         PMPI_Barrier(getReplicaCommunicator());
-        timer.endTime = PMPI_Wtime() - timer.startTime;
+        timer.endTime = PMPI_Wtime();
         break;
       case Timing::markType::Generic:
-        timer.syncPoints.push_back(PMPI_Wtime() - timer.startTime);
+        timer.syncPoints.push_back(PMPI_Wtime());
         break;
       default:
         // Other unsupported options fall through
@@ -105,12 +105,11 @@ void Timing::outputTiming() {
 
   logInfo("Writing timings to " << filename);
 
-  f << "startTime" << sep << timer.startTime << "\n";
-  f << "endTime" << sep << timer.endTime << "\n";
+  f << "endTime" << sep << timer.endTime - timer.startTime << "\n";
 
   f << "syncPoints";
   for (const double& t : timer.syncPoints) {
-    f << sep << t;
+    f << sep << t - timer.startTime;
   }
   f << "\n";
 

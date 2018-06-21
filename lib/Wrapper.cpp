@@ -297,7 +297,6 @@ int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                 MPI_Comm comm, MPI_Status *status) {
   if (comm == MPI_COMM_SELF) {
     Timing::markTimeline(Timing::markType::Generic);
-    std::cout << "HERE\n";
   } else {
     assert(comm == MPI_COMM_WORLD);
     //@TODO: remap status?

@@ -21,24 +21,21 @@
 struct Timer {
   double startTime;
   double endTime;
-  std::vector<double> iSendStart;
-  std::vector<double> iSendEnd;
-  std::vector<double> iRecvStart;
-  std::vector<double> iRecvEnd;
-
   std::vector<double> syncPoints;
-
-  std::set<MPI_Request*> sendLUT;
-  std::set<MPI_Request*> recvLUT;
 } timer;
 
+struct Progress {
+  int syncID;
+  double lastSync;
+  MPI_Win win;
+} myProgress;
+
+
 void Timing::markTimeline(Timing::markType type) {
-//#ifdef TMPI_TIMING
     switch (type) {
       case Timing::markType::Initialize:
         PMPI_Barrier(getReplicaCommunicator());
         timer.startTime = PMPI_Wtime();
-
         break;
       case Timing::markType::Finalize:
         PMPI_Barrier(getReplicaCommunicator());
@@ -51,7 +48,13 @@ void Timing::markTimeline(Timing::markType type) {
         // Other unsupported options fall through
         break;
     }
-//#endif
+}
+
+void compareProgressWithReplicas() {
+  const double lastMark = timer.syncPoints.back();
+  const int numMarks = timer.syncPoints.size();
+
+
 }
 
 void Timing::outputTiming() {

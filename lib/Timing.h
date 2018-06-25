@@ -16,9 +16,10 @@ void TMPI_Synchronise();
 namespace Timing {
 
 enum markType {
-  Generic,
   Initialize,
   Finalize,
+  Generic,
+  // Below are unused for now
   Send,
   Recv,
   ISendStart,
@@ -33,14 +34,9 @@ enum markType {
 
 void markTimeline(markType type);
 
-void initialise();
+void compareProgressWithReplicas();
 
-const std::vector<double>& getISendStartTimes();
-const std::vector<double>& getISendEndTimes();
-const std::vector<double>& getIRecvStartTimes();
-const std::vector<double>& getIRecvEndTimes();
 const std::vector<double>& getSyncPoints();
-
 
 void outputTiming();
 

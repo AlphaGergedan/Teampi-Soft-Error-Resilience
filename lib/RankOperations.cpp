@@ -136,12 +136,14 @@ int init_rank() {
   // Usually we do not want std::cout from all replicas
 #ifndef REPLICAS_OUTPUT
   if (get_R_number(world_rank) > 0) {
-    std::cout.setstate(std::ios_base::failbit);
+//    std::cout.setstate(std::ios_base::failbit);
 //    std::cerr.setstate(std::ios_base::failbit);
   }
 #endif
 
   Timing::markTimeline(Timing::markType::Initialize);
+
+  PMPI_Barrier(getTMPICommunicator());
 
   return MPI_SUCCESS;
 }

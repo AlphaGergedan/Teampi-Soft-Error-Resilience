@@ -99,7 +99,6 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
   int err = 0;
 
   err |= PMPI_Isend(buf, count, datatype, dest, tag, getReplicaCommunicator(), request);
-//  Timing::startNonBlocking(Timing::NonBlockingType::iSend, tag, request);
 
   logInfo(
       "Isend to rank " <<
@@ -120,8 +119,6 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 
   err |= PMPI_Irecv(buf, count, datatype, source, tag, getReplicaCommunicator(), request);
 
-//  Timing::startNonBlocking(Timing::NonBlockingType::iRecv, tag, request);
-
   logInfo(
       "Receive from rank " <<
       source <<
@@ -139,12 +136,8 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
 
   err |= PMPI_Wait(request, status);
 
-//  Timing::endNonBlocking(request, status);
-
   remap_status(status);
   logInfo("Wait completed "
-//      <<"(STATUS_SOURCE=" << status->MPI_SOURCE
-//      << ",STATUS_TAG=" << status->MPI_TAG
       << ")");
 
   return err;
@@ -174,7 +167,6 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
   err |= PMPI_Test(request, flag, status);
 
   if (*flag) {
-//    Timing::endNonBlocking(request, status);
     remap_status(status);
   }
 
@@ -285,8 +277,10 @@ int MPI_Alltoallv(const void *sendbuf, const int *sendcounts,
 }
 
 double MPI_Wtime() {
-  double t = PMPI_Wtime();
-  Timing::markTimeline(Timing::markType::Generic);
+  const double t = PMPI_Wtime();
+//  This was a bad idea
+//  Apparently Wtime is called maybe even before MPI_Init internally!
+//  Timing::markTimeline(Timing::markType::Generic);
   return t;
 }
 

@@ -56,7 +56,7 @@ void Timing::markTimeline(Timing::markType type) {
 }
 
 void Timing::initialiseTiming() {
-  progress = (Progress*)malloc(sizeof(progress)*getNumberOfReplicas());
+  progress = (Progress*)malloc(sizeof(Progress)*getNumberOfReplicas());
 
   // Initialise Progress datatype
   const int nitems = 2;
@@ -75,15 +75,19 @@ void Timing::initialiseTiming() {
 }
 
 void Timing::compareProgressWithReplicas() {
-  //TODO: change value of 0 to correct assert (0 is always correct but not optimal)
-  MPI_Win_fence(0, progressWin);
+  //TODO: change value of 0 to optimal assert (still correct but not optimal)
+  int asrt =
+      MPI_MODE_NOSTORE    ||
+      MPI_MODE_NOPUT;
+  MPI_Win_fence(asrt, progressWin);
+//  progress[get_R_number(getWorldRank())].lastSync = timer.syncPoints.back();
   progress[get_R_number(getWorldRank())].lastSync = timer.syncPoints.back();
   progress[get_R_number(getWorldRank())].syncID = timer.syncPoints.size();
 
   for (int i=0; i < getNumberOfReplicas(); i++) {
     if (i != get_R_number(getWorldRank())) {
       MPI_Get(progress+i, 1, progressDatatype, map_team_to_world(getTeamRank(), i),
-              i*sizeof(&progress), 1, progressDatatype, progressWin);
+              0, 1, progressDatatype, progressWin);
     }
   }
 
@@ -91,7 +95,7 @@ void Timing::compareProgressWithReplicas() {
   std::cout << "Rank: " << getTeamRank() << " / " << getWorldRank() << "\n";
   std::cout << "Iteration: " << timer.syncPoints.size() << "\n";
   for (int i=0; i < getNumberOfReplicas(); i++) {
-    std::cout << "SyncID: " << progress[i].syncID << "\t TStamp: " << progress[i].lastSync << "\n";
+    std::cout << "SyncID: " << progress[i].syncID << "\t TStamp: " << progress[i].lastSync - timer.startTime << "\n";
   }
   std::cout.flush();
 }

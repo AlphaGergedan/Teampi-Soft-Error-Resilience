@@ -65,6 +65,7 @@ int main(int argc, char* argv[]) {
   MPI_Status status;
   int counter;
   for (int t = 0; t < NUM_TRIALS; t++) {
+    MPI_Sendrecv(MPI_IN_PLACE, 0, MPI_BYTE, MPI_PROC_NULL, 0, MPI_IN_PLACE, 0, MPI_BYTE, MPI_PROC_NULL, 0, MPI_COMM_SELF, MPI_STATUS_IGNORE);
     MPI_Barrier(MPI_COMM_WORLD);
     counter = 0;
     for (int n = START; n <= FINISH; n += INCR) {

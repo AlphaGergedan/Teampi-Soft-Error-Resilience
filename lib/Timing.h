@@ -11,8 +11,6 @@
 #include <mpi.h>
 #include <vector>
 
-void TMPI_Synchronise();
-
 namespace Timing {
 
 enum markType {
@@ -33,6 +31,8 @@ enum markType {
 };
 
 void markTimeline(markType type);
+
+void initialiseTiming();
 
 void compareProgressWithReplicas();
 

@@ -2,20 +2,22 @@
 
 import csv
 import os
+import sys
 import matplotlib.pyplot as plt
 
 data = {}
 maxTime = 0.0
 
-for timing_file in os.listdir("."):
+resDir = sys.argv[1]
+
+for timing_file in os.listdir(resDir):
     if timing_file.endswith(".csv"):
         file_info = timing_file[:-4].split("-")[1:]
         world_rank = int(file_info[0])
         team_rank = int(file_info[1])
         rep_num = int(file_info[2])
-        #rank - team_rank - R#
 
-        with open(timing_file,newline='') as csvfile:
+        with open(resDir + "/" + timing_file,newline='') as csvfile:
             file_reader = csv.reader(csvfile, delimiter=",")
             for row in file_reader:
                 if row[0] == "syncPoints":
@@ -26,16 +28,25 @@ for timing_file in os.listdir("."):
 
 
 for rank in data:
-    if rank < 4:
-        plt.plot(data[rank], [1]*len(data[rank]))
-    else:
-        print("Rank", rank-4, ":", len(data[rank-4]))
-        print("Rank", rank, ":", len(data[rank]))
-        for i in range(len(data[rank])):
+        plt.scatter(data[rank], [rank]*len(data[rank]))
 
-            plt.plot(data[rank-4][i], data[rank][i])
-    
-plt.xlabel('times')
-plt.ylabel('rank')
+
+plt.grid(True)
+plt.xlabel('time [t] = s')
+plt.ylabel('world rank')
+
+plt.show()
+
+plt.clf()
+
+for rank in data:
+    if rank < 4:
+        plt.scatter(data[rank], [rank]*len(data[rank]),c="r", alpha=0.75)
+    else:
+        plt.scatter(data[rank], [rank-4]*len(data[rank]),c="b", alpha=0.75)
+
+plt.grid(True)
+plt.xlabel('time [t] = s')
+plt.ylabel('team rank')
 
 plt.show()

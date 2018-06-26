@@ -13,6 +13,7 @@
 #include <sstream>
 #include <string>
 #include <utility>
+#include <stddef.h>
 
 #include "RankOperations.h"
 #include "TMPIConstants.h"
@@ -27,8 +28,10 @@ struct Timer {
 struct Progress {
   int syncID;
   double lastSync;
-  MPI_Win win;
-} myProgress;
+} *progress;
+
+static MPI_Win progressWin;
+static MPI_Datatype progressDatatype;
 
 
 void Timing::markTimeline(Timing::markType type) {
@@ -36,6 +39,7 @@ void Timing::markTimeline(Timing::markType type) {
       case Timing::markType::Initialize:
         PMPI_Barrier(getReplicaCommunicator());
         timer.startTime = PMPI_Wtime();
+        initialiseTiming();
         break;
       case Timing::markType::Finalize:
         PMPI_Barrier(getReplicaCommunicator());
@@ -43,6 +47,7 @@ void Timing::markTimeline(Timing::markType type) {
         break;
       case Timing::markType::Generic:
         timer.syncPoints.push_back(PMPI_Wtime());
+        compareProgressWithReplicas();
         break;
       default:
         // Other unsupported options fall through
@@ -50,11 +55,45 @@ void Timing::markTimeline(Timing::markType type) {
     }
 }
 
-void compareProgressWithReplicas() {
-  const double lastMark = timer.syncPoints.back();
-  const int numMarks = timer.syncPoints.size();
+void Timing::initialiseTiming() {
+  progress = (Progress*)malloc(sizeof(progress)*getNumberOfReplicas());
 
+  // Initialise Progress datatype
+  const int nitems = 2;
+  int blocklengths[2] = {1, 1};
+  MPI_Datatype types[2] = {MPI_INT, MPI_DOUBLE};
+  MPI_Aint offsets[2];
+  offsets[0] = offsetof(Progress, syncID);
+  offsets[1] = offsetof(Progress, lastSync);
+  MPI_Type_create_struct(nitems, blocklengths, offsets, types, &progressDatatype);
+  MPI_Type_commit(&progressDatatype);
 
+  // Allocate RMA window
+  int typeSize;
+  MPI_Type_size(progressDatatype, &typeSize);
+  MPI_Win_create(progress+(get_R_number(getWorldRank())), 1, typeSize, MPI_INFO_NULL, getTMPICommunicator(), &progressWin);
+}
+
+void Timing::compareProgressWithReplicas() {
+  //TODO: change value of 0 to correct assert (0 is always correct but not optimal)
+  MPI_Win_fence(0, progressWin);
+  progress[get_R_number(getWorldRank())].lastSync = timer.syncPoints.back();
+  progress[get_R_number(getWorldRank())].syncID = timer.syncPoints.size();
+
+  for (int i=0; i < getNumberOfReplicas(); i++) {
+    if (i != get_R_number(getWorldRank())) {
+      MPI_Get(progress+i, 1, progressDatatype, map_team_to_world(getTeamRank(), i),
+              i*sizeof(&progress), 1, progressDatatype, progressWin);
+    }
+  }
+
+  std::cout.flush();
+  std::cout << "Rank: " << getTeamRank() << " / " << getWorldRank() << "\n";
+  std::cout << "Iteration: " << timer.syncPoints.size() << "\n";
+  for (int i=0; i < getNumberOfReplicas(); i++) {
+    std::cout << "SyncID: " << progress[i].syncID << "\t TStamp: " << progress[i].lastSync << "\n";
+  }
+  std::cout.flush();
 }
 
 void Timing::outputTiming() {

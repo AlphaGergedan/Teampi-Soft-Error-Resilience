@@ -107,7 +107,7 @@ void read_config() {
 
 }
 
-void signalHandler( int signum ) {
+void pauseThisRankSignalHandler( int signum ) {
   const int startValue = 1e4;
   const int multiplier = 2;
   static int sleepLength = startValue;
@@ -122,7 +122,7 @@ int init_rank() {
    * The application should have no knowledge of the world_size or world_rank
    */
 
-  signal(SIGUSR1, signalHandler);
+  signal(SIGUSR1, pauseThisRankSignalHandler);
   read_config();
 
   PMPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -146,11 +146,11 @@ int init_rank() {
   int r_num = get_R_number(world_rank);
   assert(world_rank == map_team_to_world(map_world_to_team(world_rank), r_num));
 
-  // Usually we do not want std::cout from all replicas
 #ifndef REPLICAS_OUTPUT
+  // Disable output for all but master replica (0)
   if (get_R_number(world_rank) > 0) {
-//    std::cout.setstate(std::ios_base::failbit);
-//    std::cerr.setstate(std::ios_base::failbit);
+    std::cout.setstate(std::ios_base::failbit);
+    std::cerr.setstate(std::ios_base::failbit);
   }
 #endif
 

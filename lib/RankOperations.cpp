@@ -10,6 +10,8 @@
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
+#include <csignal>
+#include <unistd.h>
 
 #include "Logging.h"
 #include "Timing.h"

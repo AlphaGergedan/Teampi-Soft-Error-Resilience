@@ -30,7 +30,7 @@ int MPI_Init_thread( int *argc, char ***argv, int required, int *provided ) {
 
 int MPI_Is_thread_main(int* flag) {
   // See header documentation
-  *flag = get_R_number(getWorldRank()) + 1;
+  *flag = get_R_number(getWorldRank());
   return MPI_SUCCESS;
 }
 

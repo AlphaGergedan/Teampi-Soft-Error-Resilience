@@ -37,6 +37,7 @@ void print_config();
 
 void output_timing();
 
+
 /**
  * Sets the global variables for an MPI process
  * @return MPI_SUCCESS

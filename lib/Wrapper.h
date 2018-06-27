@@ -22,9 +22,7 @@ int MPI_Init(int *argc, char*** argv);
 int MPI_Init_thread(int *argc, char ***argv, int required, int *provided);
 
 /**
- * IMPORTANT NOTE: We use this as a debugging feature to return the replica number+1
- * @param flag = replica number + 1 (to be consistent with a normal call)
- * @return
+ * IMPORTANT: We use this as a debugging feature to return the replica number
  */
 int MPI_Is_thread_main(int *flag);
 

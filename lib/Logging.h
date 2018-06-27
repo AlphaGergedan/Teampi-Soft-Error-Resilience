@@ -29,7 +29,7 @@
 #define logDebug(messageStream) \
    { \
       std::cout.flush(); \
-      std::cout << "[TMPI]    [rank " << getTeamRank() << "/" << getWorldRank << "]    " << messageStream << std::endl; \
+      std::cout << "[TMPI]    [rank " << getTeamRank() << "/" << getWorldRank() << "]    " << messageStream << std::endl; \
       std::cout.flush(); \
    }
 

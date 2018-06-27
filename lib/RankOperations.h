@@ -46,10 +46,10 @@ void signalHandler( int signum );
 int init_rank();
 
 /**
- * @param rank of process
+ * @param rank of process (default is this rank)
  * @return which replica rank is [0..R_FACTOR]
  */
-int get_R_number(int rank);
+int get_R_number(int rank=-1);
 
 /**
  * @param world_rank

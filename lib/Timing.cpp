@@ -22,59 +22,61 @@
 struct Timer {
   double startTime;
   double endTime;
-  std::vector<double> syncPoints;
+
+  std::map< int, std::vector<double> > syncPoints;
+  std::map< int, std::vector<MPI_Request> > requests;
 } timer;
 
-struct Progress {
-  int syncID;
-  double lastSync;
-} *progress;
 
-static MPI_Win progressWin;
-static MPI_Datatype progressDatatype;
-
-
-void Timing::markTimeline(Timing::markType type) {
-    switch (type) {
-      case Timing::markType::Initialize:
-        PMPI_Barrier(getReplicaCommunicator());
-        timer.startTime = PMPI_Wtime();
-        initialiseTiming();
-        break;
-      case Timing::markType::Finalize:
-        PMPI_Barrier(getReplicaCommunicator());
-        timer.endTime = PMPI_Wtime();
-        break;
-      case Timing::markType::Generic:
-        timer.syncPoints.push_back(PMPI_Wtime());
-        compareProgressWithReplicas();
-        break;
-      default:
-        // Other unsupported options fall through
-        break;
-    }
-}
 
 void Timing::initialiseTiming() {
-  progress = (Progress*)malloc(sizeof(Progress)*getNumberOfReplicas());
+  PMPI_Barrier(getReplicaCommunicator());
+  timer.startTime = PMPI_Wtime();
+  for (int i=0; i < getNumberOfReplicas(); i++) {
+    timer.syncPoints.insert(std::make_pair(i,std::vector<double>()));
+    timer.requests.insert(std::make_pair(i,std::vector<MPI_Request>()));
+  }
+}
 
-  // Initialise Progress datatype
-  const int nitems = 2;
-  int blocklengths[2] = {1, 1};
-  MPI_Datatype types[2] = {MPI_INT, MPI_DOUBLE};
-  MPI_Aint offsets[2];
-  offsets[0] = offsetof(Progress, syncID);
-  offsets[1] = offsetof(Progress, lastSync);
-  MPI_Type_create_struct(nitems, blocklengths, offsets, types, &progressDatatype);
-  MPI_Type_commit(&progressDatatype);
+void Timing::finaliseTiming() {
+  PMPI_Barrier(getReplicaCommunicator());
+  timer.endTime = PMPI_Wtime();
+  // TODO Call output timing here?
+}
 
-  // Allocate RMA window
-  int typeSize;
-  MPI_Type_size(progressDatatype, &typeSize);
-  MPI_Win_create(progress+(get_R_number(getWorldRank())), 1, typeSize, MPI_INFO_NULL, getTMPICommunicator(), &progressWin);
+void Timing::markTimeline() {
+    timer.syncPoints.at(get_R_number()).push_back(PMPI_Wtime());
+    compareProgressWithReplicas();
 }
 
 void Timing::compareProgressWithReplicas() {
+  for (int r=0; r < getNumberOfReplicas(); r++) {
+    if (r != get_R_number()) {
+      // Send out this replicas times
+      MPI_Request request;
+      PMPI_Isend(&timer.syncPoints.at(get_R_number()).back(), 1, MPI_DOUBLE,
+                map_team_to_world(getTeamRank(), r), get_R_number(),
+                getTMPICommunicator(), &request);
+      MPI_Request_free(&request);
+
+      // Receive times from other replicas
+      timer.syncPoints.at(r).push_back(0.0);
+      timer.requests.at(r).push_back(MPI_Request());
+      PMPI_Irecv(&timer.syncPoints.at(r).back(), 1, MPI_DOUBLE,
+                 map_team_to_world(getTeamRank(), r), r, getTMPICommunicator(), &timer.requests.at(r).back());
+
+      // Test for completion of Irecv's
+      int numPending = 0;
+      for (int i=0; i < timer.requests.at(r).size(); i++) {
+        int flag = 0;
+        PMPI_Test(&timer.requests.at(r).at(i), &flag, MPI_STATUS_IGNORE);
+        numPending += 1 - flag;
+      }
+      logDebug("Number pending: " << numPending);
+    }
+  }
+
+
   //TODO: change value of 0 to optimal assert (still correct but not optimal)
 //  int asrt =
 //      MPI_MODE_NOSTORE    ||
@@ -158,7 +160,7 @@ void Timing::outputTiming() {
   f << "endTime" << sep << timer.endTime - timer.startTime << "\n";
 
   f << "syncPoints";
-  for (const double& t : timer.syncPoints) {
+  for (const double& t : timer.syncPoints.at(get_R_number())) {
     f << sep << t - timer.startTime;
   }
   f << "\n";

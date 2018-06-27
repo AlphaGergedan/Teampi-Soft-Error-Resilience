@@ -108,8 +108,12 @@ void read_config() {
 }
 
 void signalHandler( int signum ) {
-  std::cout << "Signal" << signum << " received --> sleep for 10s\n";
-  usleep(1e7);
+  const int startValue = 1e4;
+  const int multiplier = 2;
+  static int sleepLength = startValue;
+  logDebug( "Signal received: sleep for " << (double)sleepLength / 1e6 << "s");
+  usleep(sleepLength);
+  sleepLength *= multiplier;
 }
 
 
@@ -150,7 +154,7 @@ int init_rank() {
   }
 #endif
 
-  Timing::markTimeline(Timing::markType::Initialize);
+  Timing::initialiseTiming();
 
   PMPI_Barrier(getTMPICommunicator());
 
@@ -158,6 +162,9 @@ int init_rank() {
 }
 
 int get_R_number(int rank) {
+  if (rank < 0) {
+    rank = getWorldRank();
+  }
   return rank / team_size;
 }
 

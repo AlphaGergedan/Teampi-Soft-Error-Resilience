@@ -13,26 +13,10 @@
 
 namespace Timing {
 
-enum markType {
-  Initialize,
-  Finalize,
-  Generic,
-  // Below are unused for now
-  Send,
-  Recv,
-  ISendStart,
-  ISendFinish,
-  IRecvStart,
-  IRecvFinish,
-  WaitStart,
-  WaitFinish,
-  BarrierStart,
-  BarrierFinishtype
-};
-
-void markTimeline(markType type);
+void markTimeline();
 
 void initialiseTiming();
+void finaliseTiming();
 
 void compareProgressWithReplicas();
 

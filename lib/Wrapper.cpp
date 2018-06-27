@@ -290,10 +290,10 @@ int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                 int source, int recvtag,
                 MPI_Comm comm, MPI_Status *status) {
   if (comm == MPI_COMM_SELF) {
-    Timing::markTimeline(Timing::markType::Generic);
+    Timing::markTimeline();
   } else {
     assert(comm == MPI_COMM_WORLD);
-    //@TODO: remap status?
+    //TODO remap status?
     MPI_Sendrecv(sendbuf, sendcount, sendtype,dest,sendtag,recvbuf,recvcount,recvtype,source,recvtag, getReplicaCommunicator(),status);
   }
   return MPI_SUCCESS;
@@ -302,7 +302,7 @@ int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 int MPI_Finalize() {
   logInfo("Finalize");
 
-  Timing::markTimeline(Timing::markType::Finalize);
+  Timing::finaliseTiming();
 
   // Wait for all replicas before finalising
   PMPI_Barrier(MPI_COMM_WORLD);

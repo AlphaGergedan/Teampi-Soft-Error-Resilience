@@ -76,27 +76,31 @@ void Timing::initialiseTiming() {
 
 void Timing::compareProgressWithReplicas() {
   //TODO: change value of 0 to optimal assert (still correct but not optimal)
-  int asrt =
-      MPI_MODE_NOSTORE    ||
-      MPI_MODE_NOPUT;
-  MPI_Win_fence(asrt, progressWin);
+//  int asrt =
+//      MPI_MODE_NOSTORE    ||
+//      MPI_MODE_NOPUT;
+//  MPI_Win_fence(asrt, progressWin);
+////  progress[get_R_number(getWorldRank())].lastSync = timer.syncPoints.back();
 //  progress[get_R_number(getWorldRank())].lastSync = timer.syncPoints.back();
-  progress[get_R_number(getWorldRank())].lastSync = timer.syncPoints.back();
-  progress[get_R_number(getWorldRank())].syncID = timer.syncPoints.size();
-
-  for (int i=0; i < getNumberOfReplicas(); i++) {
-    if (i != get_R_number(getWorldRank())) {
-      MPI_Get(progress+i, 1, progressDatatype, map_team_to_world(getTeamRank(), i),
-              0, 1, progressDatatype, progressWin);
-    }
-  }
-
+//  progress[get_R_number(getWorldRank())].syncID = timer.syncPoints.size();
+//
+//  for (int i=0; i < getNumberOfReplicas(); i++) {
+//    if (i != get_R_number(getWorldRank())) {
+//      MPI_Get(progress+i, 1, progressDatatype, map_team_to_world(getTeamRank(), i),
+//              0, 1, progressDatatype, progressWin);
+//    }
+//  }
+//
+//  std::cout.flush();
+//  std::cout << "Rank: " << getTeamRank() << " / " << getWorldRank() << "\n";
+//  std::cout << "Iteration: " << timer.syncPoints.size() << "\n";
+//  for (int i=0; i < getNumberOfReplicas(); i++) {
+//    std::cout << "SyncID: " << progress[i].syncID << "\t TStamp: " << progress[i].lastSync - timer.startTime << "\n";
+//  }
+//  std::cout.flush();
   std::cout.flush();
-  std::cout << "Rank: " << getTeamRank() << " / " << getWorldRank() << "\n";
-  std::cout << "Iteration: " << timer.syncPoints.size() << "\n";
-  for (int i=0; i < getNumberOfReplicas(); i++) {
-    std::cout << "SyncID: " << progress[i].syncID << "\t TStamp: " << progress[i].lastSync - timer.startTime << "\n";
-  }
+  std::cout << "Rank " << getTeamRank() << "/" << getWorldRank() <<
+      "\tIteration: " << timer.syncPoints.size() << "\n";
   std::cout.flush();
 }
 

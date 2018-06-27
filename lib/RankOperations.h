@@ -37,6 +37,7 @@ void print_config();
 
 void output_timing();
 
+void signalHandler( int signum );
 
 /**
  * Sets the global variables for an MPI process

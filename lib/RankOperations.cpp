@@ -107,11 +107,18 @@ void read_config() {
 
 }
 
+void signalHandler( int signum ) {
+  std::cout << "Signal" << signum << " received --> sleep for 10s\n";
+  usleep(1e7);
+}
+
+
 int init_rank() {
   /**
    * The application should have no knowledge of the world_size or world_rank
    */
 
+  signal(SIGUSR1, signalHandler);
   read_config();
 
   PMPI_Comm_size(MPI_COMM_WORLD, &world_size);

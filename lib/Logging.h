@@ -33,4 +33,11 @@
       std::cout.flush(); \
    }
 
+namespace Logging {
+  void disableLogging() {
+    std::cout.setstate(std::ios_base::failbit);
+    std::cerr.setstate(std::ios_base::failbit);
+  }
+}
+
 #endif /* LOGGING_H_ */

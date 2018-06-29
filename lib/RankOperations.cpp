@@ -149,8 +149,7 @@ int init_rank() {
 #ifndef REPLICAS_OUTPUT
   // Disable output for all but master replica (0)
   if (get_R_number(world_rank) > 0) {
-    std::cout.setstate(std::ios_base::failbit);
-    std::cerr.setstate(std::ios_base::failbit);
+    Logging::disableLogging();
   }
 #endif
 

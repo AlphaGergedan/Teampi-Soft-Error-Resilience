@@ -15,9 +15,8 @@
 #include <utility>
 #include <stddef.h>
 
-#include "RankOperations.h"
-#include "TMPIConstants.h"
 #include "Logging.h"
+#include "Rank.h"
 
 struct Timer {
   double startTime;
@@ -30,39 +29,39 @@ struct Timer {
 
 
 void Timing::initialiseTiming() {
-  PMPI_Barrier(getReplicaCommunicator());
+  PMPI_Barrier(getTeamComm());
   timer.startTime = PMPI_Wtime();
-  for (int i=0; i < getNumberOfReplicas(); i++) {
+  for (int i=0; i < getNumberOfTeams(); i++) {
     timer.syncPoints.insert(std::make_pair(i,std::vector<double>()));
     timer.requests.insert(std::make_pair(i,std::vector<MPI_Request>()));
   }
 }
 
 void Timing::finaliseTiming() {
-  PMPI_Barrier(getReplicaCommunicator());
+  PMPI_Barrier(getTeamComm());
   timer.endTime = PMPI_Wtime();
 }
 
 void Timing::markTimeline() {
-    timer.syncPoints.at(get_R_number()).push_back(PMPI_Wtime());
+    timer.syncPoints.at(getTeam()).push_back(PMPI_Wtime());
     compareProgressWithReplicas();
 }
 
 void Timing::compareProgressWithReplicas() {
-  for (int r=0; r < getNumberOfReplicas(); r++) {
-    if (r != get_R_number()) {
+  for (int r=0; r < getNumberOfTeams(); r++) {
+    if (r != getTeam()) {
       // Send out this replica's times
       MPI_Request request;
-      PMPI_Isend(&timer.syncPoints.at(get_R_number()).back(), 1, MPI_DOUBLE,
-                map_team_to_world(getTeamRank(), r), get_R_number(),
-                getTMPICommunicator(), &request);
+      PMPI_Isend(&timer.syncPoints.at(getTeam()).back(), 1, MPI_DOUBLE,
+                mapTeamToWorldRank(getTeamRank(), r), getTeam(),
+                getLibComm(), &request);
       MPI_Request_free(&request);
 
       // Receive times from other replicas
       timer.syncPoints.at(r).push_back(0.0);
       timer.requests.at(r).push_back(MPI_Request());
       PMPI_Irecv(&timer.syncPoints.at(r).back(), 1, MPI_DOUBLE,
-                 map_team_to_world(getTeamRank(), r), r, getTMPICommunicator(), &timer.requests.at(r).back());
+                 mapTeamToWorldRank(getTeamRank(), r), r, getLibComm(), &timer.requests.at(r).back());
 
       // Test for completion of Irecv's
       int numPending = 0;
@@ -81,7 +80,7 @@ void Timing::outputTiming() {
 
   // Output simple replica timings
   if ((getTeamRank() == MASTER) && (getWorldRank() != MASTER)) {
-    PMPI_Send(&timer.endTime, 1, MPI_DOUBLE, MASTER, 0, getTMPICommunicator());
+    PMPI_Send(&timer.endTime, 1, MPI_DOUBLE, MASTER, 0, getLibComm());
   }
 
 
@@ -95,13 +94,13 @@ void Timing::outputTiming() {
     std::cout << "timing_not_enabled";
 #endif
     std::cout << "\n";
-    std::cout << "num_replicas=" << getNumberOfReplicas() << "\n";
-    for (int i=0; i < getNumberOfReplicas(); i++) {
+    std::cout << "num_replicas=" << getNumberOfTeams() << "\n";
+    for (int i=0; i < getNumberOfTeams(); i++) {
       double rEndTime = 0.0;
       if (i == MASTER) {
         rEndTime = timer.endTime;
       } else {
-        PMPI_Recv(&rEndTime, 1, MPI_DOUBLE, map_team_to_world(MASTER, i), 0, getTMPICommunicator(), MPI_STATUS_IGNORE);
+        PMPI_Recv(&rEndTime, 1, MPI_DOUBLE, mapTeamToWorldRank(MASTER, i), 0, getLibComm(), MPI_STATUS_IGNORE);
       }
 
       std::cout << "replica_" << i << "=" << rEndTime << "\n";
@@ -119,7 +118,7 @@ void Timing::outputTiming() {
       << "timings" << "-"
       << getWorldRank() << "-"
       << getTeamRank() << "-"
-      << get_R_number(getWorldRank())
+      << getTeam()
       << ".csv";
   std::ofstream f;
   f.open(filename.str().c_str());
@@ -129,7 +128,7 @@ void Timing::outputTiming() {
   f << "endTime" << sep << timer.endTime - timer.startTime << "\n";
 
   f << "syncPoints";
-  for (const double& t : timer.syncPoints.at(get_R_number())) {
+  for (const double& t : timer.syncPoints.at(getTeam())) {
     f << sep << t - timer.startTime;
   }
   f << "\n";

@@ -5,7 +5,7 @@
  *      Author: Ben Hazelwood
  */
 
-#include "RankOperations.h"
+#include "Rank.h"
 
 #include <cassert>
 #include <cstdlib>
@@ -15,7 +15,6 @@
 
 #include "Logging.h"
 #include "Timing.h"
-#include "TMPIConstants.h"
 
 
 static int R_FACTOR;
@@ -25,6 +24,48 @@ static int world_rank;
 static int world_size;
 static int team_rank;
 static int team_size;
+
+
+int initaliseTMPI() {
+  /**
+   * The application should have no knowledge of the world_size or world_rank
+   */
+
+  signal(SIGUSR1, pauseThisRankSignalHandler);
+  setEnvironment();
+
+  PMPI_Comm_size(MPI_COMM_WORLD, &world_size);
+  PMPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+  team_size = world_size / R_FACTOR;
+
+  int color = world_rank / team_size;
+
+  PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_WORLD);
+
+  PMPI_Comm_split(MPI_COMM_WORLD, color, world_rank, &TMPI_COMM_REP);
+
+  PMPI_Comm_rank(TMPI_COMM_REP, &team_rank);
+
+  PMPI_Comm_size(TMPI_COMM_REP, &team_size);
+
+  assert(team_size == (world_size / R_FACTOR));
+
+  outputEnvironment();
+
+#ifndef REPLICAS_OUTPUT
+  // Disable output for all but master replica (0)
+  if (getTeam() > 0) {
+    Logging::disableLogging();
+  }
+#endif
+
+  Timing::initialiseTiming();
+
+  PMPI_Barrier(getLibComm());
+
+  return MPI_SUCCESS;
+}
+
 
 int getWorldRank() {
   return world_rank;
@@ -42,25 +83,32 @@ int getTeamSize() {
   return team_size;
 }
 
-int getNumberOfReplicas() {
-  return R_FACTOR;
+int getTeam() {
+  return getWorldRank() / getTeamSize();
 }
 
-MPI_Comm getReplicaCommunicator() {
+int getNumberOfTeams() {
+  return getWorldSize() / getTeamSize();
+}
+
+MPI_Comm getTeamComm() {
   return TMPI_COMM_REP;
 }
 
-int freeReplicaCommunicator() {
+int freeTeamComm() {
   return MPI_Comm_free(&TMPI_COMM_REP);
 }
 
-MPI_Comm getTMPICommunicator() {
+MPI_Comm getLibComm() {
   return TMPI_COMM_WORLD;
 }
 
-int freeTMPICommunicator() {
+int freeLibComm() {
   return MPI_Comm_free(&TMPI_COMM_WORLD);
 }
+
+
+
 
 std::string getEnvString(std::string const& key)
 {
@@ -68,7 +116,7 @@ std::string getEnvString(std::string const& key)
     return val == nullptr ? std::string() : std::string(val);
 }
 
-void print_config(){
+void outputEnvironment(){
   assert(world_size % R_FACTOR == 0);
 
   PMPI_Barrier(MPI_COMM_WORLD);
@@ -90,7 +138,7 @@ void print_config(){
 
     if (world_rank == MASTER) {
       for (int i=0; i < world_size; i++) {
-        std::cout << "Tshift(" << i << "->" << map_world_to_team(i) << "->" << map_team_to_world(map_world_to_team(i),get_R_number(i)) << ") = " << times[i] - times[0] << "\n";
+        std::cout << "Tshift(" << i << "->" << mapWorldToTeamRank(i) << "->" << mapTeamToWorldRank(mapWorldToTeamRank(i),mapRankToTeamNumber(i)) << ") = " << times[i] - times[0] << "\n";
       }
     }
     std::cout << "---------------------------------------\n\n";
@@ -99,7 +147,7 @@ void print_config(){
   PMPI_Barrier(MPI_COMM_WORLD);
 }
 
-void read_config() {
+void setEnvironment() {
   std::string env;
 
   env = getEnvString("R_FACTOR");
@@ -116,85 +164,31 @@ void pauseThisRankSignalHandler( int signum ) {
   sleepLength *= multiplier;
 }
 
-
-int init_rank() {
-  /**
-   * The application should have no knowledge of the world_size or world_rank
-   */
-
-  signal(SIGUSR1, pauseThisRankSignalHandler);
-  read_config();
-
-  PMPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  PMPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-  team_size = world_size / R_FACTOR;
-
-  int color = world_rank / team_size;
-
-  PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_WORLD);
-
-  PMPI_Comm_split(MPI_COMM_WORLD, color, world_rank, &TMPI_COMM_REP);
-
-  PMPI_Comm_rank(TMPI_COMM_REP, &team_rank);
-
-  PMPI_Comm_size(TMPI_COMM_REP, &team_size);
-
-  assert(team_size == (world_size / R_FACTOR));
-
-  print_config();
-
-  int r_num = get_R_number(world_rank);
-  assert(world_rank == map_team_to_world(map_world_to_team(world_rank), r_num));
-
-#ifndef REPLICAS_OUTPUT
-  // Disable output for all but master replica (0)
-  if (get_R_number(world_rank) > 0) {
-    Logging::disableLogging();
-  }
-#endif
-
-  Timing::initialiseTiming();
-
-  PMPI_Barrier(getTMPICommunicator());
-
-  return MPI_SUCCESS;
+int mapRankToTeamNumber(int rank) {
+  return rank / getTeamSize();
 }
 
-int get_R_number(int rank) {
-  if (rank < 0) {
-    rank = getWorldRank();
-  }
-  return rank / team_size;
-}
-
-
-int map_world_to_team(int rank) {
+int mapWorldToTeamRank(int rank) {
   if (rank == MPI_ANY_SOURCE) {
     return MPI_ANY_SOURCE;
   } else {
-    return rank % team_size;
+    return rank % getTeamSize();
   }
 }
 
-
-int map_team_to_world(int rank, int r_num) {
+int mapTeamToWorldRank(int rank, int r) {
   if (rank == MPI_ANY_SOURCE) {
     return MPI_ANY_SOURCE;
   }
 
-  if (r_num < 0) {
-    r_num = get_R_number(world_rank);
-  }
-
-  return rank + r_num * team_size;
+  return rank + r * getTeamSize();
 }
 
-
-void remap_status(MPI_Status *status) {
-  if ((status != MPI_STATUS_IGNORE) && (status != MPI_STATUSES_IGNORE)) {
-    status->MPI_SOURCE = map_world_to_team(status->MPI_SOURCE);
-    logInfo("remap status source " << status->MPI_SOURCE << " to " << map_world_to_team(status->MPI_SOURCE));
+void remapStatus(MPI_Status *status) {
+  if ((status != MPI_STATUS_IGNORE ) && (status != MPI_STATUSES_IGNORE )) {
+    status->MPI_SOURCE = mapWorldToTeamRank(status->MPI_SOURCE);
+    logInfo(
+        "remap status source " << status->MPI_SOURCE << " to " << mapWorldToTeamRank(status->MPI_SOURCE));
   }
 }
-
 

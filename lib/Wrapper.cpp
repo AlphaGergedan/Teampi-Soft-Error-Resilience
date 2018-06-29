@@ -4,16 +4,15 @@
 #include <unistd.h>
 
 #include "Logging.h"
-#include "RankOperations.h"
+#include "Rank.h"
 #include "Timing.h"
-#include "TMPIConstants.h"
 
 int MPI_Init(int *argc, char*** argv) {
   int err = 0;
 
   err |= PMPI_Init(argc, argv);
 
-  init_rank();
+  initialiseTMPI();
 
   return err;
 }
@@ -23,14 +22,14 @@ int MPI_Init_thread( int *argc, char ***argv, int required, int *provided ) {
 
   err |= PMPI_Init_thread(argc, argv, required, provided);
 
-  init_rank();
+  initialiseTMPI();
 
   return err;
 }
 
 int MPI_Is_thread_main(int* flag) {
   // See header documentation
-  *flag = get_R_number(getWorldRank());
+  *flag = getTeam();
   return MPI_SUCCESS;
 }
 
@@ -58,13 +57,13 @@ int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
 
   int err = 0;
 
-  err |= PMPI_Send(buf, count, datatype, dest, tag, getReplicaCommunicator());
+  err |= PMPI_Send(buf, count, datatype, dest, tag, getTeamComm());
 
   logInfo(
       "Send to rank " <<
       dest <<
       "/" <<
-      map_team_to_world(dest) <<
+      mapTeamToWorldRank(dest) <<
       " with tag " <<
       tag);
 
@@ -77,15 +76,15 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 
   int err = 0;
 
-  err |= PMPI_Recv(buf, count, datatype, source, tag, getReplicaCommunicator(), status);
+  err |= PMPI_Recv(buf, count, datatype, source, tag, getTeamComm(), status);
 
-  remap_status(status);
+  remapStatus(status);
 
   logInfo(
       "Receive from rank " <<
       source <<
       "/" <<
-      map_team_to_world(source) <<
+      mapTeamToWorldRank(source) <<
       " with tag " <<
       tag);
 
@@ -98,13 +97,13 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
 
   int err = 0;
 
-  err |= PMPI_Isend(buf, count, datatype, dest, tag, getReplicaCommunicator(), request);
+  err |= PMPI_Isend(buf, count, datatype, dest, tag, getTeamComm(), request);
 
   logInfo(
       "Isend to rank " <<
       dest <<
       "/" <<
-      map_team_to_world(dest) <<
+      mapTeamToWorldRank(dest) <<
       " with tag " <<
       tag);
 
@@ -117,13 +116,13 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 
   int err = 0;
 
-  err |= PMPI_Irecv(buf, count, datatype, source, tag, getReplicaCommunicator(), request);
+  err |= PMPI_Irecv(buf, count, datatype, source, tag, getTeamComm(), request);
 
   logInfo(
       "Receive from rank " <<
       source <<
       "/" <<
-      map_team_to_world(source) <<
+      mapTeamToWorldRank(source) <<
       " with tag " <<
       tag);
 
@@ -136,7 +135,7 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
 
   err |= PMPI_Wait(request, status);
 
-  remap_status(status);
+  remapStatus(status);
   logInfo("Wait completed "
       << ")");
 
@@ -152,7 +151,7 @@ int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_
 
   if (array_of_statuses != MPI_STATUSES_IGNORE) {
     for (int i = 0; i < count; i++) {
-      remap_status(&array_of_statuses[i]);
+      remapStatus(&array_of_statuses[i]);
     }
   }
 
@@ -167,7 +166,7 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
   err |= PMPI_Test(request, flag, status);
 
   if (*flag) {
-    remap_status(status);
+    remapStatus(status);
   }
 
   logInfo("Test completed ("
@@ -189,11 +188,11 @@ int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status) {
       << tag
       << ")");
 
-  err |= PMPI_Probe(source, tag, getReplicaCommunicator(), status);
-  remap_status(status);
+  err |= PMPI_Probe(source, tag, getTeamComm(), status);
+  remapStatus(status);
   logInfo(
       "Probe finished ("
-      << "SOURCE=" << map_team_to_world(source)
+      << "SOURCE=" << mapTeamToWorldRank(source)
       << ",TAG=" << tag
       << ",STATUS_SOURCE=" << status->MPI_SOURCE
       << ",STATUS_TAG=" << status->MPI_TAG
@@ -209,12 +208,12 @@ int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
 
   int err = 0;
 
-  err |= PMPI_Iprobe(source, tag, getReplicaCommunicator(), flag, status);
-  remap_status(status);
+  err |= PMPI_Iprobe(source, tag, getTeamComm(), flag, status);
+  remapStatus(status);
   logInfo(
       "Iprobe finished ("
       << "FLAG=" << *flag
-      << ",SOURCE=" << map_team_to_world(source)
+      << ",SOURCE=" << mapTeamToWorldRank(source)
       << ",TAG=" << tag
       << ",STATUS_SOURCE=" << status->MPI_SOURCE
       << ",STATUS_TAG=" << status->MPI_TAG
@@ -228,7 +227,7 @@ int MPI_Barrier(MPI_Comm comm) {
 
   int err = 0;
 
-  err |= PMPI_Barrier(getReplicaCommunicator());
+  err |= PMPI_Barrier(getTeamComm());
 
   return err;
 }
@@ -238,7 +237,7 @@ int MPI_Bcast( void *buffer, int count, MPI_Datatype datatype, int root,
   assert(comm == MPI_COMM_WORLD);
 
   int err = 0;
-  err |= PMPI_Bcast(buffer, count, datatype, root, getReplicaCommunicator());
+  err |= PMPI_Bcast(buffer, count, datatype, root, getTeamComm());
 
   return err;
 }
@@ -248,7 +247,7 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
   assert(comm == MPI_COMM_WORLD);
 
   int err = 0;
-  err |= PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getReplicaCommunicator());
+  err |= PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getTeamComm());
 
   return err;
 }
@@ -259,7 +258,7 @@ int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
   assert(comm == MPI_COMM_WORLD);
 
   int err = 0;
-  err |= PMPI_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, getReplicaCommunicator());
+  err |= PMPI_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, getTeamComm());
 
   return err;
 }
@@ -271,7 +270,7 @@ int MPI_Alltoallv(const void *sendbuf, const int *sendcounts,
   assert(comm == MPI_COMM_WORLD);
 
   int err = 0;
-  err |= PMPI_Alltoallv(sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts, rdispls, recvtype, getReplicaCommunicator());
+  err |= PMPI_Alltoallv(sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts, rdispls, recvtype, getTeamComm());
 
   return err;
 }
@@ -294,7 +293,7 @@ int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
   } else {
     assert(comm == MPI_COMM_WORLD);
     //TODO remap status?
-    MPI_Sendrecv(sendbuf, sendcount, sendtype,dest,sendtag,recvbuf,recvcount,recvtype,source,recvtag, getReplicaCommunicator(),status);
+    MPI_Sendrecv(sendbuf, sendcount, sendtype,dest,sendtag,recvbuf,recvcount,recvtype,source,recvtag, getTeamComm(),status);
   }
   return MPI_SUCCESS;
 }
@@ -307,7 +306,7 @@ int MPI_Finalize() {
   // Wait for all replicas before finalising
   PMPI_Barrier(MPI_COMM_WORLD);
 
-  freeReplicaCommunicator();
+  freeTeamComm();
   Timing::outputTiming();
 
   return PMPI_Finalize();
@@ -317,7 +316,7 @@ int MPI_Abort(MPI_Comm comm, int errorcode) {
   assert(comm == MPI_COMM_WORLD);
 
   int err = 0;
-  err |= PMPI_Abort(getReplicaCommunicator(), errorcode);
+  err |= PMPI_Abort(getTeamComm(), errorcode);
 
   return err;
 }

@@ -26,7 +26,7 @@ static int team_rank;
 static int team_size;
 
 
-int initaliseTMPI() {
+int initialiseTMPI() {
   /**
    * The application should have no knowledge of the world_size or world_rank
    */
@@ -55,7 +55,7 @@ int initaliseTMPI() {
 #ifndef REPLICAS_OUTPUT
   // Disable output for all but master replica (0)
   if (getTeam() > 0) {
-    Logging::disableLogging();
+    disableLogging();
   }
 #endif
 

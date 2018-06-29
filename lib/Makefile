@@ -3,7 +3,7 @@ CFLAGS += -fPIC -g -Wall -std=c++11
 LDFLAGS += -shared
 
 SRC = Rank.cpp Timing.cpp Wrapper.cpp
-DEP = Rank.h Timing.h Wrapper.h TMPIConstants.h Logging.h
+DEP = Rank.h Timing.h Wrapper.h Logging.h
 OBJECTS = $(SRC:.cpp=.o)
 
 TARGET = libtmpi.so

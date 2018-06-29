@@ -53,4 +53,4 @@ int mapTeamToWorldRank(int rank, int r);
 void remapStatus(MPI_Status *status);
 
 
-#endif /* RANKOPERATIONS_H_ */
+#endif /* RANK_H_ */

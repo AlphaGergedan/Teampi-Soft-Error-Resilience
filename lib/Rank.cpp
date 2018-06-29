@@ -17,13 +17,15 @@
 #include "Timing.h"
 
 
-static int R_FACTOR;
-static MPI_Comm TMPI_COMM_REP;
-static MPI_Comm TMPI_COMM_WORLD;
-static int world_rank;
-static int world_size;
-static int team_rank;
-static int team_size;
+static int worldRank;
+static int worldSize;
+static int teamRank;
+static int teamSize;
+static int numTeams;
+
+static MPI_Comm TMPI_COMM_TEAM;
+static MPI_Comm TMPI_COMM_DUP;
+
 
 
 int initialiseTMPI() {
@@ -34,21 +36,21 @@ int initialiseTMPI() {
   signal(SIGUSR1, pauseThisRankSignalHandler);
   setEnvironment();
 
-  PMPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  PMPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-  team_size = world_size / R_FACTOR;
+  PMPI_Comm_size(MPI_COMM_WORLD, &worldSize);
+  PMPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
+  teamSize = worldSize / numTeams;
 
-  int color = world_rank / team_size;
+  int color = worldRank / teamSize;
 
-  PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_WORLD);
+  PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_DUP);
 
-  PMPI_Comm_split(MPI_COMM_WORLD, color, world_rank, &TMPI_COMM_REP);
+  PMPI_Comm_split(MPI_COMM_WORLD, color, worldRank, &TMPI_COMM_TEAM);
 
-  PMPI_Comm_rank(TMPI_COMM_REP, &team_rank);
+  PMPI_Comm_rank(TMPI_COMM_TEAM, &teamRank);
 
-  PMPI_Comm_size(TMPI_COMM_REP, &team_size);
+  PMPI_Comm_size(TMPI_COMM_TEAM, &teamSize);
 
-  assert(team_size == (world_size / R_FACTOR));
+  assert(teamSize == (worldSize / numTeams));
 
   outputEnvironment();
 
@@ -61,26 +63,26 @@ int initialiseTMPI() {
 
   Timing::initialiseTiming();
 
-  PMPI_Barrier(getLibComm());
+  synchroniseRanksGlobally();
 
   return MPI_SUCCESS;
 }
 
 
 int getWorldRank() {
-  return world_rank;
+  return worldRank;
 }
 
 int getWorldSize() {
-  return world_size;
+  return worldSize;
 }
 
 int getTeamRank() {
-  return team_rank;
+  return teamRank;
 }
 
 int getTeamSize() {
-  return team_size;
+  return teamSize;
 }
 
 int getTeam() {
@@ -92,23 +94,20 @@ int getNumberOfTeams() {
 }
 
 MPI_Comm getTeamComm() {
-  return TMPI_COMM_REP;
+  return TMPI_COMM_TEAM;
 }
 
 int freeTeamComm() {
-  return MPI_Comm_free(&TMPI_COMM_REP);
+  return MPI_Comm_free(&TMPI_COMM_TEAM);
 }
 
 MPI_Comm getLibComm() {
-  return TMPI_COMM_WORLD;
+  return TMPI_COMM_DUP;
 }
 
 int freeLibComm() {
-  return MPI_Comm_free(&TMPI_COMM_WORLD);
+  return MPI_Comm_free(&TMPI_COMM_DUP);
 }
-
-
-
 
 std::string getEnvString(std::string const& key)
 {
@@ -117,27 +116,27 @@ std::string getEnvString(std::string const& key)
 }
 
 void outputEnvironment(){
-  assert(world_size % R_FACTOR == 0);
+  assert(worldSize % numTeams == 0);
 
   PMPI_Barrier(MPI_COMM_WORLD);
   double my_time = MPI_Wtime();
   PMPI_Barrier(MPI_COMM_WORLD);
-  double times[world_size];
+  double times[worldSize];
 
   PMPI_Gather(&my_time, 1, MPI_DOUBLE, times, 1, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
 
   PMPI_Barrier(MPI_COMM_WORLD);
 
-  if (world_rank == MASTER) {
+  if (worldRank == MASTER) {
     std::cout << "------------TMPI SETTINGS------------\n";
-    std::cout << "R_FACTOR = " << R_FACTOR << "\n";
+    std::cout << "R_FACTOR = " << numTeams << "\n";
 
-    std::cout << "Team size: " << team_size << "\n";
-    std::cout << "Total ranks: " << world_size << "\n\n";
+    std::cout << "Team size: " << teamSize << "\n";
+    std::cout << "Total ranks: " << worldSize << "\n\n";
 
 
-    if (world_rank == MASTER) {
-      for (int i=0; i < world_size; i++) {
+    if (worldRank == MASTER) {
+      for (int i=0; i < worldSize; i++) {
         std::cout << "Tshift(" << i << "->" << mapWorldToTeamRank(i) << "->" << mapTeamToWorldRank(mapWorldToTeamRank(i),mapRankToTeamNumber(i)) << ") = " << times[i] - times[0] << "\n";
       }
     }
@@ -148,11 +147,8 @@ void outputEnvironment(){
 }
 
 void setEnvironment() {
-  std::string env;
-
-  env = getEnvString("R_FACTOR");
-  R_FACTOR = env.empty() ? 2 : std::stoi(env);
-
+  std::string env(getEnvString("TEAMS"));
+  numTeams = env.empty() ? 2 : std::stoi(env);
 }
 
 void pauseThisRankSignalHandler( int signum ) {
@@ -191,4 +187,13 @@ void remapStatus(MPI_Status *status) {
         "remap status source " << status->MPI_SOURCE << " to " << mapWorldToTeamRank(status->MPI_SOURCE));
   }
 }
+
+int synchroniseRanksInTeam() {
+  return PMPI_Barrier(getTeamComm());
+}
+
+int synchroniseRanksGlobally() {
+  return PMPI_Barrier(getLibComm());
+}
+
 

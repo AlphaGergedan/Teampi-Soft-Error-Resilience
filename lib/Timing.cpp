@@ -29,7 +29,7 @@ struct Timer {
 
 
 void Timing::initialiseTiming() {
-  PMPI_Barrier(getTeamComm());
+  synchroniseRanksInTeam();
   timer.startTime = PMPI_Wtime();
   for (int i=0; i < getNumberOfTeams(); i++) {
     timer.syncPoints.insert(std::make_pair(i,std::vector<double>()));
@@ -38,7 +38,7 @@ void Timing::initialiseTiming() {
 }
 
 void Timing::finaliseTiming() {
-  PMPI_Barrier(getTeamComm());
+  synchroniseRanksInTeam();
   timer.endTime = PMPI_Wtime();
 }
 

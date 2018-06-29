@@ -52,5 +52,9 @@ int mapTeamToWorldRank(int rank, int r);
 
 void remapStatus(MPI_Status *status);
 
+int synchroniseRanksInTeam();
+int synchroniseRanksGlobally();
+
+
 
 #endif /* RANK_H_ */

@@ -227,7 +227,7 @@ int MPI_Barrier(MPI_Comm comm) {
 
   int err = 0;
 
-  err |= PMPI_Barrier(getTeamComm());
+  err |= synchroniseRanksInTeam();
 
   return err;
 }

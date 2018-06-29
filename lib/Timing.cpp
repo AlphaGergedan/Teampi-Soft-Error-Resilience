@@ -26,8 +26,6 @@ struct Timer {
   std::map< int, std::vector<MPI_Request> > requests;
 } timer;
 
-
-
 void Timing::initialiseTiming() {
   synchroniseRanksInTeam();
   timer.startTime = PMPI_Wtime();

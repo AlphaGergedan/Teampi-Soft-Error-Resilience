@@ -279,7 +279,7 @@ double MPI_Wtime() {
   const double t = PMPI_Wtime();
 //  This was a bad idea
 //  Apparently Wtime is called maybe even before MPI_Init internally!
-//  Timing::markTimeline(Timing::markType::Generic);
+//  Timing::markTimeline();
   return t;
 }
 
@@ -289,7 +289,11 @@ int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                 int source, int recvtag,
                 MPI_Comm comm, MPI_Status *status) {
   if (comm == MPI_COMM_SELF) {
-    Timing::markTimeline();
+    if (sendcount == 0) {
+      Timing::markTimeline();
+    } else {
+      Timing::markTimeline(sendbuf, sendcount, sendtype);
+    }
   } else {
     assert(comm == MPI_COMM_WORLD);
     //TODO remap status?

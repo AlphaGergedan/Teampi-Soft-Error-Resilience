@@ -10,8 +10,25 @@
 
 #include <mpi.h>
 #include <string>
+#include <stdint.h>
+#include <limits.h>
 
 #define MASTER 0
+
+// From https://stackoverflow.com/questions/40807833/sending-size-t-type-data-with-mpi
+#if SIZE_MAX == UCHAR_MAX
+   #define TMPI_SIZE_T MPI_UNSIGNED_CHAR
+#elif SIZE_MAX == USHRT_MAX
+   #define TMPI_SIZE_T MPI_UNSIGNED_SHORT
+#elif SIZE_MAX == UINT_MAX
+   #define TMPI_SIZE_T MPI_UNSIGNED
+#elif SIZE_MAX == ULONG_MAX
+   #define TMPI_SIZE_T MPI_UNSIGNED_LONG
+#elif SIZE_MAX == ULLONG_MAX
+   #define TMPI_SIZE_T MPI_UNSIGNED_LONG_LONG
+#else
+   #error "what is happening here?"
+#endif
 
 int initialiseTMPI();
 
@@ -43,6 +60,11 @@ void outputEnvironment();
 void outputTiming();
 
 void pauseThisRankSignalHandler(int signum);
+
+void corruptThisRankSignalHandler(int signum);
+
+bool getShouldCorruptData();
+void setShouldCorruptData(bool toggle);
 
 int mapRankToTeamNumber(int rank);
 

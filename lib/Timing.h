@@ -14,11 +14,13 @@
 namespace Timing {
 
 void markTimeline();
+void markTimeline(const void *sendbuf, int sendcount, MPI_Datatype sendtype);
 
 void initialiseTiming();
 void finaliseTiming();
 
 void compareProgressWithReplicas();
+void compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_Datatype sendtype);
 
 const std::vector<double>& getSyncPoints();
 

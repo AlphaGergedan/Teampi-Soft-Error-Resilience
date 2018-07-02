@@ -14,6 +14,7 @@
 #include <string>
 #include <utility>
 #include <stddef.h>
+#include <bitset>
 
 #include "Logging.h"
 #include "Rank.h"
@@ -23,7 +24,10 @@ struct Timer {
   double endTime;
 
   std::map< int, std::vector<double> > syncPoints;
-  std::map< int, std::vector<MPI_Request> > requests;
+  std::map< int, std::vector<MPI_Request> > syncRequests;
+
+  std::map<int, std::vector<std::size_t> > hashes;
+  std::map<int, std::vector<MPI_Request> > hashRequests;
 } timer;
 
 void Timing::initialiseTiming() {
@@ -31,7 +35,10 @@ void Timing::initialiseTiming() {
   timer.startTime = PMPI_Wtime();
   for (int i=0; i < getNumberOfTeams(); i++) {
     timer.syncPoints.insert(std::make_pair(i,std::vector<double>()));
-    timer.requests.insert(std::make_pair(i,std::vector<MPI_Request>()));
+    timer.syncRequests.insert(std::make_pair(i,std::vector<MPI_Request>()));
+
+    timer.hashes.insert(std::make_pair(i,std::vector<std::size_t>()));
+    timer.hashRequests.insert(std::make_pair(i,std::vector<MPI_Request>()));
   }
 }
 
@@ -43,6 +50,11 @@ void Timing::finaliseTiming() {
 void Timing::markTimeline() {
     timer.syncPoints.at(getTeam()).push_back(PMPI_Wtime());
     compareProgressWithReplicas();
+}
+
+void Timing::markTimeline(const void *sendbuf, int sendcount, MPI_Datatype sendtype) {
+  markTimeline();
+  compareBufferWithReplicas(sendbuf, sendcount, sendtype);
 }
 
 void Timing::compareProgressWithReplicas() {
@@ -57,17 +69,58 @@ void Timing::compareProgressWithReplicas() {
 
       // Receive times from other replicas
       timer.syncPoints.at(r).push_back(0.0);
-      timer.requests.at(r).push_back(MPI_Request());
+      timer.syncRequests.at(r).push_back(MPI_Request());
       PMPI_Irecv(&timer.syncPoints.at(r).back(), 1, MPI_DOUBLE,
-                 mapTeamToWorldRank(getTeamRank(), r), r, getLibComm(), &timer.requests.at(r).back());
+                 mapTeamToWorldRank(getTeamRank(), r), r, getLibComm(), &timer.syncRequests.at(r).back());
 
       // Test for completion of Irecv's
       int numPending = 0;
-      for (int i=0; i < timer.requests.at(r).size(); i++) {
+      for (int i=0; i < timer.syncRequests.at(r).size(); i++) {
         int flag = 0;
-        PMPI_Test(&timer.requests.at(r).at(i), &flag, MPI_STATUS_IGNORE);
+        PMPI_Test(&timer.syncRequests.at(r).at(i), &flag, MPI_STATUS_IGNORE);
         numPending += 1 - flag;
       }
+    }
+  }
+}
+
+void Timing::compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_Datatype sendtype) {
+  if (getShouldCorruptData()) {
+    sendcount++;
+    setShouldCorruptData(false);
+  }
+
+  int typeSize;
+  MPI_Type_size(sendtype, &typeSize);
+
+  std::string bits((const char*)sendbuf, sendcount*typeSize);
+  std::hash<std::string> hash_fn;
+  std::size_t hash = hash_fn(bits);
+  timer.hashes.at(getTeam()).push_back((std::size_t)hash);
+
+  for (int r=0; r < getNumberOfTeams(); r++) {
+    if (r != getTeam()) {
+      // Send out this replica's times
+      MPI_Request request;
+      PMPI_Isend(&timer.hashes.at(getTeam()).back(), 1, TMPI_SIZE_T,
+                mapTeamToWorldRank(getTeamRank(), r), getTeam(),
+                getLibComm(), &request);
+      MPI_Request_free(&request);
+
+      // Receive times from other replicas
+      timer.hashes.at(r).push_back(0);
+      timer.hashRequests.at(r).push_back(MPI_Request());
+      PMPI_Irecv(&timer.hashes.at(r).back(), 1, TMPI_SIZE_T,
+                 mapTeamToWorldRank(getTeamRank(), r), r, getLibComm(), &timer.hashRequests.at(r).back());
+
+      // Test for completion of Irecv's
+      int numPending = 0;
+      for (int i=0; i < timer.hashRequests.at(r).size(); i++) {
+        int flag = 0;
+        PMPI_Test(&timer.hashRequests.at(r).at(i), &flag, MPI_STATUS_IGNORE);
+        numPending += 1 - flag;
+      }
+      std::cout << "Num pending: " << numPending << "\n";
     }
   }
 }

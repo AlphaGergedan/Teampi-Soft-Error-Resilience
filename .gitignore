@@ -91,3 +91,6 @@ tests/UnitTests
 *.ilg
 *.ind
 *.ist
+
+
+c_cpp_properties.json

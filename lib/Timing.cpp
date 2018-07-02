@@ -86,7 +86,8 @@ void Timing::compareProgressWithReplicas() {
 
 void Timing::compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_Datatype sendtype) {
   if (getShouldCorruptData()) {
-    sendcount++;
+    //TODO can remove const here (assuming data was originally non-const) and corrupt properly, no need for now
+    sendcount++; // This isn't really that safe either...
     setShouldCorruptData(false);
   }
 

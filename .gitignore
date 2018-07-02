@@ -93,4 +93,4 @@ tests/UnitTests
 *.ist
 
 
-c_cpp_properties.json
+.vscode

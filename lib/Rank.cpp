@@ -10,11 +10,11 @@
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
-#include <csignal>
-#include <unistd.h>
 
+#include "RankControl.h"
 #include "Logging.h"
 #include "Timing.h"
+
 
 
 static int worldRank;
@@ -26,15 +26,11 @@ static int numTeams;
 static MPI_Comm TMPI_COMM_TEAM;
 static MPI_Comm TMPI_COMM_DUP;
 
-static bool shouldCorruptData;
-
 int initialiseTMPI() {
   /**
    * The application should have no knowledge of the world_size or world_rank
    */
-  signal(SIGUSR1, pauseThisRankSignalHandler);
-  signal(SIGUSR2, corruptThisRankSignalHandler);
-  shouldCorruptData = false;
+  registerSignalHandler();
   setEnvironment();
 
   PMPI_Comm_size(MPI_COMM_WORLD, &worldSize);
@@ -150,28 +146,6 @@ void outputEnvironment(){
 void setEnvironment() {
   std::string env(getEnvString("TEAMS"));
   numTeams = env.empty() ? 2 : std::stoi(env);
-}
-
-void pauseThisRankSignalHandler( int signum ) {
-  const int startValue = 1e4;
-  const int multiplier = 2;
-  static int sleepLength = startValue;
-  logInfo( "Signal received: sleep for " << (double)sleepLength / 1e6 << "s");
-  usleep(sleepLength);
-  sleepLength *= multiplier;
-}
-
-void corruptThisRankSignalHandler( int signum ) {
-  logInfo("Signal received: corrupt this rank");
-  shouldCorruptData = true;
-}
-
-bool getShouldCorruptData() {
-  return shouldCorruptData;
-}
-
-void setShouldCorruptData(bool toggle) {
-  shouldCorruptData = toggle;
 }
 
 int mapRankToTeamNumber(int rank) {

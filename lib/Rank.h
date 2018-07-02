@@ -59,10 +59,6 @@ void outputEnvironment();
 
 void outputTiming();
 
-void pauseThisRankSignalHandler(int signum);
-
-void corruptThisRankSignalHandler(int signum);
-
 bool getShouldCorruptData();
 void setShouldCorruptData(bool toggle);
 

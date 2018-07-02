@@ -156,13 +156,13 @@ void pauseThisRankSignalHandler( int signum ) {
   const int startValue = 1e4;
   const int multiplier = 2;
   static int sleepLength = startValue;
-  logDebug( "Signal received: sleep for " << (double)sleepLength / 1e6 << "s");
+  logInfo( "Signal received: sleep for " << (double)sleepLength / 1e6 << "s");
   usleep(sleepLength);
   sleepLength *= multiplier;
 }
 
 void corruptThisRankSignalHandler( int signum ) {
-  logDebug("Signal received: corrupt this rank");
+  logInfo("Signal received: corrupt this rank");
   shouldCorruptData = true;
 }
 

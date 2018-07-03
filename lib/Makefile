@@ -1,5 +1,5 @@
 CC=mpiicpc
-CFLAGS += -fPIC -g -Wall -std=c++11
+CFLAGS += -fPIC -g -Wall -std=c++11 -DPAUSE_RANK
 LDFLAGS += -shared
 
 SRC = Rank.cpp RankControl.cpp Timing.cpp Wrapper.cpp

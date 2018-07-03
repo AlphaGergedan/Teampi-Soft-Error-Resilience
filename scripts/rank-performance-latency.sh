@@ -4,36 +4,40 @@ if (( $# < 4)); then
     exit 1
 fi
 
-echo "Execute ${@:3} &"
+mpirun -np 4 ${@:3} &
 sleep 5
 pids=($(pgrep $3))
 
+iteration = 1
+
 while kill -0 ${pids[0]}; do
+    rank=-1
     if [ $2 = "single" ]; then
-    # Select same rank each time
+        rank=0
     fi
 
     if [ $2 = "rr" ]; then
-    #select next rank
+        let "rank = ($rank + 1) % 4"
     fi
 
     if [ $2 = "random" ]; then
-    #select a random rank
+        rank = `python3 -c "from random import randint; print(randint(0,3))"`
     fi
 
     kill -USR1 $rank
 
     if [ $1 = "constant" ]; then
-    # wait 5s
+        sleep 5
     fi
 
     if [ $1 = "increasing" ]; then
-    #wait 50s, 25s, 12.5s...
+        sleep $((50.0 / iteration))
     fi
 
     if [ $1 = "random"]; then
-    #wait rand(0.1, 100)
+        sleep `python3 -c "from random import randint; print(randint(1,50))"`
     fi
+    ((iteration++))
 done
 
 

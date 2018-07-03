@@ -1,0 +1,1 @@
+../scripts/rank-performance-latency.sh

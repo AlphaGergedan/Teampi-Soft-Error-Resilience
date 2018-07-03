@@ -1,5 +1,5 @@
 CC=mpiicpc
-CFLAGS += -g -Wall -std=c++11
+CFLAGS += -g -Wall -std=c++11 -DCOMPARE_PROGRESS
 LFLAGS += -L../lib -ltmpi
 
 

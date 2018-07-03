@@ -24,18 +24,10 @@ void registerSignalHandler() {
   shouldCorruptData = false;
 }
 
-void pauseThisRankSignalHandler( int signum ) {
-  const int startValue = 1e4;
-  #if SLEEP_MULT != 0
-  const int multiplier = SLEEP_MULT;
-  #else
-  const int multiplier = ((double) rand() / (RAND_MAX)) + 1;
-  #endif 
-
-  static int sleepLength = startValue;
-  logInfo( "Signal received: sleep for " << (double)sleepLength / 1e6 << "s");
+void pauseThisRankSignalHandler( int signum ) { 
+  const double sleepLength = 0.1 * 1e6;
+  logInfo( "Signal received: sleep for 0.1s");
   usleep(sleepLength);
-  sleepLength *= multiplier;
 }
 
 void corruptThisRankSignalHandler( int signum ) {

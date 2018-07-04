@@ -15,12 +15,8 @@
 static bool shouldCorruptData;
 
 void registerSignalHandler() {
-  #ifdef PAUSE_RANK
   signal(SIGUSR1, pauseThisRankSignalHandler);
-  #endif
-  #ifdef CORRUPT_RANK
   signal(SIGUSR2, corruptThisRankSignalHandler);
-  #endif
   shouldCorruptData = false;
 }
 

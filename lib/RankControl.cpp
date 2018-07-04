@@ -22,7 +22,7 @@ void registerSignalHandler() {
 
 void pauseThisRankSignalHandler( int signum ) { 
   const double sleepLength = 0.1 * 1e6;
-  logInfo( "Signal received: sleep for 0.1s");
+  logDebug( "Signal received: sleep for 0.1s");
   usleep(sleepLength);
 }
 

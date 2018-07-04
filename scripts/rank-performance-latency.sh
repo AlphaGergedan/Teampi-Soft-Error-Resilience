@@ -1,3 +1,4 @@
+#!/bin/bash
 if (( $# < 4)); then
     echo "ERROR: At least four parameters are required"
     echo "Usage: { constant | increasing | random } { single | rr | random } application [application args...]"
@@ -36,7 +37,7 @@ while true; do
     fi
 
     if [ $1 = "increasing" ]; then
-        sleep $(python -c "print(max(0.5,20/$iteration))")
+        sleep $(python -c "print(max(0.5,25/$iteration))")
     fi
 
     if [ $1 = "random" ]; then

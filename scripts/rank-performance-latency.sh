@@ -5,12 +5,13 @@ if (( $# < 4)); then
 fi
 
 mpirun -np 4 ${@:3} &
-sleep 5
-pids=($(pgrep $3))
 
-iteration = 1
+sleep 1
+pids=($(pgrep Latency))
 
-while kill -0 ${pids[0]}; do
+iteration=1
+
+while true; do
     rank=-1
     if [ $2 = "single" ]; then
         rank=0
@@ -21,20 +22,25 @@ while kill -0 ${pids[0]}; do
     fi
 
     if [ $2 = "random" ]; then
-        rank = `python3 -c "from random import randint; print(randint(0,3))"`
+        rank=`python3 -c "from random import randint; print(randint(0,3))"`
+    fi
+    
+    if  kill -0 ${pids[0]} ; then
+        kill -USR1  ${pids[$rank]}
+    else 
+        exit 1
     fi
 
-    kill -USR1 $rank
 
     if [ $1 = "constant" ]; then
-        sleep 5
+        sleep 1
     fi
 
     if [ $1 = "increasing" ]; then
-        sleep $((50.0 / iteration))
+        sleep $((10.0 / $iteration))
     fi
 
-    if [ $1 = "random"]; then
+    if [ $1 = "random" ]; then
         sleep `python3 -c "from random import randint; print(randint(1,50))"`
     fi
     ((iteration++))

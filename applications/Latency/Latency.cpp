@@ -10,10 +10,7 @@
 #include <assert.h>
 #include <cstdlib>
 
-#define COMPARE_HASH
-
-
-const int NUM_TRIALS = 1000;
+const int NUM_TRIALS = 100;
 const int NUM_PONGS  = 1e4;
 
 int START = 0;
@@ -75,9 +72,9 @@ int main(int argc, char* argv[]) {
     for (int n = START; n <= FINISH; n += INCR) {
       if (rank == source) {
         // Handshake
-//        MPI_Recv(&m, 1, MPI_CHAR, dest, 0, MPI_COMM_WORLD, &status);
-        t1 = MPI_Wtime();
+        MPI_Send(&m, 1, MPI_CHAR, dest, 0, MPI_COMM_WORLD);
 
+        t1 = MPI_Wtime();
         for (int p = 0; p < NUM_PONGS; p++) {
           MPI_Send(&m, n, MPI_CHAR, dest, 0, MPI_COMM_WORLD);
           MPI_Recv(&m, n, MPI_CHAR, dest, 1, MPI_COMM_WORLD,  &status);
@@ -92,7 +89,8 @@ int main(int argc, char* argv[]) {
 
       if (rank == dest) {
         // Handshake
-//        MPI_Send(&m, 1, MPI_CHAR, source, 0, MPI_COMM_WORLD);
+        MPI_Recv(&m, 1, MPI_CHAR, source, 0, MPI_COMM_WORLD, &status);
+
         for (int p = 0; p < NUM_PONGS; p++) {
           MPI_Recv(&m, n, MPI_CHAR, source, 0, MPI_COMM_WORLD,  &status);
           MPI_Send(&m, n, MPI_CHAR, source, 1, MPI_COMM_WORLD);
@@ -106,8 +104,6 @@ int main(int argc, char* argv[]) {
 //    }
 #endif
   }
-
-
   if (rank == source) {
     counter = 0;
     for (int n=START; n < FINISH; n+=INCR) {
@@ -116,10 +112,8 @@ int main(int argc, char* argv[]) {
     }
   }
 
-
   MPI_Finalize();
-
-return 0;
+  return 0;
 }
 
 

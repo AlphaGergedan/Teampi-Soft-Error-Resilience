@@ -9,6 +9,7 @@
 #define LOGGING_H_
 
 #include <iostream>
+#include "Rank.h"
 
 #ifdef LOGINFO
 #define logInfo(messageStream) \

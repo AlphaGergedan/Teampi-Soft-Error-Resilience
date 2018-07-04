@@ -277,9 +277,7 @@ int MPI_Alltoallv(const void *sendbuf, const int *sendcounts,
 
 double MPI_Wtime() {
   const double t = PMPI_Wtime();
-//  This was a bad idea
-//  Apparently Wtime is called maybe even before MPI_Init internally!
-//  Timing::markTimeline();
+  // If you mark on the timeline here expect negative time values (you've been warned)
   return t;
 }
 

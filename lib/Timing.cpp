@@ -130,6 +130,8 @@ void Timing::outputTiming() {
   std::cout.flush();
   PMPI_Barrier(MPI_COMM_WORLD);
 
+  std::string filenamePrefix = getEnvString("TMPI_FILE");
+
   // Output simple replica timings
   if ((getTeamRank() == MASTER) && (getWorldRank() != MASTER)) {
     PMPI_Send(&timer.endTime, 1, MPI_DOUBLE, MASTER, 0, getLibComm());
@@ -140,12 +142,7 @@ void Timing::outputTiming() {
     std::cout << std::endl;
     std::cout << "----------TMPI_TIMING----------\n";
     std::cout << "timing_file=";
-#ifdef TMPI_TIMING
-    std::cout << "tmpi_filename.csv";
-#else
-    std::cout << "timing_not_enabled";
-#endif
-    std::cout << "\n";
+    std::cout << (filenamePrefix.empty() ? "timing_not_enabled" : filenamePrefix) << "\n";
     std::cout << "num_replicas=" << getNumberOfTeams() << "\n";
     for (int i=0; i < getNumberOfTeams(); i++) {
       double rEndTime = 0.0;
@@ -162,30 +159,32 @@ void Timing::outputTiming() {
   std::cout.flush();
   PMPI_Barrier(MPI_COMM_WORLD);
 
-  // Write Generic Sync points to files
-  char sep = ',';
-  std::ostringstream filename;
-  std::string outputFolder("tmpi-timings");
-  filename << outputFolder << "/"
-      << "timings" << "-"
-      << getWorldRank() << "-"
-      << getTeamRank() << "-"
-      << getTeam()
-      << ".csv";
-  std::ofstream f;
-  f.open(filename.str().c_str());
+  if (!filenamePrefix.empty()) {
+    // Write Generic Sync points to files
+    char sep = ',';
+    std::ostringstream filename;
+    std::string outputFolder("tmpi-timings");
+    filename << outputFolder << "/"
+        << filenamePrefix << "-"
+        << getWorldRank() << "-"
+        << getTeamRank() << "-"
+        << getTeam()
+        << ".csv";
+    std::ofstream f;
+    f.open(filename.str().c_str());
 
-  logInfo("Writing timings to " << filename);
+    logInfo("Writing timings to " << filename);
 
-  f << "endTime" << sep << timer.endTime - timer.startTime << "\n";
+    f << "endTime" << sep << timer.endTime - timer.startTime << "\n";
 
-  f << "syncPoints";
-  for (const double& t : timer.syncPoints.at(getTeam())) {
-    f << sep << t - timer.startTime;
+    f << "syncPoints";
+    for (const double& t : timer.syncPoints.at(getTeam())) {
+      f << sep << t - timer.startTime;
+    }
+    f << "\n";
+
+    f.close();
   }
-  f << "\n";
-
-  f.close();
 
   PMPI_Barrier(MPI_COMM_WORLD);
 }

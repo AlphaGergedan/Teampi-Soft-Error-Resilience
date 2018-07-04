@@ -126,7 +126,7 @@ void outputEnvironment(){
 
   if (worldRank == MASTER) {
     std::cout << "------------TMPI SETTINGS------------\n";
-    std::cout << "R_FACTOR = " << numTeams << "\n";
+    std::cout << "Number of teams: " << numTeams << "\n";
 
     std::cout << "Team size: " << teamSize << "\n";
     std::cout << "Total ranks: " << worldSize << "\n\n";

@@ -155,7 +155,7 @@ void Timing::outputTiming() {
         PMPI_Recv(&rEndTime, 1, MPI_DOUBLE, mapTeamToWorldRank(MASTER, i), 0, getLibComm(), MPI_STATUS_IGNORE);
       }
 
-      std::cout << "replica_" << i << "=" << rEndTime << "\n";
+      std::cout << "replica " << i << "=" << rEndTime - timer.startTime << "s\n";
     }
     std::cout << "-------------------------------\n";
   }

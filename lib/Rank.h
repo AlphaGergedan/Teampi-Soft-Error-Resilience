@@ -27,40 +27,52 @@
 #elif SIZE_MAX == ULLONG_MAX
    #define TMPI_SIZE_T MPI_UNSIGNED_LONG_LONG
 #else
-   #error "what is happening here?"
+   #error "Cannot decipher SIZE_MAX"
 #endif
 
+/* Split ranks into teams */
 int initialiseTMPI();
 
 int getWorldRank();
 
 int getWorldSize();
 
+/* Get the rank as seen by the application */
 int getTeamRank();
 
+/* Get the number of ranks as seen by the application */
 int getTeamSize();
 
+/* Also the number of replicas */
 int getNumberOfTeams();
 
+/* Return which team this rank belongs to */
 int getTeam();
 
+/* The communicator used by this team */
 MPI_Comm getTeamComm();
-
 int freeTeamComm();
 
+/* The duplicate MPI_COMM_WORLD used by the library*/
 MPI_Comm getLibComm();
 int freeLibComm();
 
+/* Get the value of an environment variable (empty string if undefined) */
 std::string getEnvString(std::string const& key);
 
+/* Get the number of teams from environment  */
 void setEnvironment();
 
+/* Output team sizes and any timing inaccuracies between ranks */
 void outputEnvironment();
 
+/* Output the timing differences between replicas */
 void outputTiming();
 
+/* Decide whether data should be manually corrupted upon next heartbeat */
 bool getShouldCorruptData();
 void setShouldCorruptData(bool toggle);
+
 
 int mapRankToTeamNumber(int rank);
 
@@ -68,9 +80,13 @@ int mapWorldToTeamRank(int rank);
 
 int mapTeamToWorldRank(int rank, int r);
 
+/* Alters the MPI_SOURCE member of MPI_Status to 0 <= r < team size */
 void remapStatus(MPI_Status *status);
 
+/* Barrier on team communicator */
 int synchroniseRanksInTeam();
+
+/* Barrier on all ranks (not called by application) */
 int synchroniseRanksGlobally();
 
 

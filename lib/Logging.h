@@ -34,6 +34,7 @@
       std::cout.flush(); \
    }
 
+// Disables output (cout, cerr) for this rank 
 inline void disableLogging() {
   std::cout.setstate(std::ios_base::failbit);
   std::cerr.setstate(std::ios_base::failbit);

@@ -104,6 +104,7 @@ int MPI_Alltoallv(const void *sendbuf, const int *sendcounts,
 
 double MPI_Wtime();
 
+/* This is the plugin for the heartbeat called by the application (MPI_COMM_SELF must be used) */
 int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                 int dest, int sendtag,
                 void *recvbuf, int recvcount, MPI_Datatype recvtype,

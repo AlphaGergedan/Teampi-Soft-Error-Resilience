@@ -15,8 +15,6 @@
 #include "Logging.h"
 #include "Timing.h"
 
-
-
 static int worldRank;
 static int worldSize;
 static int teamRank;
@@ -30,7 +28,6 @@ int initialiseTMPI() {
   /**
    * The application should have no knowledge of the world_size or world_rank
    */
-  registerSignalHandler();
   setEnvironment();
 
   PMPI_Comm_size(MPI_COMM_WORLD, &worldSize);
@@ -49,6 +46,7 @@ int initialiseTMPI() {
 
   assert(teamSize == (worldSize / numTeams));
 
+  registerSignalHandler();
   outputEnvironment();
 
 #ifndef REPLICAS_OUTPUT

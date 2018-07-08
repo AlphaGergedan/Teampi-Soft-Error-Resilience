@@ -21,13 +21,13 @@ void registerSignalHandler() {
 }
 
 void pauseThisRankSignalHandler( int signum ) { 
-  const double sleepLength = 0.1 * 1e6;
-  logDebug( "Signal received: sleep for 0.1s");
+  const double sleepLength = 1.0 * 1e6;
+  logDebug( "Signal received: sleep for 1s");
   usleep(sleepLength);
 }
 
 void corruptThisRankSignalHandler( int signum ) {
-  logInfo("Signal received: corrupt this rank");
+  logInfo("Signal received: corrupt this rank on next heartbeart");
   shouldCorruptData = true;
 }
 

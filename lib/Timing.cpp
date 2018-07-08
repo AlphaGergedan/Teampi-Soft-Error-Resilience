@@ -6,6 +6,8 @@
  */
 
 #include "Timing.h"
+#include "Logging.h"
+#include "Rank.h"
 
 #include <fstream>
 #include <map>
@@ -16,17 +18,21 @@
 #include <stddef.h>
 #include <bitset>
 
-#include "Logging.h"
-#include "Rank.h"
-
 struct Timer {
+  // PMPI_Wtime at start of execution
   double startTime;
+  // PMPI_Wtime at the end of this ranks execution
   double endTime;
 
+  // TODO change to heartbeat terminology
+  // Times for each heartbeat (per replica)
   std::map< int, std::vector<double> > syncPoints;
+  // Store the MPI_Requests for each heartbeat (per replica) for calling MPI_Test
   std::map< int, std::vector<MPI_Request> > syncRequests;
 
+  // Hash for each heartbeat buffer (per replica)
   std::map<int, std::vector<std::size_t> > hashes;
+  // Store the MPI_Requests for each heartbeat (per replica) for calling MPI_Test
   std::map<int, std::vector<MPI_Request> > hashRequests;
 } timer;
 
@@ -86,8 +92,8 @@ void Timing::compareProgressWithReplicas() {
 
 void Timing::compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_Datatype sendtype) {
   if (getShouldCorruptData()) {
-    //TODO can remove const here (assuming data was originally non-const) and corrupt properly, no need for now
-    sendcount++; // This isn't really that safe either...
+    //TODO can remove const here via cast (assuming data was originally non-const) and corrupt properly, no need for now
+    sendcount++; // This isn't really that safe either...likely causes memory corruption occasionally
     setShouldCorruptData(false);
   }
 

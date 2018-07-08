@@ -13,19 +13,20 @@
 
 namespace Timing {
 
+// Mark time only for this heartbeat
 void markTimeline();
+// Also mark the hash for the heartbeat buffer
 void markTimeline(const void *sendbuf, int sendcount, MPI_Datatype sendtype);
 
 void initialiseTiming();
 void finaliseTiming();
 
+// Compare the time of heartbeat(s) with other replica(s)
 void compareProgressWithReplicas();
+// Also compare a hash of a heartbeat buffer
 void compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_Datatype sendtype);
 
-const std::vector<double>& getSyncPoints();
-
 void outputTiming();
-
 }
 
 #endif /* TIMING_H_ */

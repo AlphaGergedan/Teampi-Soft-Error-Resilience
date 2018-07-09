@@ -12,7 +12,9 @@
 #include "RankControl.h"
 #include "Logging.h"
 
+static bool shouldSleepRank;
 static bool shouldCorruptData;
+
 
 void registerSignalHandler() {
   signal(SIGUSR1, pauseThisRankSignalHandler);
@@ -21,14 +23,20 @@ void registerSignalHandler() {
 }
 
 void pauseThisRankSignalHandler( int signum ) { 
-  const double sleepLength = 1.0 * 1e6;
-  logDebug( "Signal received: sleep for 1s");
-  usleep(sleepLength);
+  shouldSleepRank = true;
 }
 
 void corruptThisRankSignalHandler( int signum ) {
   logInfo("Signal received: corrupt this rank on next heartbeart");
   shouldCorruptData = true;
+}
+
+bool getShouldSleepRank() {
+  return shouldSleepRank;
+}
+
+void setShouldSleepRank(bool toggle) {
+  shouldSleepRank = toggle;
 }
 
 bool getShouldCorruptData() {
@@ -38,3 +46,4 @@ bool getShouldCorruptData() {
 void setShouldCorruptData(bool toggle) {
   shouldCorruptData = toggle;
 }
+

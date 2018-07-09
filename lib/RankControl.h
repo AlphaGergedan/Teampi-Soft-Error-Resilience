@@ -24,4 +24,8 @@ bool getShouldCorruptData();
 
 void setShouldCorruptData(bool toggle);
 
+bool getShouldSleepRank();
+
+void setShouldSleepRank(bool toggle);
+
 #endif

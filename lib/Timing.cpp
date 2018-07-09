@@ -8,6 +8,7 @@
 #include "Timing.h"
 #include "Logging.h"
 #include "Rank.h"
+#include "RankControl.h"
 
 #include <fstream>
 #include <map>
@@ -17,6 +18,7 @@
 #include <utility>
 #include <stddef.h>
 #include <bitset>
+#include <unistd.h>
 
 struct Timer {
   // PMPI_Wtime at start of execution
@@ -54,6 +56,12 @@ void Timing::finaliseTiming() {
 }
 
 void Timing::markTimeline() {
+    if (getShouldSleepRank()) {
+        const double sleepLength = 1.0 * 1e6;
+        logDebug( "Signal received: sleep for 1s");
+        usleep(sleepLength);
+        setShouldSleepRank(false);
+    }
     timer.syncPoints.at(getTeam()).push_back(PMPI_Wtime());
     compareProgressWithReplicas();
 }

@@ -5,9 +5,9 @@ if (( $# < 4)); then
     exit 1
 fi
 
-mpirun -np 4 ${@:3} &
+mpirun -np 4 -l ${@:3} &
 
-sleep 1
+sleep 2
 pids=($(pgrep Latency))
 
 iteration=1
@@ -37,11 +37,11 @@ while true; do
     fi
 
     if [ $1 = "increasing" ]; then
-        sleep $(python -c "print(max(0.5,25/$iteration))")
+        sleep $(python -c "print(max(2,25/$iteration))")
     fi
 
     if [ $1 = "random" ]; then
-        sleep `python3 -c "from random import uniform; print(uniform(0.2,20))"`
+        sleep `python3 -c "from random import uniform; print(uniform(2,20))"`
     fi
     ((iteration++))
 done

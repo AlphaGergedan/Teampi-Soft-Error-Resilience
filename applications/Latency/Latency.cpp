@@ -11,7 +11,7 @@
 #include <cstdlib>
 
 const int NUM_TRIALS = 100;
-const int NUM_PONGS  = 1e4;
+const int NUM_PONGS  = 2e4;
 
 int START = 0;
 int FINISH = 0;

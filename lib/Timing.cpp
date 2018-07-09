@@ -199,7 +199,7 @@ void Timing::outputTiming() {
     }
     f << "\n";
 
-    f << "heartbeatTimes";
+    f << "sleepPoints";
     for (const double& t : timer.sleepPoints) {
       f << sep << t - timer.startTime;
     }

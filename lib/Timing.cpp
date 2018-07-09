@@ -91,6 +91,7 @@ void Timing::compareProgressWithReplicas() {
       int numPending = 0;
       for (int i=0; i < timer.heartbeatTimeRequests.at(r).size(); i++) {
         int flag = 0;
+        logDebug("Sucess")
         PMPI_Test(&timer.heartbeatTimeRequests.at(r).at(i), &flag, MPI_STATUS_IGNORE);
         numPending += 1 - flag;
       }

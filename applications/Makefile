@@ -1,9 +1,9 @@
 CC=mpiicpc
-CFLAGS += -g -Wall -std=c++11 -DCOMPARE_PROGRESS
+CFLAGS += -g -Wall -std=c++11
 LFLAGS += -L../lib -ltmpi
 
 
-TARGETS = bin/MasterWorker bin/VectorAdd bin/Latency
+TARGETS = bin/MasterWorker bin/VectorAdd bin/Latency bin/PerfSimulator
 LIB = ../lib/libtmpi.so
 
 
@@ -22,6 +22,10 @@ bin/VectorAdd : bin/VectorAdd.o
 	
 bin/Latency : bin/Latency.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LFLAGS)
+
+bin/PerfSimulator : bin/PerfSimulator.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LFLAGS)
+
 	
 bin/MasterWorker.o : MasterWorker/MasterWorker.cpp
 	$(CC) $(CFLAGS) -c $^ -o $@ $(LFLAGS)
@@ -30,6 +34,9 @@ bin/VectorAdd.o : VectorAdd/VectorAdd.cpp
 	$(CC) $(CFLAGS) -c $^ -o $@ $(LFLAGS)
 	
 bin/Latency.o : Latency/Latency.cpp
+	$(CC) $(CFLAGS) -c $^ -o $@ $(LFLAGS)
+
+bin/PerfSimulator.o : PerfSimulator/PerfSimulator.cpp
 	$(CC) $(CFLAGS) -c $^ -o $@ $(LFLAGS)
 
 .PHONY : $(LIB)

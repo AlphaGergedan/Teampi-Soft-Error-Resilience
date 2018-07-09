@@ -14,9 +14,9 @@
 namespace Timing {
 
 // Mark time only for this heartbeat
-void markTimeline();
+void markTimeline(int tag);
 // Also mark the hash for the heartbeat buffer
-void markTimeline(const void *sendbuf, int sendcount, MPI_Datatype sendtype);
+void markTimeline(int tag, const void *sendbuf, int sendcount, MPI_Datatype sendtype);
 
 void initialiseTiming();
 void finaliseTiming();

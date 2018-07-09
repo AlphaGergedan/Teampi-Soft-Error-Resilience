@@ -288,9 +288,9 @@ int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                 MPI_Comm comm, MPI_Status *status) {
   if (comm == MPI_COMM_SELF) {
     if (sendcount == 0) {
-      Timing::markTimeline();
+      Timing::markTimeline(sendtag);
     } else {
-      Timing::markTimeline(sendbuf, sendcount, sendtype);
+      Timing::markTimeline(sendtag, sendbuf, sendcount, sendtype);
     }
   } else {
     assert(comm == MPI_COMM_WORLD);

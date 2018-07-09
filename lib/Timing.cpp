@@ -58,13 +58,15 @@ void Timing::finaliseTiming() {
   timer.endTime = PMPI_Wtime();
 }
 
-void Timing::markTimeline() {
+void Timing::markTimeline(int tag) {
     timer.heartbeatTimes.at(getTeam()).push_back(PMPI_Wtime());
-    compareProgressWithReplicas();
+    if (tag > 0) {
+      compareProgressWithReplicas();
+    }
 }
 
-void Timing::markTimeline(const void *sendbuf, int sendcount, MPI_Datatype sendtype) {
-  markTimeline();
+void Timing::markTimeline(int tag, const void *sendbuf, int sendcount, MPI_Datatype sendtype) {
+  markTimeline(tag);
   compareBufferWithReplicas(sendbuf, sendcount, sendtype);
 }
 
@@ -73,15 +75,16 @@ void Timing::compareProgressWithReplicas() {
     if (r != getTeam()) {
       // Send out this replica's times
       MPI_Request request;
-      PMPI_Isend(&timer.heartbeatTimes.at(getTeam()).back(), 1, MPI_DOUBLE,
+      PMPI_Isend(timer.heartbeatTimes.at(getTeam()).data()+timer.heartbeatTimes.at(getTeam()).size() - 2, 2, MPI_DOUBLE,
                 mapTeamToWorldRank(getTeamRank(), r), getTeam(),
                 getLibComm(), &request);
       MPI_Request_free(&request);
 
       // Receive times from other replicas
       timer.heartbeatTimes.at(r).push_back(0.0);
+      timer.heartbeatTimes.at(r).push_back(0.0);
       timer.heartbeatTimeRequests.at(r).push_back(MPI_Request());
-      PMPI_Irecv(&timer.heartbeatTimes.at(r).back(), 1, MPI_DOUBLE,
+      PMPI_Irecv(timer.heartbeatTimes.at(getTeam()).data()+timer.heartbeatTimes.at(getTeam()).size() - 2, 2, MPI_DOUBLE,
                  mapTeamToWorldRank(getTeamRank(), r), r, getLibComm(), &timer.heartbeatTimeRequests.at(r).back());
 
       // Test for completion of Irecv's

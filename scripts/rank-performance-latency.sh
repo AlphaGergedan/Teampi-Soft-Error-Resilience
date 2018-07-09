@@ -37,11 +37,11 @@ while true; do
     fi
 
     if [ $1 = "increasing" ]; then
-        sleep $(python -c "print(max(2,25/$iteration))")
+        sleep $(python -c "print(max(2,20.0/$iteration))")
     fi
 
     if [ $1 = "random" ]; then
-        sleep `python3 -c "from random import uniform; print(uniform(2,20))"`
+        sleep `python3 -c "from random import uniform; print(uniform(2,10))"`
     fi
     ((iteration++))
 done

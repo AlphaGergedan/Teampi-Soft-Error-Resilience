@@ -11,8 +11,8 @@
 
 #include "RankControl.h"
 #include "Logging.h"
+#include "Timing.h"
 
-static bool shouldSleepRank;
 static bool shouldCorruptData;
 
 
@@ -23,20 +23,15 @@ void registerSignalHandler() {
 }
 
 void pauseThisRankSignalHandler( int signum ) { 
-  shouldSleepRank = true;
+  Timing::sleepRankRaised();
+  const double sleepLength = 1.0 * 1e6;
+  logDebug( "Signal received: sleep for 1s");
+  usleep(sleepLength);
 }
 
 void corruptThisRankSignalHandler( int signum ) {
   logInfo("Signal received: corrupt this rank on next heartbeart");
   shouldCorruptData = true;
-}
-
-bool getShouldSleepRank() {
-  return shouldSleepRank;
-}
-
-void setShouldSleepRank(bool toggle) {
-  shouldSleepRank = toggle;
 }
 
 bool getShouldCorruptData() {

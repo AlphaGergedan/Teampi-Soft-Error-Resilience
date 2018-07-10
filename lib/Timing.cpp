@@ -19,6 +19,8 @@
 #include <stddef.h>
 #include <bitset>
 #include <unistd.h>
+#include <list>
+#include <vector>
 
 struct Timer {
   // PMPI_Wtime at start of execution
@@ -29,27 +31,26 @@ struct Timer {
   // Mark when an application sleeps
   std::vector<double> sleepPoints;
 
-  // TODO change to heartbeat terminology
-  // Times for each heartbeat (per replica)
-  std::map< int, std::vector<double> > heartbeatTimes;
-  // Store the MPI_Requests for each heartbeat (per replica) for calling MPI_Test
-  std::map< int, std::vector<MPI_Request> > heartbeatTimeRequests;
+  // Delta times for each heartbeat (per replica)
+  std::map< int, std::list<double> > heartbeatTimes;
+  // Store the MPI_Requests for each heartbeat delta (per replica)
+  std::map< int, std::list<MPI_Request> > heartbeatTimeRequests;
 
   // Hash for each heartbeat buffer (per replica)
-  std::map<int, std::vector<std::size_t> > heartbeatHashes;
-  // Store the MPI_Requests for each heartbeat (per replica) for calling MPI_Test
-  std::map<int, std::vector<MPI_Request> > heartbeatHashRequests;
+  std::map<int, std::list<std::size_t> > heartbeatHashes;
+  // Store the MPI_Requests for each heartbeat (per replica) 
+  std::map<int, std::list<MPI_Request> > heartbeatHashRequests;
 } timer;
 
 void Timing::initialiseTiming() {
   synchroniseRanksInTeam();
   timer.startTime = PMPI_Wtime();
   for (int i=0; i < getNumberOfTeams(); i++) {
-    timer.heartbeatTimes.insert(std::make_pair(i,std::vector<double>()));
-    timer.heartbeatTimeRequests.insert(std::make_pair(i,std::vector<MPI_Request>()));
+    timer.heartbeatTimes.insert(std::make_pair(i,std::list<double>()));
+    timer.heartbeatTimeRequests.insert(std::make_pair(i,std::list<MPI_Request>()));
 
-    timer.heartbeatHashes.insert(std::make_pair(i,std::vector<std::size_t>()));
-    timer.heartbeatHashRequests.insert(std::make_pair(i,std::vector<MPI_Request>()));
+    timer.heartbeatHashes.insert(std::make_pair(i,std::list<std::size_t>()));
+    timer.heartbeatHashRequests.insert(std::make_pair(i,std::list<MPI_Request>()));
   }
 }
 
@@ -59,10 +60,12 @@ void Timing::finaliseTiming() {
 }
 
 void Timing::markTimeline(int tag) {
+  if (tag == 0) {
     timer.heartbeatTimes.at(getTeam()).push_back(PMPI_Wtime());
-    if (tag > 0) {
-      compareProgressWithReplicas();
-    }
+  } else {
+    timer.heartbeatTimes.at(getTeam()).back() = PMPI_Wtime() - timer.heartbeatTimes.at(getTeam()).back();
+    compareProgressWithReplicas();
+  }
 }
 
 void Timing::markTimeline(int tag, const void *sendbuf, int sendcount, MPI_Datatype sendtype) {
@@ -73,27 +76,30 @@ void Timing::markTimeline(int tag, const void *sendbuf, int sendcount, MPI_Datat
 void Timing::compareProgressWithReplicas() {
   for (int r=0; r < getNumberOfTeams(); r++) {
     if (r != getTeam()) {
-      // Send out this replica's times
-      MPI_Request request;
-      PMPI_Isend(timer.heartbeatTimes.at(getTeam()).data()+timer.heartbeatTimes.at(getTeam()).size() - 2, 2, MPI_DOUBLE,
+      // Send out this replica's delta
+      timer.heartbeatTimeRequests.at(r).push_back(MPI_Request());
+      PMPI_Isend(&timer.heartbeatTimes.at(getTeam()).back(), 1, MPI_DOUBLE,
                 mapTeamToWorldRank(getTeamRank(), r), getTeam(),
-                getLibComm(), &request);
-      MPI_Request_free(&request);
+                getLibComm(), &timer.heartbeatTimeRequests.at(r).back());
 
-      // Receive times from other replicas
-      timer.heartbeatTimes.at(r).push_back(0.0);
+
+      // Receive deltas from other replicas
       timer.heartbeatTimes.at(r).push_back(0.0);
       timer.heartbeatTimeRequests.at(r).push_back(MPI_Request());
-      PMPI_Irecv(timer.heartbeatTimes.at(getTeam()).data()+timer.heartbeatTimes.at(getTeam()).size() - 2, 2, MPI_DOUBLE,
+      PMPI_Irecv(&timer.heartbeatTimes.at(getTeam()).back(), 1, MPI_DOUBLE,
                  mapTeamToWorldRank(getTeamRank(), r), r, getLibComm(), &timer.heartbeatTimeRequests.at(r).back());
 
-      // Test for completion of Irecv's
-      int numPending = 0;
-      for (int i=0; i < timer.heartbeatTimeRequests.at(r).size(); i++) {
-        int flag = 0;
-        logDebug("Sucess")
-        PMPI_Test(&timer.heartbeatTimeRequests.at(r).at(i), &flag, MPI_STATUS_IGNORE);
-        numPending += 1 - flag;
+      auto it = timer.heartbeatTimeRequests.at(r).begin();
+      while (it != timer.heartbeatTimeRequests.at(r).end()) {
+        int flag;
+        PMPI_Test(&(*it), &flag, MPI_STATUS_IGNORE);
+        if (flag) {
+          if (!((*it) == MPI_REQUEST_NULL)){
+            MPI_Request_free(&(*it));
+          }
+          it = timer.heartbeatTimeRequests.at(r).erase(it);
+        }
+        ++it;
       }
     }
   }
@@ -129,14 +135,14 @@ void Timing::compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_D
       PMPI_Irecv(&timer.heartbeatHashes.at(r).back(), 1, TMPI_SIZE_T,
                  mapTeamToWorldRank(getTeamRank(), r), r, getLibComm(), &timer.heartbeatHashRequests.at(r).back());
 
-      // Test for completion of Irecv's
-      int numPending = 0;
-      for (int i=0; i < timer.heartbeatHashRequests.at(r).size(); i++) {
-        int flag = 0;
-        PMPI_Test(&timer.heartbeatHashRequests.at(r).at(i), &flag, MPI_STATUS_IGNORE);
-        numPending += 1 - flag;
-      }
-      std::cout << "Num pending: " << numPending << "\n";
+      // // Test for completion of Irecv's
+      // int numPending = 0;
+      // for (int i=0; i < timer.heartbeatHashRequests.at(r).size(); i++) {
+      //   int flag = 0;
+      //   PMPI_Test(&timer.heartbeatHashRequests.at(r).at(i), &flag, MPI_STATUS_IGNORE);
+      //   numPending += 1 - flag;
+      // }
+      // std::cout << "Num pending: " << numPending << "\n";
     }
   }
 }

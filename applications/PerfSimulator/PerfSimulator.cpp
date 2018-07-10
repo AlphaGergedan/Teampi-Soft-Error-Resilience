@@ -11,8 +11,8 @@
 #include <cstdlib>
 #include <math.h>  
 
-const int NUM_TRIALS = 100;
-const int NUM_COMPUTATIONS = 5e7;
+const int NUM_TRIALS = 1e6  ;
+const int NUM_COMPUTATIONS = 1e0;
 
 int main(int argc, char *argv[])
 {

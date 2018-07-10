@@ -205,7 +205,7 @@ void Timing::outputTiming() {
 
     f << "heartbeatTimes";
     for (const double& t : timer.heartbeatTimes.at(getTeam())) {
-      f << sep << t - timer.startTime;
+      f << sep << t;
     }
     f << "\n";
 

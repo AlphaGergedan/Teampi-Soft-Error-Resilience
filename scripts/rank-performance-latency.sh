@@ -1,14 +1,14 @@
 #!/bin/bash
-if (( $# < 4)); then
-    echo "ERROR: At least four parameters are required"
+if (( $# < 3)); then
+    echo "ERROR: At least three parameters are required"
     echo "Usage: { constant | increasing | random } { single | rr | random } application [application args...]"
     exit 1
 fi
 
-mpirun -np 4 -l ${@:3} &
+mpirun -np 4 ${@:3} &
 
 sleep 2
-pids=($(pgrep Latency))
+pids=($(pgrep PerfSimulator))
 
 iteration=1
 

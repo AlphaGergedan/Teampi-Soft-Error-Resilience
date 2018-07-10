@@ -46,11 +46,11 @@ void Timing::initialiseTiming() {
   synchroniseRanksInTeam();
   timer.startTime = PMPI_Wtime();
   for (int i=0; i < getNumberOfTeams(); i++) {
-    timer.heartbeatTimes.insert(std::make_pair(i,std::list<double>()));
-    timer.heartbeatTimeRequests.insert(std::make_pair(i,std::list<MPI_Request>()));
+    timer.heartbeatTimes.insert(std::make_pair(i, std::list<double>());
+    timer.heartbeatTimeRequests.insert(std::make_pair(i, std::list<MPI_Request>()));
 
-    timer.heartbeatHashes.insert(std::make_pair(i,std::list<std::size_t>()));
-    timer.heartbeatHashRequests.insert(std::make_pair(i,std::list<MPI_Request>()));
+    timer.heartbeatHashes.insert(std::make_pair(i, std::list<std::size_t>()));
+    timer.heartbeatHashRequests.insert(std::make_pair(i, std::list<MPI_Request>()));
   }
 }
 

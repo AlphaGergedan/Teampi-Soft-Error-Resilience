@@ -11,8 +11,8 @@
 #include <cstdlib>
 #include <math.h>  
 
-const int NUM_TRIALS = 1e6  ;
-const int NUM_COMPUTATIONS = 1e0;
+const int NUM_TRIALS = 100  ;
+const int NUM_COMPUTATIONS = 5e7;
 
 int main(int argc, char *argv[])
 {
@@ -51,14 +51,6 @@ int main(int argc, char *argv[])
     MPI_Sendrecv(MPI_IN_PLACE, 0, MPI_BYTE, MPI_PROC_NULL, 1, MPI_IN_PLACE, 0, MPI_BYTE, MPI_PROC_NULL, 0, MPI_COMM_SELF, MPI_STATUS_IGNORE);
 #endif
     MPI_Barrier(MPI_COMM_WORLD);
-    // if (rank == source)
-    // {
-    //   MPI_Recv(&m, 1, MPI_CHAR, source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    // }
-    // else
-    // {
-    //   MPI_Send(&m, 1, MPI_CHAR, dest, 0, MPI_COMM_WORLD);
-    // }
   }
 
   MPI_Finalize();

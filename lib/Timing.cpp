@@ -31,10 +31,14 @@ struct Timer {
   // Mark when an application sleeps
   std::vector<double> sleepPoints;
 
+
+  // TODO: add support for multiple tags
   // Delta times for each heartbeat (per replica)
   std::map< int, std::list<double> > heartbeatTimes;
   // Store the MPI_Requests for each heartbeat delta (per replica)
   std::map< int, std::list<MPI_Request> > heartbeatTimeRequests;
+
+  std::map< int, bool > isHeartbeatTriggeredForTag;
 
   // Hash for each heartbeat buffer (per replica)
   std::map<int, std::list<std::size_t> > heartbeatHashes;
@@ -60,12 +64,19 @@ void Timing::finaliseTiming() {
 }
 
 void Timing::markTimeline(int tag) {
-  if (tag == 0) {
+  if (timer.isHeartbeatTriggeredForTag.find(tag) == timer.isHeartbeatTriggeredForTag.end()) {
+    // New heartbeat tag found
+    timer.isHeartbeatTriggeredForTag.insert( std::make_pair(tag, false));
+    timer.heartbeatTimes.at(getTeam()).push_back(PMPI_Wtime());
+  } else if (timer.isHeartbeatTriggeredForTag.at(tag) == false) {
+    // Trigger heartbeat
     timer.heartbeatTimes.at(getTeam()).push_back(PMPI_Wtime());
   } else {
+    // End heartbeat
     timer.heartbeatTimes.at(getTeam()).back() = PMPI_Wtime() - timer.heartbeatTimes.at(getTeam()).back();
     compareProgressWithReplicas();
   }
+  timer.isHeartbeatTriggeredForTag.at(tag) = !timer.isHeartbeatTriggeredForTag.at(tag);
 }
 
 void Timing::markTimeline(int tag, const void *sendbuf, int sendcount, MPI_Datatype sendtype) {

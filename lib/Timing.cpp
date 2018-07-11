@@ -32,7 +32,7 @@ struct Timer {
   std::vector<double> sleepPoints;
 
 
-  // TODO: add support for multiple tags
+  // TODO: add support for multiple tags (or do we need this?)
   // Delta times for each heartbeat (per replica)
   std::map< int, std::list<double> > heartbeatTimes;
   // Store the MPI_Requests for each heartbeat delta (per replica)

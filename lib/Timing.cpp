@@ -50,11 +50,11 @@ void Timing::initialiseTiming() {
   synchroniseRanksInTeam();
   timer.startTime = PMPI_Wtime();
   for (int i=0; i < getNumberOfTeams(); i++) {
-    timer.heartbeatTimes.insert(std::make_pair(i, std::list<double>());
-    timer.heartbeatTimeRequests.insert(std::make_pair(i, std::list<MPI_Request>()));
+    timer.heartbeatTimes.insert({i, std::list<double>()});
+    timer.heartbeatTimeRequests.insert({i, std::list<MPI_Request>()});
 
-    timer.heartbeatHashes.insert(std::make_pair(i, std::list<std::size_t>()));
-    timer.heartbeatHashRequests.insert(std::make_pair(i, std::list<MPI_Request>()));
+    timer.heartbeatHashes.insert({i, std::list<std::size_t>()});
+    timer.heartbeatHashRequests.insert({i, std::list<MPI_Request>()});
   }
 }
 
@@ -66,7 +66,7 @@ void Timing::finaliseTiming() {
 void Timing::markTimeline(int tag) {
   if (timer.isHeartbeatTriggeredForTag.find(tag) == timer.isHeartbeatTriggeredForTag.end()) {
     // New heartbeat tag found
-    timer.isHeartbeatTriggeredForTag.insert( std::make_pair(tag, false));
+    timer.isHeartbeatTriggeredForTag.insert({tag, false});
     timer.heartbeatTimes.at(getTeam()).push_back(PMPI_Wtime());
   } else if (timer.isHeartbeatTriggeredForTag.at(tag) == false) {
     // Trigger heartbeat

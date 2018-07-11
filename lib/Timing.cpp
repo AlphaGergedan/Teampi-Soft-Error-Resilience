@@ -38,8 +38,6 @@ struct Timer {
   // Store the MPI_Requests for each heartbeat delta (per replica)
   std::map< int, std::list<MPI_Request> > heartbeatTimeRequests;
 
-  std::map< int, bool > isHeartbeatTriggeredForTag;
-
   // Hash for each heartbeat buffer (per replica)
   std::map<int, std::list<std::size_t> > heartbeatHashes;
   // Store the MPI_Requests for each heartbeat (per replica) 
@@ -64,19 +62,16 @@ void Timing::finaliseTiming() {
 }
 
 void Timing::markTimeline(int tag) {
-  if (timer.isHeartbeatTriggeredForTag.find(tag) == timer.isHeartbeatTriggeredForTag.end()) {
-    // New heartbeat tag found
-    timer.isHeartbeatTriggeredForTag.insert({tag, false});
+  if (tag > 0) {
     timer.heartbeatTimes.at(getTeam()).push_back(PMPI_Wtime());
-  } else if (timer.isHeartbeatTriggeredForTag.at(tag) == false) {
-    // Trigger heartbeat
-    timer.heartbeatTimes.at(getTeam()).push_back(PMPI_Wtime());
+  } else if (tag < 0) {
+    if (timer.heartbeatTimes.at(getTeam()).size()) {
+      timer.heartbeatTimes.at(getTeam()).back() = PMPI_Wtime() - timer.heartbeatTimes.at(getTeam()).back();
+      compareProgressWithReplicas();
+    }
   } else {
-    // End heartbeat
-    timer.heartbeatTimes.at(getTeam()).back() = PMPI_Wtime() - timer.heartbeatTimes.at(getTeam()).back();
-    compareProgressWithReplicas();
+    // TODO: if tag == 0 then single heartbeat mode not deltas
   }
-  timer.isHeartbeatTriggeredForTag.at(tag) = !timer.isHeartbeatTriggeredForTag.at(tag);
 }
 
 void Timing::markTimeline(int tag, const void *sendbuf, int sendcount, MPI_Datatype sendtype) {

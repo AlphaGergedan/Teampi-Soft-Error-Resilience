@@ -9,7 +9,7 @@
 #define TIMING_H_
 
 #include <mpi.h>
-#include <vector>
+
 
 namespace Timing {
 

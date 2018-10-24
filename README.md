@@ -1,4 +1,4 @@
-# tMPI: A team based PMPI wrapper for MPI #
+# teaMPI: A team based PMPI wrapper for MPI #
 
 ### What is this repository for? ###
 
@@ -25,8 +25,8 @@ To use some example provided miniapps:
 2. run each application in the bin folder with the required command line parameters (documented in each application folder)  
 
 To use with an existing application:  
-1. Link with `-ltmpi -L"path to tmpi"`   
-2. Add "path to tmpi" to `LD_LIBRARY_PATH`   
+1. Link with `-ltmpi -L"path to teaMPI"`   
+2. Add "path to teaMPI" to `LD_LIBRARY_PATH`   
 
 ### Example Heartbeat Usage ###
 This application models many scientific applications. Per loop, the two `MPI_Sendrecv` calls act as heartbeats.   

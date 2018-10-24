@@ -34,22 +34,26 @@ The first starts the timer for this rank and the second stops it. Additionally t
 the data buffer for comparison with other teams. Only a hash of the data is sent.  
 
 At the end of the application, the heartbeat times will be written to CSV files.
-
-```
+  
+  
+  
+```C++
 double data[SIZE]
 for (int t = 0; t < NUM_TRIALS; t++)
 {
     MPI_Barrier(MPI_COMM_WORLD);
 
     // Start Heartbeat
-    MPI_Sendrecv(MPI_IN_PLACE, 0, MPI_BYTE, MPI_PROC_NULL, -1, MPI_IN_PLACE, 0, MPI_BYTE, MPI_PROC_NULL, 0, MPI_COMM_SELF, MPI_STATUS_IGNORE);
+    MPI_Sendrecv(MPI_IN_PLACE, 0, MPI_BYTE, MPI_PROC_NULL, -1, MPI_IN_PLACE, 0, 
+        MPI_BYTE, MPI_PROC_NULL, 0, MPI_COMM_SELF, MPI_STATUS_IGNORE);
 
     for (int i = 0; i < NUM_COMPUTATIONS; i++) {
         // Arbitrary computation on data
     }
 
     // End Heartbeat and compare data
-    MPI_Sendrecv(data, SIZE, MPI_DOUBLE, MPI_PROC_NULL, 1, MPI_IN_PLACE, 0, MPI_BYTE, MPI_PROC_NULL, 0, MPI_COMM_SELF, MPI_STATUS_IGNORE);
+    MPI_Sendrecv(data, SIZE, MPI_DOUBLE, MPI_PROC_NULL, 1, MPI_IN_PLACE, 0, 
+        MPI_BYTE, MPI_PROC_NULL, 0, MPI_COMM_SELF, MPI_STATUS_IGNORE);
 
     MPI_Barrier(MPI_COMM_WORLD);
 }

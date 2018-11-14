@@ -38,7 +38,7 @@ At the end of the application, the heartbeat times will be written to CSV files.
   
   
 ```C++
-double data[SIZE]
+double data[SIZE];
 for (int t = 0; t < NUM_TRIALS; t++)
 {
     MPI_Barrier(MPI_COMM_WORLD);

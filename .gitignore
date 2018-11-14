@@ -94,3 +94,6 @@ tests/UnitTests
 
 
 .vscode/
+
+*.code-workspace
+

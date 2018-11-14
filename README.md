@@ -59,5 +59,12 @@ for (int t = 0; t < NUM_TRIALS; t++)
 }
 ```
 
+### What if I want to communicate between teams myself? ###
+To get access to the original MPI function, prefix it with a P. For example, MPI_Send becomes PMPI_Send. 
+
+If you wish to map between original rank numbers, know how many teams there are, perform a global barrier, etc. take a look at the Rank.h file. 
+It has access to all the data internal to teaMPI. To use the functions declared in it, simply `#include "Rank.h"` and add the path to `teampi/lib` to the compilation `-I` flags.  
+
+
 ### Who do I talk to? ###
 Ben Hazelwood (benjamin.hazelwood@durham.ac.uk)

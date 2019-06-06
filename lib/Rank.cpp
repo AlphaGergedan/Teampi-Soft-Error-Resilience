@@ -88,8 +88,8 @@ int getNumberOfTeams() {
   return getWorldSize() / getTeamSize();
 }
 
-MPI_Comm getTeamComm() {
-  return TMPI_COMM_TEAM;
+MPI_Comm getTeamComm(MPI_Comm comm) {
+  return (comm==MPI_COMM_WORLD) ? TMPI_COMM_TEAM : comm;
 }
 
 int freeTeamComm() {
@@ -175,7 +175,7 @@ void remapStatus(MPI_Status *status) {
 }
 
 int synchroniseRanksInTeam() {
-  return PMPI_Barrier(getTeamComm());
+  return PMPI_Barrier(getTeamComm(MPI_COMM_WORLD));
 }
 
 int synchroniseRanksGlobally() {

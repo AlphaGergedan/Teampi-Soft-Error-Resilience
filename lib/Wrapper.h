@@ -43,6 +43,20 @@ int MPI_Comm_rank(MPI_Comm comm, int *rank);
  */
 int MPI_Comm_size(MPI_Comm comm, int *size);
 
+/**
+ *
+ * @param comm
+ * @param newcomm
+ * @return
+ */
+int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);
+
+/**
+ *
+ * @param comm
+ * @return
+ */ 
+int MPI_Comm_free(MPI_Comm *comm);
 
 /**
  * Sends only to the corresponding replica of dest
@@ -82,6 +96,14 @@ int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status);
 
 int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
                 MPI_Status *status);
+
+int MPI_Allgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                   void *recvbuf, int recvcount, MPI_Datatype recvtype,
+                   MPI_Comm comm);
+
+int MPI_Iallgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                   void *recvbuf, int recvcount, MPI_Datatype recvtype,
+                   MPI_Comm comm, MPI_Request *request);
 
 int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status);
 

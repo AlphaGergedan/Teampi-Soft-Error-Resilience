@@ -2,7 +2,7 @@
  * RankOperations.h
  *
  *  Created on: 2 Mar 2018
- *      Author: Ben Hazelwood
+ *      Author: Ben Hazelwood, Philipp Samfass
  */
 
 #ifndef RANK_H_
@@ -50,7 +50,7 @@ int getNumberOfTeams();
 int getTeam();
 
 /* The communicator used by this team */
-MPI_Comm getTeamComm();
+MPI_Comm getTeamComm(MPI_Comm comm);
 int freeTeamComm();
 
 /* The duplicate MPI_COMM_WORLD used by the library*/

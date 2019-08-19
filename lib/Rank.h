@@ -53,6 +53,8 @@ int getTeam();
 MPI_Comm getTeamComm(MPI_Comm comm);
 int freeTeamComm();
 
+MPI_Comm getTeamInterComm();
+
 /* The duplicate MPI_COMM_WORLD used by the library*/
 MPI_Comm getLibComm();
 int freeLibComm();

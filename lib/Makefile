@@ -2,8 +2,8 @@ CC=mpiicpc
 CFLAGS += -fPIC -g -Wall -std=c++11
 LDFLAGS += -shared
 
-SRC = Rank.cpp RankControl.cpp Timing.cpp Wrapper.cpp
-DEP = Rank.h RankControl.h Timing.h Wrapper.h Logging.h
+SRC = Rank.cpp RankControl.cpp Timing.cpp Wrapper.cpp teaMPI.cpp
+DEP = Rank.h RankControl.h Timing.h Wrapper.h Logging.h teaMPI.h
 OBJECTS = $(SRC:.cpp=.o)
 
 TARGET = libtmpi.so

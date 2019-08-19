@@ -23,6 +23,7 @@ static int numTeams;
 
 static MPI_Comm TMPI_COMM_TEAM;
 static MPI_Comm TMPI_COMM_DUP;
+static MPI_Comm TMPI_COMM_INTER_TEAM;
 
 int initialiseTMPI() {
   /**
@@ -43,6 +44,9 @@ int initialiseTMPI() {
   PMPI_Comm_rank(TMPI_COMM_TEAM, &teamRank);
 
   PMPI_Comm_size(TMPI_COMM_TEAM, &teamSize);
+
+  // Todo: free 
+  PMPI_Comm_split(MPI_COMM_WORLD, teamRank, worldRank, &TMPI_COMM_INTER_TEAM);
 
   assert(teamSize == (worldSize / numTeams));
 
@@ -90,6 +94,10 @@ int getNumberOfTeams() {
 
 MPI_Comm getTeamComm(MPI_Comm comm) {
   return (comm==MPI_COMM_WORLD) ? TMPI_COMM_TEAM : comm;
+}
+
+MPI_Comm getTeamInterComm() {
+  return TMPI_COMM_INTER_TEAM;
 }
 
 int freeTeamComm() {

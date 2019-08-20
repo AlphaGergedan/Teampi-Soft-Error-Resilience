@@ -15,6 +15,10 @@ int TMPI_GetInterTeamCommSize() {
   return getNumberOfTeams();
 }
 
+int TMPI_GetTeamNumber() {
+  return getTeam();  
+}
+
 MPI_Comm TMPI_GetInterTeamComm() {
   return getTeamInterComm();
 }

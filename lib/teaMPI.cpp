@@ -19,6 +19,10 @@ int TMPI_GetTeamNumber() {
   return getTeam();  
 }
 
+int TMPI_IsLeadingRank() {
+  return getTeam()==0; 
+}
+
 MPI_Comm TMPI_GetInterTeamComm() {
   return getTeamInterComm();
 }

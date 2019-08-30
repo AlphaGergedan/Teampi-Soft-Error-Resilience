@@ -10,3 +10,4 @@
 MPI_Comm TMPI_GetInterTeamComm();
 int TMPI_GetTeamNumber();
 int TMPI_GetInterTeamCommSize();
+int TMPI_IsLeadingRank();

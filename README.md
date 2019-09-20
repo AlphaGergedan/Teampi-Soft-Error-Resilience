@@ -44,7 +44,7 @@ for (int t = 0; t < NUM_TRIALS; t++)
     MPI_Barrier(MPI_COMM_WORLD);
 
     // Start Heartbeat
-    MPI_Sendrecv(MPI_IN_PLACE, 0, MPI_BYTE, MPI_PROC_NULL, -1, MPI_IN_PLACE, 0, 
+    MPI_Sendrecv(MPI_IN_PLACE, 0, MPI_BYTE, MPI_PROC_NULL, 1, MPI_IN_PLACE, 0, 
         MPI_BYTE, MPI_PROC_NULL, 0, MPI_COMM_SELF, MPI_STATUS_IGNORE);
 
     for (int i = 0; i < NUM_COMPUTATIONS; i++) {
@@ -52,7 +52,7 @@ for (int t = 0; t < NUM_TRIALS; t++)
     }
 
     // End Heartbeat and compare data
-    MPI_Sendrecv(data, SIZE, MPI_DOUBLE, MPI_PROC_NULL, 1, MPI_IN_PLACE, 0, 
+    MPI_Sendrecv(data, SIZE, MPI_DOUBLE, MPI_PROC_NULL, -1, MPI_IN_PLACE, 0, 
         MPI_BYTE, MPI_PROC_NULL, 0, MPI_COMM_SELF, MPI_STATUS_IGNORE);
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -69,4 +69,4 @@ It has access to all the data internal to teaMPI. To use the functions declared 
 ### Who do I talk to? ###
 Ben Hazelwood (benjamin.hazelwood@durham.ac.uk)
 Tobias Weinzierl (tobias.weinzierl@durham.ac.uk)
-
+Philipp Samfass (samfass@in.tum.de)

@@ -163,6 +163,7 @@ void Timing::outputTiming() {
   PMPI_Barrier(MPI_COMM_WORLD);
 
   std::string filenamePrefix = getEnvString("TMPI_FILE");
+  std::string outputPathPrefix = getEnvString("TMPI_OUTPUT_PATH");
 
   // Output simple replica timings
   if ((getTeamRank() == MASTER) && (getWorldRank() != MASTER)) {
@@ -195,7 +196,7 @@ void Timing::outputTiming() {
     // Write Generic Sync points to files
     char sep = ',';
     std::ostringstream filename;
-    std::string outputFolder("tmpi-timings");
+    std::string outputFolder(outputPathPrefix.empty() ? "tmpi-timings" : outputPathPrefix);
     filename << outputFolder << "/"
         << filenamePrefix << "-"
         << getWorldRank() << "-"

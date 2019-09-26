@@ -28,7 +28,10 @@ int MPI_Is_thread_main(int* flag) {
 int MPI_Comm_rank(MPI_Comm comm, int *rank) {
   // todo: assert that a team comm is used
   //assert(comm == MPI_COMM_WORLD);
-  *rank = getTeamRank();
+  if(comm==MPI_COMM_WORLD) 
+   *rank = getTeamRank();
+  else 
+   PMPI_Comm_rank(comm, rank);
   return MPI_SUCCESS;
 }
 

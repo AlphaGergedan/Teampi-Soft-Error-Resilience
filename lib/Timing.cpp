@@ -68,7 +68,7 @@ void Timing::markTimeline(int tag) {
     if (timer.heartbeatTimes.at(getTeam()).size()) {
       timer.heartbeatTimes.at(getTeam()).back() = PMPI_Wtime() - timer.heartbeatTimes.at(getTeam()).back();
       printf("World Rank: %d, team rank: %d, team: %d, submitted time %f\n", getWorldRank(), getTeamRank(), getTeam(),timer.heartbeatTimes.at(getTeam()).back());
-      //compareProgressWithReplicas();
+      compareProgressWithReplicas();
     }
   } else {
     // TODO: if tag == 0 then single heartbeat mode not deltas
@@ -96,6 +96,7 @@ void Timing::compareProgressWithReplicas() {
       PMPI_Irecv(&timer.heartbeatTimes.at(r).back(), 1, MPI_DOUBLE,
                  mapTeamToWorldRank(getTeamRank(), r), r, getLibComm(), &timer.heartbeatTimeRequests.at(r).back());
 
+      // Progress on outstanding receives and sends
       auto it = timer.heartbeatTimeRequests.at(r).begin();
       while (it != timer.heartbeatTimeRequests.at(r).end()) {
         int flag;
@@ -163,6 +164,17 @@ void Timing::outputTiming() {
   std::cout.flush();
   PMPI_Barrier(MPI_COMM_WORLD);
 
+  //TODO: finish outstanding communication requests
+  /*bool finished_all = false;
+  while(!finished_all) {
+    for(int r=0; r<getNumberOfTeams(); r++) {
+      finished_all &= timer.heartbeatTimeRequests.at(r).empty();  
+    }
+    if(!finished_all) {
+       
+    }
+  }*/
+
   std::string filenamePrefix = getEnvString("TMPI_FILE");
   std::string outputPathPrefix = getEnvString("TMPI_OUTPUT_PATH");
 
@@ -226,6 +238,14 @@ void Timing::outputTiming() {
     }
     f.close();
   }
+
+  /*for (int r=0; r < getNumberOfTeams(); r++) {
+    if (r != getTeam()) {
+      for (const double& t : timer.heartbeatTimes.at()) {
+        printf("World rank: %d, team rank: %d knows for replicand from team %d, time %f\n", getWorldRank(), getTeamRank(), r, t);
+      }
+    }
+  }*/
 
   PMPI_Barrier(MPI_COMM_WORLD);
 }

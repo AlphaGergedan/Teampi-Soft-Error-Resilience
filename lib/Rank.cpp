@@ -119,6 +119,12 @@ std::string getEnvString(std::string const& key)
 }
 
 void outputEnvironment(){
+  if(worldSize % numTeams != 0) {
+    std::cerr <<"Wrong choice of world size and number of teams!\n";
+    std::cerr <<"Number of teams: " << numTeams << "\n";
+    std::cerr <<"Total ranks: " << worldSize << "\n"; 
+  }
+
   assert(worldSize % numTeams == 0);
 
   PMPI_Barrier(MPI_COMM_WORLD);

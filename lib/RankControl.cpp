@@ -14,8 +14,8 @@
 #include "Timing.h"
 
 static bool shouldCorruptData;
-static double sleepIncrement = 0.1 * 1e6;
-static double currentSleepLength = 0.1 * 1e6;
+static double sleepIncrement = 1 * 1e6;
+static double currentSleepLength = 1 * 1e6;
 
 void registerSignalHandler() {
   signal(SIGUSR1, pauseThisRankSignalHandler);

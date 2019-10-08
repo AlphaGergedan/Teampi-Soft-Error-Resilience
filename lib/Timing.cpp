@@ -67,7 +67,8 @@ void Timing::markTimeline(int tag) {
   } else if (tag < 0) {
     if (timer.heartbeatTimes.at(getTeam()).size()) {
       timer.heartbeatTimes.at(getTeam()).back() = PMPI_Wtime() - timer.heartbeatTimes.at(getTeam()).back();
-      compareProgressWithReplicas();
+      printf("World Rank: %d, team rank: %d, team: %d, submitted time %f\n", getWorldRank(), getTeamRank(), getTeam(),timer.heartbeatTimes.at(getTeam()).back());
+      //compareProgressWithReplicas();
     }
   } else {
     // TODO: if tag == 0 then single heartbeat mode not deltas
@@ -76,7 +77,7 @@ void Timing::markTimeline(int tag) {
 
 void Timing::markTimeline(int tag, const void *sendbuf, int sendcount, MPI_Datatype sendtype) {
   markTimeline(tag);
-  compareBufferWithReplicas(sendbuf, sendcount, sendtype);
+  //compareBufferWithReplicas(sendbuf, sendcount, sendtype);
 }
 
 void Timing::compareProgressWithReplicas() {
@@ -92,7 +93,7 @@ void Timing::compareProgressWithReplicas() {
       // Receive deltas from other replicas
       timer.heartbeatTimes.at(r).push_back(0.0);
       timer.heartbeatTimeRequests.at(r).push_back(MPI_Request());
-      PMPI_Irecv(&timer.heartbeatTimes.at(getTeam()).back(), 1, MPI_DOUBLE,
+      PMPI_Irecv(&timer.heartbeatTimes.at(r).back(), 1, MPI_DOUBLE,
                  mapTeamToWorldRank(getTeamRank(), r), r, getLibComm(), &timer.heartbeatTimeRequests.at(r).back());
 
       auto it = timer.heartbeatTimeRequests.at(r).begin();
@@ -212,6 +213,9 @@ void Timing::outputTiming() {
 
     f << "heartbeatTimes";
     for (const double& t : timer.heartbeatTimes.at(getTeam())) {
+      if(t>1.5) 
+        printf("World Rank: %d, team rank: %d, team: %d, time %f\n", getWorldRank(), getTeamRank(), getTeam(),t);
+
       f << sep << t;
     }
     f << "\n";

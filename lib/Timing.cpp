@@ -98,6 +98,17 @@ void Timing::progressOutstandingRequests(int targetTeam) {
     }
 }
 
+void Timing::pollForAndReceiveHeartbeat(int targetTeam) {
+    int received = 0;
+    PMPI_Iprobe(mapTeamToWorldRank(getTeamRank(),targetTeam), targetTeam, getLibComm(), &received, MPI_STATUS_IGNORE);
+    if(received) {
+      timer.heartbeatTimes.at(targetTeam).push_back(0.0);
+      timer.heartbeatTimeRequests.at(targetTeam).push_back(MPI_Request());
+      PMPI_Irecv(&timer.heartbeatTimes.at(targetTeam).back(), 1, MPI_DOUBLE,
+               mapTeamToWorldRank(getTeamRank(), targetTeam), targetTeam, getLibComm(), &timer.heartbeatTimeRequests.at(targetTeam).back());
+    }
+}
+
 void Timing::compareProgressWithReplicas() {
   for (int r=0; r < getNumberOfTeams(); r++) {
     if (r != getTeam()) {
@@ -109,15 +120,7 @@ void Timing::compareProgressWithReplicas() {
 
 
       // Receive deltas from other replicas
-      int received = 0;
-      PMPI_Iprobe(mapTeamToWorldRank(getTeamRank(),r), r, getLibComm(), &received, MPI_STATUS_IGNORE);
-      if(received) {
-        timer.heartbeatTimes.at(r).push_back(0.0);
-        timer.heartbeatTimeRequests.at(r).push_back(MPI_Request());
-        PMPI_Irecv(&timer.heartbeatTimes.at(r).back(), 1, MPI_DOUBLE,
-                 mapTeamToWorldRank(getTeamRank(), r), r, getLibComm(), &timer.heartbeatTimeRequests.at(r).back());
-      }
-      
+      pollForAndReceiveHeartbeat(r); 
       progressOutstandingRequests(r);
     }
   }
@@ -177,11 +180,13 @@ void Timing::outputTiming() {
   //finish outstanding communication requests
   bool finished_all = false;
   while(!finished_all) {
+    finished_all = true;
     for(int r=0; r<getNumberOfTeams(); r++) {
-      finished_all &= timer.heartbeatTimeRequests.at(r).empty();  
-    }
-    if(!finished_all) {
-       
+      if(r!=getTeam()) {
+        pollForAndReceiveHeartbeat(r);
+        progressOutstandingRequests(r);
+        finished_all &= timer.heartbeatTimeRequests.at(r).empty();
+      }     
     }
   }
 

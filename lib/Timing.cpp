@@ -91,10 +91,14 @@ void Timing::compareProgressWithReplicas() {
 
 
       // Receive deltas from other replicas
-      timer.heartbeatTimes.at(r).push_back(0.0);
-      timer.heartbeatTimeRequests.at(r).push_back(MPI_Request());
-      PMPI_Irecv(&timer.heartbeatTimes.at(r).back(), 1, MPI_DOUBLE,
+      int received = 0;
+      PMPI_Iprobe(mapTeamToWorldRank(getTeamRank(),r), r, getLibComm(), &received, MPI_STATUS_IGNORE);
+      if(received) {
+        timer.heartbeatTimes.at(r).push_back(0.0);
+        timer.heartbeatTimeRequests.at(r).push_back(MPI_Request());
+        PMPI_Irecv(&timer.heartbeatTimes.at(r).back(), 1, MPI_DOUBLE,
                  mapTeamToWorldRank(getTeamRank(), r), r, getLibComm(), &timer.heartbeatTimeRequests.at(r).back());
+      }
 
       // Progress on outstanding receives and sends
       auto it = timer.heartbeatTimeRequests.at(r).begin();

@@ -26,6 +26,8 @@ void compareProgressWithReplicas();
 // Also compare a hash of a heartbeat buffer
 void compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_Datatype sendtype);
 
+void progressOutstandingRequests(int targetTeam);
+
 void sleepRankRaised();
 
 void outputTiming();

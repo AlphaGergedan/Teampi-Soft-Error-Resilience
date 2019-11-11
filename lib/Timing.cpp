@@ -67,7 +67,7 @@ void Timing::markTimeline(int tag) {
   } else if (tag < 0) {
     if (timer.heartbeatTimes.at(getTeam()).size()) {
       timer.heartbeatTimes.at(getTeam()).back() = PMPI_Wtime() - timer.heartbeatTimes.at(getTeam()).back();
-      printf("World Rank: %d, team rank: %d, team: %d, submitted time %f\n", getWorldRank(), getTeamRank(), getTeam(),timer.heartbeatTimes.at(getTeam()).back());
+      //printf("World Rank: %d, team rank: %d, team: %d, submitted time %f\n", getWorldRank(), getTeamRank(), getTeam(),timer.heartbeatTimes.at(getTeam()).back());
       compareProgressWithReplicas();
     }
   } else {
@@ -78,6 +78,24 @@ void Timing::markTimeline(int tag) {
 void Timing::markTimeline(int tag, const void *sendbuf, int sendcount, MPI_Datatype sendtype) {
   markTimeline(tag);
   //compareBufferWithReplicas(sendbuf, sendcount, sendtype);
+}
+
+
+void Timing::progressOutstandingRequests(int targetTeam) {
+
+    // Progress on outstanding receives and sends
+    auto it = timer.heartbeatTimeRequests.at(targetTeam).begin();
+    while (it != timer.heartbeatTimeRequests.at(targetTeam).end()) {
+        int flag;
+        PMPI_Test(&(*it), &flag, MPI_STATUS_IGNORE);
+        if (flag) {
+          if (!((*it) == MPI_REQUEST_NULL)){
+            MPI_Request_free(&(*it));
+          }
+          it = timer.heartbeatTimeRequests.at(targetTeam).erase(it);
+        }
+        ++it;
+    }
 }
 
 void Timing::compareProgressWithReplicas() {
@@ -99,20 +117,8 @@ void Timing::compareProgressWithReplicas() {
         PMPI_Irecv(&timer.heartbeatTimes.at(r).back(), 1, MPI_DOUBLE,
                  mapTeamToWorldRank(getTeamRank(), r), r, getLibComm(), &timer.heartbeatTimeRequests.at(r).back());
       }
-
-      // Progress on outstanding receives and sends
-      auto it = timer.heartbeatTimeRequests.at(r).begin();
-      while (it != timer.heartbeatTimeRequests.at(r).end()) {
-        int flag;
-        PMPI_Test(&(*it), &flag, MPI_STATUS_IGNORE);
-        if (flag) {
-          if (!((*it) == MPI_REQUEST_NULL)){
-            MPI_Request_free(&(*it));
-          }
-          it = timer.heartbeatTimeRequests.at(r).erase(it);
-        }
-        ++it;
-      }
+      
+      progressOutstandingRequests(r);
     }
   }
 }
@@ -168,8 +174,8 @@ void Timing::outputTiming() {
   std::cout.flush();
   PMPI_Barrier(MPI_COMM_WORLD);
 
-  //TODO: finish outstanding communication requests
-  /*bool finished_all = false;
+  //finish outstanding communication requests
+  bool finished_all = false;
   while(!finished_all) {
     for(int r=0; r<getNumberOfTeams(); r++) {
       finished_all &= timer.heartbeatTimeRequests.at(r).empty();  
@@ -177,7 +183,7 @@ void Timing::outputTiming() {
     if(!finished_all) {
        
     }
-  }*/
+  }
 
   std::string filenamePrefix = getEnvString("TMPI_FILE");
   std::string outputPathPrefix = getEnvString("TMPI_OUTPUT_PATH");
@@ -229,9 +235,6 @@ void Timing::outputTiming() {
 
     f << "heartbeatTimes";
     for (const double& t : timer.heartbeatTimes.at(getTeam())) {
-      if(t>1.5) 
-        printf("World Rank: %d, team rank: %d, team: %d, time %f\n", getWorldRank(), getTeamRank(), getTeam(),t);
-
       f << sep << t;
     }
     f << "\n";

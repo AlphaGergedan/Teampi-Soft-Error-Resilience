@@ -209,6 +209,9 @@ int MPI_Finalize() {
   PMPI_Barrier(MPI_COMM_WORLD);
   freeTeamComm();
   Timing::outputTiming();
+#ifdef DirtyCleanUp
+  return MPI_SUCCESS;
+#endif
   return PMPI_Finalize();
 }
 

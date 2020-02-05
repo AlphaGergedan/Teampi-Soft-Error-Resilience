@@ -6,6 +6,7 @@
 #include "Logging.h"
 #include "Rank.h"
 #include "Timing.h"
+#include "CommStats.h"
 
 int MPI_Init(int *argc, char*** argv) {
   int err = PMPI_Init(argc, argv);
@@ -58,6 +59,9 @@ int MPI_Comm_free(MPI_Comm *comm) {
 
 int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
               int tag, MPI_Comm comm) {
+#if COMM_STATS
+  CommunicationStatistics::trackSend(datatype,  count);
+#endif
   //assert(comm == MPI_COMM_WORLD);
   int err = PMPI_Send(buf, count, datatype, dest, tag, getTeamComm(comm));
   logInfo("Send to rank " << dest << "/" << mapTeamToWorldRank(dest) << " with tag " << tag);
@@ -67,6 +71,9 @@ int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
 int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
               MPI_Comm comm, MPI_Status *status) {
   //assert(comm == MPI_COMM_WORLD);
+#if COMM_STATS
+  CommunicationStatistics::trackReceive(datatype,  count);
+#endif
   int err = PMPI_Recv(buf, count, datatype, source, tag, getTeamComm(comm), status);
   logInfo("Receive from rank " << source << "/" << mapTeamToWorldRank(source) << " with tag " << tag);
   return err;
@@ -93,6 +100,9 @@ int MPI_Iallgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
                int tag, MPI_Comm comm, MPI_Request *request) {
   //assert(comm == MPI_COMM_WORLD);
+#if COMM_STATS
+  CommunicationStatistics::trackSend(datatype,  count);
+#endif
   int err = PMPI_Isend(buf, count, datatype, dest, tag, getTeamComm(comm), request);
   logInfo("Isend to rank " << dest << "/" << mapTeamToWorldRank(dest) << " with tag " << tag);
   return err;
@@ -101,6 +111,9 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
 int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
                MPI_Comm comm, MPI_Request *request) {
   //assert(comm == MPI_COMM_WORLD);
+#if COMM_STATS
+  CommunicationStatistics::trackReceive(datatype,  count);
+#endif
   int err = PMPI_Irecv(buf, count, datatype, source, tag, getTeamComm(comm), request);
   logInfo("Receive from rank " << source << "/" << mapTeamToWorldRank(source) << " with tag " << tag);
   return err;
@@ -209,6 +222,9 @@ int MPI_Finalize() {
   PMPI_Barrier(MPI_COMM_WORLD);
   freeTeamComm();
   Timing::outputTiming();
+#if COMM_STATS
+  CommunicationStatistics::outputCommunicationStatistics();
+#endif
 #ifdef DirtyCleanUp
   return MPI_SUCCESS;
 #endif

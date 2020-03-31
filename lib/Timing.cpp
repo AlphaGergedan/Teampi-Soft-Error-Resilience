@@ -175,7 +175,7 @@ void Timing::sleepRankRaised() {
 
 void Timing::outputTiming() {
   std::cout.flush();
-  PMPI_Barrier(MPI_COMM_WORLD);
+  PMPI_Barrier(getLibComm());
 
   //finish outstanding communication requests
   bool finished_all = false;
@@ -218,7 +218,7 @@ void Timing::outputTiming() {
     std::cout << "-------------------------------\n";
   }
   std::cout.flush();
-  PMPI_Barrier(MPI_COMM_WORLD);
+  PMPI_Barrier(getLibComm());
 
   if (!filenamePrefix.empty()) {
     // Write Generic Sync points to files
@@ -259,6 +259,6 @@ void Timing::outputTiming() {
     }
   }*/
 
-  PMPI_Barrier(MPI_COMM_WORLD);
+  PMPI_Barrier(getLibComm());
 }
 

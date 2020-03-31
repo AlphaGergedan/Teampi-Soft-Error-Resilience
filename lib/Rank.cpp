@@ -14,6 +14,7 @@
 #include "RankControl.h"
 #include "Logging.h"
 #include "Timing.h"
+#include "ErrorHandling.h"
 
 static int worldRank;
 static int worldSize;
@@ -22,9 +23,11 @@ static int teamSize;
 static int numTeams;
 
 static MPI_Comm TMPI_COMM_TEAM;
-static MPI_Comm TMPI_COMM_DUP;
 static MPI_Comm TMPI_COMM_INTER_TEAM;
+static MPI_Comm TMPI_COMM_WORLD = MPI_COMM_NULL;
 
+static MPI_Errhandler TMPI_ERRHANDLER_COMM_WORLD;
+static MPI_Errhandler TMPI_ERRHANDLER_COMM_TEAM;
 int initialiseTMPI() {
   /**
    * The application should have no knowledge of the world_size or world_rank
@@ -37,7 +40,7 @@ int initialiseTMPI() {
 
   int color = worldRank / teamSize;
 
-  PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_DUP);
+  PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_WORLD);
 
   PMPI_Comm_split(MPI_COMM_WORLD, color, worldRank, &TMPI_COMM_TEAM);
 
@@ -49,6 +52,13 @@ int initialiseTMPI() {
   PMPI_Comm_split(MPI_COMM_WORLD, teamRank, worldRank, &TMPI_COMM_INTER_TEAM);
 
   assert(teamSize == (worldSize / numTeams));
+
+  //Error Handling Stuff
+  PMPI_Comm_create_errhandler(kill_team_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
+  PMPI_Comm_set_errhandler(TMPI_COMM_WORLD, TMPI_ERRHANDLER_COMM_WORLD);
+
+  PMPI_Comm_create_errhandler(kill_team_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
+  PMPI_Comm_set_errhandler(TMPI_COMM_TEAM, TMPI_ERRHANDLER_COMM_TEAM);
 
   registerSignalHandler();
   outputEnvironment();
@@ -105,11 +115,16 @@ int freeTeamComm() {
 }
 
 MPI_Comm getLibComm() {
-  return TMPI_COMM_DUP;
+  return TMPI_COMM_WORLD;
+}
+
+int setLibComm(MPI_Comm comm){
+  TMPI_COMM_TEAM = comm;
+  return 0;
 }
 
 int freeLibComm() {
-  return MPI_Comm_free(&TMPI_COMM_DUP);
+  return MPI_Comm_free(&TMPI_COMM_WORLD);
 }
 
 std::string getEnvString(std::string const& key)
@@ -127,14 +142,14 @@ void outputEnvironment(){
 
   assert(worldSize % numTeams == 0);
 
-  PMPI_Barrier(MPI_COMM_WORLD);
+  PMPI_Barrier(TMPI_COMM_WORLD);
   double my_time = MPI_Wtime();
-  PMPI_Barrier(MPI_COMM_WORLD);
+  PMPI_Barrier(TMPI_COMM_WORLD);
   double times[worldSize];
 
-  PMPI_Gather(&my_time, 1, MPI_DOUBLE, times, 1, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+  PMPI_Gather(&my_time, 1, MPI_DOUBLE, times, 1, MPI_DOUBLE, MASTER, TMPI_COMM_WORLD);
 
-  PMPI_Barrier(MPI_COMM_WORLD);
+  PMPI_Barrier(TMPI_COMM_WORLD);
 
   if (worldRank == MASTER) {
     std::cout << "------------TMPI SETTINGS------------\n";
@@ -152,7 +167,7 @@ void outputEnvironment(){
     std::cout << "---------------------------------------\n\n";
   }
 
-  PMPI_Barrier(MPI_COMM_WORLD);
+  PMPI_Barrier(TMPI_COMM_WORLD);
 }
 
 void setEnvironment() {

@@ -14,9 +14,12 @@
 #include <iostream>
 #include <stdlib.h>
 #include <assert.h>
+#include <signal.h>
+#include "../../lib/teaMPI.h"
 
 #ifdef TMPI
 #include "../../lib/Timing.h"
+
 #endif
 
 const int MASTER = 0;
@@ -32,6 +35,7 @@ int main(int argc, char* argv[]) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+  std::cout << TMPI_GetTeamNumber() << std::endl;
   const int NUM_WORKERS = (size - 1);
 
   assert((DATA_LENGTH % (size - 1)) == 0);
@@ -63,6 +67,7 @@ int main(int argc, char* argv[]) {
       int offset = (i-1) * WORKER_LENGTH;
       MPI_Isend(a+offset, WORKER_LENGTH, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, &send_reqs[(i-1)*2]);
       MPI_Isend(b+offset, WORKER_LENGTH, MPI_DOUBLE, i, 1, MPI_COMM_WORLD, &send_reqs[(i-1)*2+1]);
+      
     }
 
 #ifdef TMPI
@@ -133,6 +138,11 @@ int main(int argc, char* argv[]) {
 
     for (int i = 0; i < WORKER_LENGTH; i++) {
       c[i] = a[i] + b[i];
+      if(rank == 1 && TMPI_GetTeamNumber() == 1){
+       
+          std::cout << "OH no failure" << std::endl;
+          raise(SIGKILL);
+      }
     }
 
 #ifdef TMPI

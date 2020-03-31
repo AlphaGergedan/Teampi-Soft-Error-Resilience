@@ -219,7 +219,7 @@ int MPI_Finalize() {
   logInfo("Finalize");
   Timing::finaliseTiming();
   // Wait for all replicas before finalising
-  PMPI_Barrier(MPI_COMM_WORLD);
+  PMPI_Barrier(getLibComm());
   freeTeamComm();
   Timing::outputTiming();
 #if COMM_STATS

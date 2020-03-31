@@ -9,6 +9,9 @@
 #include <iostream>
 #include <assert.h>
 #include <cstdlib>
+#include <unistd.h>
+#include <signal.h>
+#include "../../lib/teaMPI.h"
 
 const int NUM_TRIALS = 25;
 const int NUM_PONGS  = 1e5;
@@ -22,6 +25,16 @@ int NUM_POINTS = 0;
 const int MAX_POINTS = 1e4;
 
 int main(int argc, char* argv[]) {
+    
+    {
+    volatile int i = 1;
+    char hostname[256];
+    gethostname(hostname, sizeof(hostname));
+    printf("PID %d on %s ready for attach\n", getpid(), hostname);
+    fflush(stdout);
+    while (0 == i)
+        sleep(5);
+    }
 
   MPI_Init(&argc, &argv);
 
@@ -45,6 +58,7 @@ int main(int argc, char* argv[]) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+  std::cout << "Rank: "<< rank << " Size: " << size << " Team: "  << TMPI_GetTeamNumber() << std::endl;
   const int source = 0;
   const int dest   = size - 1;
 
@@ -78,6 +92,10 @@ int main(int argc, char* argv[]) {
         for (int p = 0; p < NUM_PONGS; p++) {
           MPI_Send(&m, n, MPI_CHAR, dest, 0, MPI_COMM_WORLD);
           MPI_Recv(&m, n, MPI_CHAR, dest, 1, MPI_COMM_WORLD,  &status);
+          if(TMPI_GetTeamNumber() == 1 && rank == 1 && p == 100){
+              std::cout << "Rank 1 on Team 1 is now going to crash!!" << "\n";
+              //raise(SIGKILL);
+          }
         }
 
         t2 = MPI_Wtime();

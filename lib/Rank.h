@@ -30,6 +30,8 @@
    #error "Cannot decipher SIZE_MAX"
 #endif
 
+
+
 /* Split ranks into teams */
 int initialiseTMPI();
 
@@ -57,6 +59,7 @@ MPI_Comm getTeamInterComm();
 
 /* The duplicate MPI_COMM_WORLD used by the library*/
 MPI_Comm getLibComm();
+int setLibComm(MPI_Comm comm);
 int freeLibComm();
 
 /* Get the value of an environment variable (empty string if undefined) */

@@ -1,4 +1,4 @@
-CC=/opt/bin/mpiCC
+CC=mpiCC
 CFLAGS += -fPIC -g -Wall -std=c++11
 LDFLAGS += -shared
 

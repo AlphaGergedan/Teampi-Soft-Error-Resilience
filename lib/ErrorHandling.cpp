@@ -6,7 +6,7 @@
 #include "Rank.h"
 
 //Debugging only
-//#include <boost/stacktrace.hpp>
+#include <boost/stacktrace.hpp>
 
 void verbose_errh(MPI_Comm* pcomm, int* perr, ...) {
     MPI_Comm comm = *pcomm;
@@ -143,7 +143,7 @@ void kill_team_errh_comm_team(MPI_Comm* pcomm, int* perr, ...){
     
 
     MPIX_Comm_revoke(*pcomm);
-    //std::cout << "Process " << rank_team << " exiting" << std::endl << boost::stacktrace::stacktrace() << std::endl;;
+    std::cout << "Process " << rank_team << " exiting" << std::endl << boost::stacktrace::stacktrace() << std::endl;;
 
     std::exit(0);
 

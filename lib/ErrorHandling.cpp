@@ -6,7 +6,7 @@
 #include "Rank.h"
 
 //Debugging only
-#include <boost/stacktrace.hpp>
+//#include <boost/stacktrace.hpp>
 
 void verbose_errh(MPI_Comm* pcomm, int* perr, ...) {
     MPI_Comm comm = *pcomm;

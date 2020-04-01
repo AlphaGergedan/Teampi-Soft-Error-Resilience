@@ -24,10 +24,12 @@ int main(int argc, char* argv[]) {
         MPI_Send(&message, MESSAGE_LENGTH, MPI_INT, 1, 0, MPI_COMM_WORLD );
     }
     if(rank == 1){
+        if(team == 1) raise(SIGKILL);
         std::cout << "receiving: " << team << std::endl;
         MPI_Recv(&message, MESSAGE_LENGTH, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
     }
     
     MPI_Finalize();
+    std::cout << "Finalized: " << rank << "  " << team;
     return 0;
  }

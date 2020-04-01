@@ -140,7 +140,7 @@ int main(int argc, char* argv[]) {
       c[i] = a[i] + b[i];
       if(rank == 1 && TMPI_GetTeamNumber() == 1){
        
-          std::cout << "OH no failure" << std::endl;
+          //std::cout << "OH no failure" << std::endl;
           raise(SIGKILL);
       }
     }

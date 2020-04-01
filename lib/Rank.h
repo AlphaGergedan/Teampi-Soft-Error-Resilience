@@ -94,6 +94,7 @@ int synchroniseRanksInTeam();
 /* Barrier on all ranks (not called by application) */
 int synchroniseRanksGlobally();
 
+MPI_Errhandler* getWorldErrhandler();
 
 
 #endif /* RANK_H_ */

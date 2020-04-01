@@ -21,6 +21,7 @@ static int worldSize;
 static int teamRank;
 static int teamSize;
 static int numTeams;
+static int team;
 
 static MPI_Comm TMPI_COMM_TEAM;
 static MPI_Comm TMPI_COMM_INTER_TEAM;
@@ -39,6 +40,8 @@ int initialiseTMPI() {
   teamSize = worldSize / numTeams;
 
   int color = worldRank / teamSize;
+  team = worldRank / teamSize;
+
 
   PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_WORLD);
 
@@ -95,7 +98,7 @@ int getTeamSize() {
 }
 
 int getTeam() {
-  return getWorldRank() / getTeamSize();
+  return team;
 }
 
 int getNumberOfTeams() {
@@ -119,7 +122,7 @@ MPI_Comm getLibComm() {
 }
 
 int setLibComm(MPI_Comm comm){
-  TMPI_COMM_TEAM = comm;
+  TMPI_COMM_WORLD = comm;
   return 0;
 }
 
@@ -211,4 +214,6 @@ int synchroniseRanksGlobally() {
   return PMPI_Barrier(getLibComm());
 }
 
-
+MPI_Errhandler* getWorldErrhandler(){
+   return &TMPI_ERRHANDLER_COMM_WORLD;
+}

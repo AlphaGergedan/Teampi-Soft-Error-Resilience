@@ -217,22 +217,24 @@ int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 
 int MPI_Finalize() {
   logInfo("Finalize");
-  Timing::finaliseTiming();
+  //Timing::finaliseTiming();
   // Wait for all replicas before finalising
   PMPI_Barrier(getLibComm());
   freeTeamComm();
-  Timing::outputTiming();
+  //Timing::outputTiming();
 #if COMM_STATS
   CommunicationStatistics::outputCommunicationStatistics();
 #endif
 #ifdef DirtyCleanUp
   return MPI_SUCCESS;
 #endif
+  std::cout << "TeaMPI finished" << std::endl;
   return PMPI_Finalize();
-}
+  std::cout << "MPI Finalized" << std::endl;
+  }
 
 int MPI_Abort(MPI_Comm comm, int errorcode) {
-  assert(comm == MPI_COMM_WORLD);
+  //assert(comm == MPI_COMM_WORLD);
   int err = PMPI_Abort(getTeamComm(comm), errorcode);
   return err;
 }

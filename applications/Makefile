@@ -1,4 +1,4 @@
-CC=mpiCC
+CC=/opt/bin/mpiCC
 CFLAGS += -g -Wall -std=c++11 -DCOMPARE_PROGRESS -g
 LFLAGS += -L../lib -ltmpi
 

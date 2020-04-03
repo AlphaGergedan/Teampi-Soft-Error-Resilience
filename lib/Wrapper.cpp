@@ -228,9 +228,7 @@ int MPI_Finalize() {
 #ifdef DirtyCleanUp
   return MPI_SUCCESS;
 #endif
-  std::cout << "TeaMPI finished" << std::endl;
   return PMPI_Finalize();
-  std::cout << "MPI Finalized" << std::endl;
   }
 
 int MPI_Abort(MPI_Comm comm, int errorcode) {

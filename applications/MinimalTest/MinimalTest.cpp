@@ -30,6 +30,6 @@ int main(int argc, char* argv[]) {
     }
     
     MPI_Finalize();
-    std::cout << "Finalized: " << rank << "  " << team;
+    std::cout << "Finalized: " << rank << "  " << team << std::endl;
     return 0;
  }

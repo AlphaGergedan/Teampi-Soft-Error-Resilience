@@ -48,6 +48,9 @@ int getTeamSize();
 /* Also the number of replicas */
 int getNumberOfTeams();
 
+/* Change number of teams in case of failure */
+void setNumberOfTeams(int teams);
+
 /* Return which team this rank belongs to */
 int getTeam();
 

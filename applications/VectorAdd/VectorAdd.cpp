@@ -141,7 +141,7 @@ int main(int argc, char* argv[]) {
       if(rank == 1 && TMPI_GetTeamNumber() == 1){
        
           //std::cout << "OH no failure" << std::endl;
-          raise(SIGKILL);
+          /raise(SIGKILL);
       }
     }
 

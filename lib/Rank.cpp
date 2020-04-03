@@ -26,7 +26,7 @@ static int team;
 static MPI_Comm TMPI_COMM_TEAM;
 static MPI_Comm TMPI_COMM_INTER_TEAM;
 static MPI_Comm TMPI_COMM_WORLD = MPI_COMM_NULL;
-
+//TODO TMPI_COMM_WORLD should not be the same thing as libComm
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_WORLD;
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_TEAM;
 int initialiseTMPI() {
@@ -36,7 +36,7 @@ int initialiseTMPI() {
   setEnvironment();
 
   PMPI_Comm_size(MPI_COMM_WORLD, &worldSize);
-  PMPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
+  PMPI_Comm_rank(MPI_COMM_WORLD, &worldRank); 
   teamSize = worldSize / numTeams;
 
   int color = worldRank / teamSize;
@@ -178,10 +178,12 @@ void setEnvironment() {
   numTeams = env.empty() ? 2 : std::stoi(env);
 }
 
+//Kritisch
 int mapRankToTeamNumber(int rank) {
   return rank / getTeamSize();
 }
 
+//Kritisch
 int mapWorldToTeamRank(int rank) {
   if (rank == MPI_ANY_SOURCE) {
     return MPI_ANY_SOURCE;
@@ -190,6 +192,7 @@ int mapWorldToTeamRank(int rank) {
   }
 }
 
+//Kritisch
 int mapTeamToWorldRank(int rank, int r) {
   if (rank == MPI_ANY_SOURCE) {
     return MPI_ANY_SOURCE;
@@ -197,6 +200,7 @@ int mapTeamToWorldRank(int rank, int r) {
 
   return rank + r * getTeamSize();
 }
+
 
 void remapStatus(MPI_Status *status) {
   if ((status != MPI_STATUS_IGNORE ) && (status != MPI_STATUSES_IGNORE )) {

@@ -217,11 +217,11 @@ int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 
 int MPI_Finalize() {
   logInfo("Finalize");
-  //Timing::finaliseTiming();
+  Timing::finaliseTiming();
   // Wait for all replicas before finalising
-  PMPI_Barrier(getLibComm());
+  PMPI_Barrier(getWorldComm());
   freeTeamComm();
-  //Timing::outputTiming();
+  Timing::outputTiming();
 #if COMM_STATS
   CommunicationStatistics::outputCommunicationStatistics();
 #endif

@@ -54,7 +54,7 @@ void verbose_errh(MPI_Comm* pcomm, int* perr, ...) {
 void kill_team_errh_comm_world(MPI_Comm* pcomm, int* perr, ...){
     MPI_Group group_failed, group_comm;
     int err = *perr;
-    MPI_Comm comm = *pcomm, comm_shrinked;
+    MPI_Comm comm = *pcomm, comm_shrinked, new_lib_comm;
     int num_failed_procs, eclass, size_team, rank_team, team, num_teams, name_len;
     int size_comm, size_shrinked_comm;
     int *ranks_failed, *ranks_comm;
@@ -103,7 +103,7 @@ void kill_team_errh_comm_world(MPI_Comm* pcomm, int* perr, ...){
     }
 
     //Check that failed team is completly dead
-    if(size_shrinked_comm % num_teams != 0){
+    if(size_shrinked_comm % size_team != 0){
         std::cout << "There still are some living processes from a failed team" << std::endl;
          goto redo;
     }
@@ -116,25 +116,28 @@ void kill_team_errh_comm_world(MPI_Comm* pcomm, int* perr, ...){
         goto redo;
     } 
 
-   
-
     PMPI_Comm_rank(comm, &rank_old);
     PMPI_Comm_rank(comm_shrinked, &rank_new);
 
-    //TODO here: fix teaMPI data so that the missing team is dealt with correctly
+    setNumberOfTeams(size_shrinked_comm / size_team);
+    setTeam(rank_new / size_team);
+    
 
-    //TODO end
-
-    std::cout << "kill_team_errh finished on " << rank_team << " of team " << team 
+    std::cout << "kill_team_errh finished on " << rank_team << " of team " << team << " now team: " << rank_new/size_team << " " 
              << ", now has global rank: " << rank_new << " was before: " << rank_old << std::endl;
+    std::cout << "Number of teams now: " << size_shrinked_comm/size_team << std::endl;
 
     
     MPI_Comm_set_errhandler(comm_shrinked, *getWorldErrhandler());
-    setLibComm(comm_shrinked);
+    MPI_Comm_dup(comm_shrinked, &new_lib_comm);
+    setWorldComm(comm_shrinked);
+    setLibComm(new_lib_comm);
+
+    refreshWorldRank();
+    refreshWorldSize();
     
 }
 
-    
 
 void kill_team_errh_comm_team(MPI_Comm* pcomm, int* perr, ...){
     int err = *perr;

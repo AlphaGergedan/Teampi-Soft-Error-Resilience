@@ -17,7 +17,7 @@ void verbose_errh(MPI_Comm* pcomm, int* perr, ...) {
     int *ranks_gc, *ranks_gf;
 
     MPI_Error_class(err, &eclass);
-    if( MPIX_ERR_PROC_FAILED != eclass ) {
+    if( MPIX_ERR_PROC_FAILED != eclass  ) {
         MPI_Abort(comm, err);
     }
 
@@ -54,15 +54,16 @@ void verbose_errh(MPI_Comm* pcomm, int* perr, ...) {
 void kill_team_errh_comm_world(MPI_Comm* pcomm, int* perr, ...){
     MPI_Group group_failed, group_comm;
     int err = *perr;
-    MPI_Comm comm = *pcomm, newcomm;
-    int num_failed_procs, eclass, size_team, rank_team, team, num_teams;
+    MPI_Comm comm = *pcomm, comm_shrinked, new_lib_comm;
+    int num_failed_procs, eclass, size_team, rank_team, team, num_teams, name_len;
+    int size_comm, size_shrinked_comm;
     int *ranks_failed, *ranks_comm;
-    std::set<int> set_failed_teams, set_current_failed_teams;
-
-    std::cout << "Errorhandler kill_team_errh invoked on " << rank_team  << " of team: " << team << std::endl;
+    int rank_old, rank_new;
+    int flag, flag_result;
+    flag = flag_result = 1;
 
     MPI_Error_class(err, &eclass);
-    if( MPIX_ERR_PROC_FAILED != eclass ) {
+    if( MPIX_ERR_PROC_FAILED != eclass && MPIX_ERR_REVOKED != eclass) {
         MPI_Abort(comm, err);
     }
 
@@ -71,81 +72,102 @@ void kill_team_errh_comm_world(MPI_Comm* pcomm, int* perr, ...){
     rank_team = getTeamRank();
     team = getTeam();
 
-    MPIX_Comm_failure_ack(comm);
-    MPIX_Comm_failure_get_acked(comm, &group_failed);
-    MPI_Group_size(group_failed, &num_failed_procs);
-    MPI_Comm_group(comm, &group_comm);
+    std::cout << "Errorhandler kill_team_errh_comm_world invoked on " << rank_team  << " of team: " << team  << std::endl;
 
-    ranks_comm = new int[num_failed_procs];
-    ranks_failed = new int[num_failed_procs];
+    std::cout << boost::stacktrace::stacktrace();
 
-    for(int i = 0; i < num_failed_procs; i++) ranks_failed[i] = i;
+    redo:
+    //Make sure own team is safe
+    MPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
+    if(flag != flag_result){
+        std::cout << "Agreement on flag failed, exiting" << std::endl;
+        std::exit(0);
+    } 
 
-    MPI_Group_translate_ranks(group_failed, num_failed_procs, ranks_failed,
-                              group_comm, ranks_comm);
-
-
-    //ranks_comm now contains the ranks of failed processes in MPI_COMM_WORLD
-    /* TODOS:
-    * 1. Check wich teams conain failed procs
-    * 2. Each team that contains one terminates each process belonging to it
-    * 3. Should there be no team left MPI_Abort
-    * 4. Clean TeaMPI data so that it knows how many teams are still working and shrink MPI_COMM_WORLD
-    * 5. Profit???
-    */
+    //Shrink the input comm
+    MPIX_Comm_shrink(comm, &comm_shrinked);
+    MPI_Comm_size(comm_shrinked, &size_shrinked_comm);
+    MPI_Comm_size(comm, &size_comm);
+    num_failed_procs = size_comm - size_shrinked_comm; /* number of deads */
     
-   for(int i = 0; i < num_failed_procs; i++){
-       int failed_team = mapRankToTeamNumber(ranks_comm[i]);
-       set_failed_teams.insert(failed_team);
-       set_current_failed_teams.insert(failed_team);
-   }
 
-   if(set_failed_teams.size() == num_teams) MPI_Abort(MPI_COMM_WORLD, MPIX_ERR_PROC_FAILED);
+    std::cout << "Size of shrinked comm: " << size_shrinked_comm << std::endl;
 
-   //So here I create new failed procs
-   if(1 == set_current_failed_teams.count(team)){
-       //TODO callback cleanup
-       std::exit(1);
-   }
+    //Make sure that we handle failures ourselves
+    MPI_Comm_set_errhandler(comm_shrinked, MPI_ERRORS_RETURN);
 
-   
-    MPIX_Comm_shrink(comm, &newcomm);
-     setLibComm(newcomm);
-    set_current_failed_teams.clear();
+    //Should not be possible but just to be safe
+    if(size_shrinked_comm < getTeamSize()){
+        std::cout << "Failure in last team: Aborting";
+        MPI_Abort(comm_shrinked, MPIX_ERR_PROC_FAILED);
+    }
 
+    //Check that failed team is completly dead
+    if(size_shrinked_comm % size_team != 0){
+        std::cout << "There still are some living processes from a failed team" << std::endl;
+         goto redo;
+    }
 
-   
+    
+    //
+    MPIX_Comm_agree(comm_shrinked, &flag);
+    if(flag != flag_result){
+        std::cout << "Agreement on flag failed" << std::endl;
+        goto redo;
+    } 
+
+    PMPI_Comm_rank(comm, &rank_old);
+    PMPI_Comm_rank(comm_shrinked, &rank_new);
+
+    setNumberOfTeams(size_shrinked_comm / size_team);
+    setTeam(rank_new / size_team);
+    
+
+    std::cout << "kill_team_errh finished on " << rank_team << " of team " << team << " now team: " << rank_new/size_team << " " 
+             << ", now has global rank: " << rank_new << " was before: " << rank_old << std::endl;
+    std::cout << "Number of teams now: " << size_shrinked_comm/size_team << std::endl;
+
+    
+    MPI_Comm_set_errhandler(comm_shrinked, *getWorldErrhandler());
+    MPI_Comm_dup(comm_shrinked, &new_lib_comm);
+    setWorldComm(comm_shrinked);
+    setLibComm(new_lib_comm);
+
+    refreshWorldRank();
+    refreshWorldSize();
+    
 }
 
+
 void kill_team_errh_comm_team(MPI_Comm* pcomm, int* perr, ...){
-    MPI_Group group_failed, group_comm;
     int err = *perr;
-    MPI_Comm comm = *pcomm, newcomm;
-    int num_failed_procs, eclass, size_team, rank_team, team, num_teams, len;
-    int *ranks_failed, *ranks_comm;
-    std::set<int> set_failed_teams, set_current_failed_teams;
+    MPI_Comm comm = *pcomm;
+    int  eclass, rank_team, team, len;
     char errstr[MPI_MAX_ERROR_STRING];
 
-    num_teams = getNumberOfTeams();
-    size_team = getTeamSize();
+    
     rank_team = getTeamRank();
     team = getTeam();
 
     MPI_Error_string(err, errstr, &len);
 
+    verbose_errh(pcomm, perr);
+
     std::cout << "Errorhandler kill_team_errh_comm_team invoked on " << rank_team  << " of team: " << team << ", Error: " << errstr << std::endl;
 
     MPI_Error_class(err, &eclass);
-    if( MPIX_ERR_PROC_FAILED != eclass ) {
+    if( MPIX_ERR_PROC_FAILED != eclass && MPIX_ERR_REVOKED != eclass) {
         MPI_Abort(comm, err);
     }
 
     
 
     MPIX_Comm_revoke(*pcomm);
+
     std::cout << "Process " << rank_team << " exiting" << std::endl << boost::stacktrace::stacktrace() << std::endl;;
 
-    std::exit(0);
+    //TODO implement callback to cleanup code
 
+    std::exit(0);
 
 }

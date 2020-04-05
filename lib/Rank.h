@@ -37,7 +37,11 @@ int initialiseTMPI();
 
 int getWorldRank();
 
+void refreshWorldRank();
+
 int getWorldSize();
+
+void refreshWorldSize();
 
 /* Get the rank as seen by the application */
 int getTeamRank();
@@ -48,8 +52,19 @@ int getTeamSize();
 /* Also the number of replicas */
 int getNumberOfTeams();
 
+/* Change number of teams in case of failure */
+void setNumberOfTeams(int newNumTeams);
+
 /* Return which team this rank belongs to */
 int getTeam();
+
+/* Set team number of this team, needed in case of failure */
+void setTeam(int newTeam);
+
+/* The (in case of failure modified) MPI_COMM_WORLD used by teaMPI*/
+MPI_Comm getWorldComm();
+
+void setWorldComm(MPI_Comm newComm);
 
 /* The communicator used by this team */
 MPI_Comm getTeamComm(MPI_Comm comm);
@@ -94,6 +109,7 @@ int synchroniseRanksInTeam();
 /* Barrier on all ranks (not called by application) */
 int synchroniseRanksGlobally();
 
+MPI_Errhandler* getWorldErrhandler();
 
 
 #endif /* RANK_H_ */

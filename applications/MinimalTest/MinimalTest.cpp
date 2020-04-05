@@ -14,7 +14,7 @@ int main(int argc, char* argv[]) {
     team = TMPI_GetTeamNumber();
     
     int message[MESSAGE_LENGTH];
-    
+
     
     if(rank == 0){
         for(int i = 0; i < MESSAGE_LENGTH; i++){
@@ -22,12 +22,17 @@ int main(int argc, char* argv[]) {
         }
         std::cout << "sending: " << team << std::endl;
         MPI_Send(&message, MESSAGE_LENGTH, MPI_INT, 1, 0, MPI_COMM_WORLD );
+        std::cout << "finished sending " << team << std::endl;
     }
     if(rank == 1){
+        if(team == 0) raise(SIGKILL);
         std::cout << "receiving: " << team << std::endl;
         MPI_Recv(&message, MESSAGE_LENGTH, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+        std::cout << "finished receiving " << team << std::endl;
     }
     
+    std::cout << "Finalizing: " << rank << "  " << team << std::endl;
     MPI_Finalize();
+    std::cout << "Finalized: " << rank << "  " << team << std::endl;
     return 0;
  }

@@ -15,6 +15,7 @@ tests/UnitTests
 *.kdev4
 *.sublime-project
 *.sublime-workspace
+*.kate-swp
 
 # Python compiled files
 *.pyc

@@ -219,7 +219,7 @@ int MPI_Finalize() {
   logInfo("Finalize");
   Timing::finaliseTiming();
   // Wait for all replicas before finalising
-  PMPI_Barrier(getLibComm());
+  PMPI_Barrier(getWorldComm());
   freeTeamComm();
   Timing::outputTiming();
 #if COMM_STATS
@@ -229,10 +229,10 @@ int MPI_Finalize() {
   return MPI_SUCCESS;
 #endif
   return PMPI_Finalize();
-}
+  }
 
 int MPI_Abort(MPI_Comm comm, int errorcode) {
-  assert(comm == MPI_COMM_WORLD);
+  //assert(comm == MPI_COMM_WORLD);
   int err = PMPI_Abort(getTeamComm(comm), errorcode);
   return err;
 }

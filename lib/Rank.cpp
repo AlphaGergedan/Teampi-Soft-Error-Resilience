@@ -22,6 +22,8 @@ static int teamRank;
 static int teamSize;
 static int numTeams;
 static int team;
+static int argCount;
+static char ***argValues;
 
 static MPI_Comm TMPI_COMM_TEAM;
 static MPI_Comm TMPI_COMM_INTER_TEAM;
@@ -30,7 +32,11 @@ static MPI_Comm TMPI_COMM_LIB;
 //TODO TMPI_COMM_WORLD should not be the same thing as libComm
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_WORLD;
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_TEAM;
-int initialiseTMPI() {
+int initialiseTMPI(int *argc, char*** argv) {
+
+  argCount = *argc;
+  argValues = argv;
+
   /**
    * The application should have no knowledge of the world_size or world_rank
    */
@@ -248,4 +254,12 @@ int synchroniseRanksGlobally() {
 
 MPI_Errhandler* getWorldErrhandler(){
    return &TMPI_ERRHANDLER_COMM_WORLD;
+}
+
+int getArgCount(){
+  return argCount;
+}
+
+char*** getArgValues(){
+  return argValues;
 }

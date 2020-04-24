@@ -10,13 +10,15 @@
 
 int MPI_Init(int *argc, char*** argv) {
   int err = PMPI_Init(argc, argv);
-  initialiseTMPI();
+  initialiseTMPI(argc, argv);
   return err;
 }
 
 int MPI_Init_thread( int *argc, char ***argv, int required, int *provided ) {
   int err = PMPI_Init_thread(argc, argv, required, provided);
-  initialiseTMPI();
+  initialiseTMPI(argc, argv);
+
+
   return err;
 }
 

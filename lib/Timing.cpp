@@ -205,7 +205,6 @@ void Timing::outputTiming() {
     std::cout << "timing_file=";
     std::cout << (filenamePrefix.empty() ? "timing_not_enabled" : filenamePrefix) << "\n";
     std::cout << "num_replicas=" << getNumberOfTeams() << "\n";
-    //TODO hier böse
     for (int i=0; i < getNumberOfTeams(); i++) {
       double rEndTime = 0.0;
       if (i == MASTER) {

@@ -33,7 +33,7 @@
 
 
 /* Split ranks into teams */
-int initialiseTMPI();
+int initialiseTMPI(int *argc, char*** argv);
 
 int getWorldRank();
 
@@ -108,6 +108,10 @@ int synchroniseRanksInTeam();
 
 /* Barrier on all ranks (not called by application) */
 int synchroniseRanksGlobally();
+
+int getArgCount();
+
+char*** getArgValues();
 
 MPI_Errhandler* getWorldErrhandler();
 

@@ -162,8 +162,16 @@ void kill_team_errh_comm_team(MPI_Comm *pcomm, int *perr, ...)
         MPI_Abort(comm, err);
     }
 
+<<<<<<< HEAD
     PMPIX_Comm_revoke(*pcomm);
     std::cout << "Process " << rank_team << " exiting" << std::endl;
+=======
+    
+
+    MPIX_Comm_revoke(*pcomm);
+
+    std::cout << "Process " << rank_team << " exiting" << std::endl << boost::stacktrace::stacktrace() << std::endl;;
+>>>>>>> 3c2a18aa9e6920f9828716c05e73943283cf9f47
 
     //TODO implement callback to cleanup code
 

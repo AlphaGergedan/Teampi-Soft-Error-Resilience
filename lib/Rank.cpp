@@ -44,8 +44,9 @@ int initialiseTMPI(int *argc, char ***argv)
   MPI_Comm parent;
   PMPI_Comm_get_parent(&parent);
 
-  if (parent == MPI_COMM_NULL)
+  if (parent != MPI_COMM_NULL)
   {
+    std::cout << "newly spawned proc doing smoething" << std::endl;
     respawn_proc_recreate_comm_world(TMPI_COMM_WORLD);
 
     PMPI_Comm_size(TMPI_COMM_WORLD, &worldSize);
@@ -57,6 +58,8 @@ int initialiseTMPI(int *argc, char ***argv)
     PMPI_Comm_size(TMPI_COMM_TEAM, &teamSize);
 
     team = worldRank / teamSize;
+
+    return MPI_SUCCESS;
   }
   else
   {
@@ -89,10 +92,10 @@ int initialiseTMPI(int *argc, char ***argv)
     assert(teamSize == (worldSize / numTeams));
 
     //Error Handling Stuff
-    PMPI_Comm_create_errhandler(kill_team_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
+    PMPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
     PMPI_Comm_set_errhandler(TMPI_COMM_WORLD, TMPI_ERRHANDLER_COMM_WORLD);
 
-    PMPI_Comm_create_errhandler(kill_team_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
+    PMPI_Comm_create_errhandler(respawn_proc_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
     PMPI_Comm_set_errhandler(TMPI_COMM_TEAM, TMPI_ERRHANDLER_COMM_TEAM);
 
     registerSignalHandler();
@@ -116,7 +119,6 @@ int initialiseTMPI(int *argc, char ***argv)
 
 int getWorldRank()
 {
-  std::cout << "World Rank: " << worldRank << std::endl;
   return worldRank;
 }
 

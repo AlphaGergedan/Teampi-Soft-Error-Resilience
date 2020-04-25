@@ -240,7 +240,10 @@ redo:
         //Get parent and receive new Rank that will be assigned later on
         PMPI_Comm_get_parent(&intercomm);
         comm_world_shrinked = MPI_COMM_WORLD;
-        PMPI_Recv(&rank_new, 1, MPI_INT, 0, 1, intercomm, MPI_STATUS_IGNORE);
+        PMPI_Barrier(comm_world_shrinked);
+        std::cout << "plop" << std::endl;
+        PMPI_Recv(&rank_old, 1, MPI_INT, 0, 1, intercomm, MPI_STATUS_IGNORE);
+        std::cout << "Received new rank: " << rank_new << std::endl;
         failedTeam = true;
     }
     else
@@ -256,7 +259,9 @@ redo:
 
         PMPI_Comm_size(comm, &size_comm_world);
         PMPI_Comm_size(comm_world_shrinked, &size_comm_world_shrinked);
+
         num_failed_procs = size_comm_world - size_comm_world_shrinked;
+
 
         //Handle failures ourselves
         PMPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN);
@@ -291,6 +296,9 @@ redo:
         MPI_Group group_world, group_world_shrinked, group_failed;
         int diff_rank;
 
+        if(rank_new == 0){
+            std::cout << size_comm_world_shrinked << " " << num_failed_procs << std::endl;
+        }
 
         //Calculate failed procs
         PMPI_Comm_group(comm, &group_world);
@@ -303,9 +311,10 @@ redo:
         {
             //Get Ranks of procs in comm_world that have failed in comm_world
             PMPI_Group_translate_ranks(group_failed, 1, &i, group_world, &diff_rank);
-            if (rank_new == 0)
+            if (rank_new == 0){
                 //Send those ranks to new spawn
                 PMPI_Send(&diff_rank, 1, MPI_INT, i, 1, intercomm);
+            }
             //Save teams that contain failed ranks
             failed_teams.insert(mapRankToTeamNumber(diff_rank));
         }
@@ -315,6 +324,7 @@ redo:
     }
 
     //Merge intercomm to create new comm world
+    std::cout << "Merging Intercomm" << std::endl;
     error = PMPI_Intercomm_merge(intercomm, 1, &merged_comm);
     flag_result = flag = (MPI_SUCCESS == error);
     PMPIX_Comm_agree(comm_world_shrinked, &flag);
@@ -332,48 +342,55 @@ redo:
     }
 
     //Reassign the ranks in correct order 
+    int size_merged_comm;
+    PMPI_Comm_size(merged_comm, &size_merged_comm);
+    std::cout << "Reassigin Ranks" << std::endl;
+    std::cout << "Size merged comm " << size_merged_comm << std::endl;
     error = PMPI_Comm_split(merged_comm, 1, rank_new, &new_world_comm);
-    flag_result = flag = (MPI_SUCCESS == error);
-    PMPIX_Comm_agree(comm_world_shrinked, &flag);
-    if (MPI_COMM_WORLD != comm_world_shrinked)
-        PMPI_Comm_free(&comm_world_shrinked);
-    PMPIX_Comm_agree(intercomm, &flag_result);
-    PMPI_Comm_free(&intercomm);
-    if (!(flag && flag_result))
-    {
-        if (MPI_SUCCESS == error)
-        {
-            PMPI_Comm_free(&merged_comm);
+ 
+    flag = (MPI_SUCCESS==error);
+    MPIX_Comm_agree(merged_comm, &flag);
+    MPI_Comm_free(&merged_comm);
+    if( !flag ) {
+        if( MPI_SUCCESS == error ) {
+            MPI_Comm_free(&new_world_comm);
         }
         goto redo;
     }
 
-    int size_merged_comm;
-    PMPI_Comm_size(merged_comm, &size_merged_comm);
-    if (MPI_COMM_WORLD != comm)
+    int size_new_world_comm;
+    PMPI_Comm_size(new_world_comm, &size_new_world_comm);
+    if (MPI_COMM_NULL != comm)
     {
-        assert(size_merged_comm == size_comm_world);
+        //assert(size_new_world_comm == size_comm_world);
+        std::cout << "size new world: " << size_new_world_comm << " " << size_comm_world <<  std::endl;;
     }
 
-    int teamSize = size_merged_comm / getNumberOfTeams();
-    int color = rank_new / getTeamSize();
-
-    if (MPI_COMM_WORLD != comm)
-    {
-        assert(teamSize == getTeamSize());
-        assert(rank_new == getWorldRank());
-        assert(color = mapWorldToTeamRank(rank_new));
-    }
-
-    //Recreate the team-communicators
-    PMPI_Comm_split(MPI_COMM_WORLD, color, rank_new, &new_comm_team);
+    int team_size = size_new_world_comm / getNumberOfTeams();
+    int color = rank_new / team_size;
 
     if (MPI_COMM_NULL != comm)
     {
-        MPI_Errhandler errh;
-        PMPI_Comm_get_errhandler(comm, &errh);
-        PMPI_Comm_set_errhandler(new_world_comm, errh);
+        //assert(teamSize == getTeamSize());
+        //assert(rank_new == getWorldRank());
+        //assert(color = mapWorldToTeamRank(rank_new));
+        if(rank_new == 0){
+            std::cout << "teamSize: " << team_size << " " << getTeamSize() << std::endl;
+            std::cout << "rankNew: " << rank_new << " " << getWorldRank() << std::endl;
+            std::cout << "color: " << color << " " << mapRankToTeamNumber(rank_new) << std::endl;
+        }
     }
+
+    //Recreate the team-communicators
+    PMPI_Comm_split(new_world_comm, color, rank_old, &new_comm_team);
+
+    MPI_Errhandler errh_world, errh_team;
+    PMPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &errh_world);
+    PMPI_Comm_set_errhandler(new_world_comm, errh_world);
+
+    PMPI_Comm_create_errhandler(respawn_proc_errh_comm_team, &errh_team);
+    PMPI_Comm_set_errhandler(new_comm_team, errh_team);
+
 
     //set world comm and team comm to new working comms
     setWorldComm(new_world_comm);

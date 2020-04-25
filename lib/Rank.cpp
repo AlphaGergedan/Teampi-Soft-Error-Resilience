@@ -29,7 +29,7 @@ static std::function<void(void)> *createCheckpointCallback = nullptr;
 
 static MPI_Comm TMPI_COMM_TEAM;
 static MPI_Comm TMPI_COMM_INTER_TEAM;
-static MPI_Comm TMPI_COMM_WORLD;
+static MPI_Comm TMPI_COMM_WORLD = MPI_COMM_NULL;
 static MPI_Comm TMPI_COMM_LIB;
 //TODO TMPI_COMM_WORLD should not be the same thing as libComm
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_WORLD;
@@ -46,7 +46,7 @@ int initialiseTMPI(int *argc, char ***argv)
 
   if (parent == MPI_COMM_NULL)
   {
-    respawn_proc_recreate_comm_world(parent);
+    respawn_proc_recreate_comm_world(TMPI_COMM_WORLD);
 
     PMPI_Comm_size(TMPI_COMM_WORLD, &worldSize);
 

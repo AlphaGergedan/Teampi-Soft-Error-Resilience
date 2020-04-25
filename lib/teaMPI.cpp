@@ -10,6 +10,7 @@
 #include "Rank.h"
 
 #include <mpi.h>
+#include <functional>
 
 int TMPI_GetInterTeamCommSize() {
   return getNumberOfTeams();
@@ -29,4 +30,12 @@ int TMPI_IsLeadingRank() {
 
 MPI_Comm TMPI_GetInterTeamComm() {
   return getTeamInterComm();
+}
+
+void TMPI_SetLoadCheckpointCallback(std::function<void(void)> *function){
+  setLoadCheckpointCallback(function);
+}
+
+void TMPI_SetCreateCheckpointCallback(std::function<void(void)> *function){
+  setCreateCheckpointCallback(function);
 }

@@ -24,6 +24,8 @@ static int numTeams;
 static int team;
 static int argCount;
 static char ***argValues;
+static std::function<void(void)> *loadCheckpointCallback = nullptr;
+static std::function<void(void)> *createCheckpointCallback = nullptr;
 
 static MPI_Comm TMPI_COMM_TEAM;
 static MPI_Comm TMPI_COMM_INTER_TEAM;
@@ -32,149 +34,195 @@ static MPI_Comm TMPI_COMM_LIB;
 //TODO TMPI_COMM_WORLD should not be the same thing as libComm
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_WORLD;
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_TEAM;
-int initialiseTMPI(int *argc, char*** argv) {
+int initialiseTMPI(int *argc, char ***argv)
+{
 
   argCount = *argc;
   argValues = argv;
-
-  /**
-   * The application should have no knowledge of the world_size or world_rank
-   */
   setEnvironment();
 
-  PMPI_Comm_size(MPI_COMM_WORLD, &worldSize);
-  PMPI_Comm_rank(MPI_COMM_WORLD, &worldRank); 
-  teamSize = worldSize / numTeams;
+  MPI_Comm parent;
+  PMPI_Comm_get_parent(&parent);
 
-  int color = worldRank / teamSize;
-  team = worldRank / teamSize;
+  if (parent == MPI_COMM_NULL)
+  {
+    respawn_proc_recreate_comm_world(parent);
 
+    PMPI_Comm_size(TMPI_COMM_WORLD, &worldSize);
 
-  PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_WORLD);
+    PMPI_Comm_rank(TMPI_COMM_WORLD, &worldRank);
+    
+    PMPI_Comm_rank(TMPI_COMM_TEAM, &teamRank);
 
-  PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_LIB);
+    PMPI_Comm_size(TMPI_COMM_TEAM, &teamSize);
 
-  PMPI_Comm_split(MPI_COMM_WORLD, color, worldRank, &TMPI_COMM_TEAM);
+    team = worldRank / teamSize;
+  }
+  else
+  {
 
-  PMPI_Comm_rank(TMPI_COMM_TEAM, &teamRank);
+    /**
+   * The application should have no knowledge of the world_size or world_rank
+   */
+    //TODO only if original spwan
+    PMPI_Comm_size(MPI_COMM_WORLD, &worldSize);
+    PMPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
+    teamSize = worldSize / numTeams;
 
-  PMPI_Comm_size(TMPI_COMM_TEAM, &teamSize);
+    int color = worldRank / teamSize;
+    team = worldRank / teamSize;
 
-  // Todo: free 
-  // Todo: failure clean
-  PMPI_Comm_split(MPI_COMM_WORLD, teamRank, worldRank, &TMPI_COMM_INTER_TEAM);
+    PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_WORLD);
 
-  assert(teamSize == (worldSize / numTeams));
+    PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_LIB);
 
-  //Error Handling Stuff
-  PMPI_Comm_create_errhandler(kill_team_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
-  PMPI_Comm_set_errhandler(TMPI_COMM_WORLD, TMPI_ERRHANDLER_COMM_WORLD);
+    PMPI_Comm_split(MPI_COMM_WORLD, color, worldRank, &TMPI_COMM_TEAM);
 
-  PMPI_Comm_create_errhandler(kill_team_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
-  PMPI_Comm_set_errhandler(TMPI_COMM_TEAM, TMPI_ERRHANDLER_COMM_TEAM);
+    PMPI_Comm_rank(TMPI_COMM_TEAM, &teamRank);
 
-  registerSignalHandler();
-  outputEnvironment();
+    PMPI_Comm_size(TMPI_COMM_TEAM, &teamSize);
+
+    // Todo: free
+    // Todo: failure clean
+    PMPI_Comm_split(MPI_COMM_WORLD, teamRank, worldRank, &TMPI_COMM_INTER_TEAM);
+
+    assert(teamSize == (worldSize / numTeams));
+
+    //Error Handling Stuff
+    PMPI_Comm_create_errhandler(kill_team_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
+    PMPI_Comm_set_errhandler(TMPI_COMM_WORLD, TMPI_ERRHANDLER_COMM_WORLD);
+
+    PMPI_Comm_create_errhandler(kill_team_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
+    PMPI_Comm_set_errhandler(TMPI_COMM_TEAM, TMPI_ERRHANDLER_COMM_TEAM);
+
+    registerSignalHandler();
+    outputEnvironment();
 
 #ifndef REPLICAS_OUTPUT
-  // Disable output for all but master replica (0)
-  if (getTeam() > 0) {
-//    disableLogging();
-  }
+    // Disable output for all but master replica (0)
+    if (getTeam() > 0)
+    {
+      //    disableLogging();
+    }
 #endif
 
-  Timing::initialiseTiming();
+    Timing::initialiseTiming();
 
-  synchroniseRanksGlobally();
+    synchroniseRanksGlobally();
 
-  return MPI_SUCCESS;
+    return MPI_SUCCESS;
+  }
 }
 
-
-int getWorldRank() {
+int getWorldRank()
+{
   std::cout << "World Rank: " << worldRank << std::endl;
   return worldRank;
 }
 
-void refreshWorldRank(){
-  PMPI_Comm_rank(TMPI_COMM_WORLD, &worldRank); 
+void refreshWorldRank()
+{
+  PMPI_Comm_rank(TMPI_COMM_WORLD, &worldRank);
 }
 
-int getWorldSize() {
+int getWorldSize()
+{
   return worldSize;
 }
 
-void refreshWorldSize(){
+void refreshWorldSize()
+{
   PMPI_Comm_size(TMPI_COMM_WORLD, &worldSize);
 }
 
-int getTeamRank() {
+int getTeamRank()
+{
   return teamRank;
 }
 
-int getTeamSize() {
+int getTeamSize()
+{
   return teamSize;
 }
 
-int getTeam() {
+int getTeam()
+{
   return team;
 }
 
-void setTeam(int newTeam){
+void setTeam(int newTeam)
+{
   team = newTeam;
 }
 
-int getNumberOfTeams() {
+int getNumberOfTeams()
+{
   return numTeams;
 }
 
-void setNumberOfTeams(int newNumTeams){
+void setNumberOfTeams(int newNumTeams)
+{
   numTeams = newNumTeams;
 }
 
-MPI_Comm getTeamComm(MPI_Comm comm) {
-  return (comm==MPI_COMM_WORLD) ? TMPI_COMM_TEAM : comm;
+void setTeamComm(MPI_Comm comm)
+{
+  TMPI_COMM_TEAM = comm;
 }
 
-MPI_Comm getTeamInterComm() {
+MPI_Comm getTeamComm(MPI_Comm comm)
+{
+  return (comm == MPI_COMM_WORLD) ? TMPI_COMM_TEAM : comm;
+}
+
+MPI_Comm getTeamInterComm()
+{
   return TMPI_COMM_INTER_TEAM;
 }
 
-int freeTeamComm() {
+int freeTeamComm()
+{
   return MPI_Comm_free(&TMPI_COMM_TEAM);
 }
 
-MPI_Comm getLibComm() {
+MPI_Comm getLibComm()
+{
   return TMPI_COMM_WORLD;
 }
 
-int setLibComm(MPI_Comm comm){
+int setLibComm(MPI_Comm comm)
+{
   TMPI_COMM_WORLD = comm;
   return 0;
 }
 
-int freeLibComm() {
+int freeLibComm()
+{
   return MPI_Comm_free(&TMPI_COMM_WORLD);
 }
 
-MPI_Comm getWorldComm(){
+MPI_Comm getWorldComm()
+{
   return TMPI_COMM_WORLD;
 }
 
-void setWorldComm(MPI_Comm newComm){
+void setWorldComm(MPI_Comm newComm)
+{
   TMPI_COMM_WORLD = newComm;
 }
-std::string getEnvString(std::string const& key)
+std::string getEnvString(std::string const &key)
 {
-    char const* val = std::getenv(key.c_str());
-    return val == nullptr ? std::string() : std::string(val);
+  char const *val = std::getenv(key.c_str());
+  return val == nullptr ? std::string() : std::string(val);
 }
 
-void outputEnvironment(){
-  if(worldSize % numTeams != 0) {
-    std::cerr <<"Wrong choice of world size and number of teams!\n";
-    std::cerr <<"Number of teams: " << numTeams << "\n";
-    std::cerr <<"Total ranks: " << worldSize << "\n"; 
+void outputEnvironment()
+{
+  if (worldSize % numTeams != 0)
+  {
+    std::cerr << "Wrong choice of world size and number of teams!\n";
+    std::cerr << "Number of teams: " << numTeams << "\n";
+    std::cerr << "Total ranks: " << worldSize << "\n";
   }
 
   assert(worldSize % numTeams == 0);
@@ -188,17 +236,19 @@ void outputEnvironment(){
 
   PMPI_Barrier(TMPI_COMM_WORLD);
 
-  if (worldRank == MASTER) {
+  if (worldRank == MASTER)
+  {
     std::cout << "------------TMPI SETTINGS------------\n";
     std::cout << "Number of teams: " << numTeams << "\n";
 
     std::cout << "Team size: " << teamSize << "\n";
     std::cout << "Total ranks: " << worldSize << "\n\n";
 
-
-    if (worldRank == MASTER) {
-      for (int i=0; i < worldSize; i++) {
-        std::cout << "Tshift(" << i << "->" << mapWorldToTeamRank(i) << "->" << mapTeamToWorldRank(mapWorldToTeamRank(i),mapRankToTeamNumber(i)) << ") = " << times[i] - times[0] << "\n";
+    if (worldRank == MASTER)
+    {
+      for (int i = 0; i < worldSize; i++)
+      {
+        std::cout << "Tshift(" << i << "->" << mapWorldToTeamRank(i) << "->" << mapTeamToWorldRank(mapWorldToTeamRank(i), mapRankToTeamNumber(i)) << ") = " << times[i] - times[0] << "\n";
       }
     }
     std::cout << "---------------------------------------\n\n";
@@ -207,59 +257,93 @@ void outputEnvironment(){
   PMPI_Barrier(TMPI_COMM_WORLD);
 }
 
-void setEnvironment() {
+void setEnvironment()
+{
   std::string env(getEnvString("TEAMS"));
   numTeams = env.empty() ? 2 : std::stoi(env);
 }
 
 //Kritisch
-int mapRankToTeamNumber(int rank) {
+int mapRankToTeamNumber(int rank)
+{
   return rank / getTeamSize();
 }
 
 //Kritisch
-int mapWorldToTeamRank(int rank) {
-  if (rank == MPI_ANY_SOURCE) {
+int mapWorldToTeamRank(int rank)
+{
+  if (rank == MPI_ANY_SOURCE)
+  {
     return MPI_ANY_SOURCE;
-  } else {
+  }
+  else
+  {
     return rank % getTeamSize();
   }
 }
 
 //Kritisch
-int mapTeamToWorldRank(int rank, int r) {
-  if (rank == MPI_ANY_SOURCE) {
+int mapTeamToWorldRank(int rank, int r)
+{
+  if (rank == MPI_ANY_SOURCE)
+  {
     return MPI_ANY_SOURCE;
   }
 
   return rank + r * getTeamSize();
 }
 
-
-void remapStatus(MPI_Status *status) {
-  if ((status != MPI_STATUS_IGNORE ) && (status != MPI_STATUSES_IGNORE )) {
+void remapStatus(MPI_Status *status)
+{
+  if ((status != MPI_STATUS_IGNORE) && (status != MPI_STATUSES_IGNORE))
+  {
     status->MPI_SOURCE = mapWorldToTeamRank(status->MPI_SOURCE);
     logInfo(
         "remap status source " << status->MPI_SOURCE << " to " << mapWorldToTeamRank(status->MPI_SOURCE));
   }
 }
 
-int synchroniseRanksInTeam() {
+int synchroniseRanksInTeam()
+{
   return PMPI_Barrier(getTeamComm(MPI_COMM_WORLD));
 }
 
-int synchroniseRanksGlobally() {
+int synchroniseRanksGlobally()
+{
   return PMPI_Barrier(getLibComm());
 }
 
-MPI_Errhandler* getWorldErrhandler(){
-   return &TMPI_ERRHANDLER_COMM_WORLD;
+MPI_Errhandler *getWorldErrhandler()
+{
+  return &TMPI_ERRHANDLER_COMM_WORLD;
 }
 
-int getArgCount(){
+int getArgCount()
+{
   return argCount;
 }
 
-char*** getArgValues(){
+char ***getArgValues()
+{
   return argValues;
+}
+
+std::function<void(void)> *getCreateCheckpointCallback()
+{
+  assert(createCheckpointCallback != nullptr);
+  return createCheckpointCallback;
+}
+std::function<void(void)> *getLoadCheckpointCallback()
+{
+  assert(loadCheckpointCallback != nullptr);
+  return loadCheckpointCallback;
+}
+
+void setCreateCheckpointCallback(std::function<void(void)> *function)
+{
+  createCheckpointCallback = function;
+}
+void setLoadCheckpointCallback(std::function<void(void)> *function)
+{
+  loadCheckpointCallback = function;
 }

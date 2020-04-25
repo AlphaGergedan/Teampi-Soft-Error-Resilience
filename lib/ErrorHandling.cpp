@@ -194,23 +194,16 @@ void respawn_proc_errh_comm_team(MPI_Comm *pcomm, int *perr, ...)
 
     PMPIX_Comm_revoke(comm);
     PMPIX_Comm_revoke(getWorldComm());
-    respawn_proc_errh_comm_world(pcomm, perr);
+
+    respawn_proc_recreate_comm_world(getWorldComm());
 }
 
 //Based on example from 2018 tutorial found on ULFM website
 void respawn_proc_errh_comm_world(MPI_Comm *pcomm, int *perr, ...)
 {
-    MPI_Group group_failed, group_comm;
     int err = *perr;
-    MPI_Comm comm = *pcomm, comm_world_shrinked, new_lib_comm, intercomm;
-    int num_failed_procs, eclass, size_team, rank_team, team, num_teams, name_len;
-    int size_comm_world, size_comm_world_shrinked;
-    int *ranks_failed, *ranks_comm;
-    int rank_old, rank_new;
-    int flag, flag_result;
-    int teamCommRevoked = 0;
-    int error;
-    flag = flag_result = 1;
+    MPI_Comm comm = *pcomm;
+    int eclass, rank_team, team;
 
     PMPI_Error_class(err, &eclass);
     if (MPIX_ERR_PROC_FAILED != eclass && MPIX_ERR_REVOKED != eclass)
@@ -218,18 +211,17 @@ void respawn_proc_errh_comm_world(MPI_Comm *pcomm, int *perr, ...)
         MPI_Abort(comm, err);
     }
 
-    num_teams = getNumberOfTeams();
-    size_team = getTeamSize();
     rank_team = getTeamRank();
     team = getTeam();
 
     std::cout << "Errorhandler respawn_proc_errh_comm_world invoked on " << rank_team << " of team: " << team << std::endl;
+    respawn_proc_recreate_comm_world(comm);
 }
 
-void respawn_proc_recreate_comm_world(MPI_Comm comm, MPI_Comm *newcomm)
+void respawn_proc_recreate_comm_world(MPI_Comm comm)
 {
     MPI_Group group_failed, group_comm;
-    MPI_Comm comm_world_shrinked, new_lib_comm, intercomm;
+    MPI_Comm comm_world_shrinked, new_world_comm, intercomm, merged_comm, new_comm_team;
     int num_failed_procs, eclass, size_team, rank_team, team, num_teams, name_len;
     int size_comm_world, size_comm_world_shrinked;
     int *ranks_failed, *ranks_comm;
@@ -237,15 +229,29 @@ void respawn_proc_recreate_comm_world(MPI_Comm comm, MPI_Comm *newcomm)
     int flag, flag_result;
     int teamCommRevoked = 0;
     int error;
+    bool failedTeam = false;
     flag = flag_result = 1;
+    std::set<int> failed_teams;
 
 redo:
-    //TODO if new spawn
-    if (false)
+    //if new spawn
+    if (comm == MPI_COMM_NULL)
     {
+        //Get parent and receive new Rank that will be assigned later on
+        PMPI_Comm_get_parent(&intercomm);
+        comm_world_shrinked = MPI_COMM_WORLD;
+        PMPI_Recv(&rank_new, 1, MPI_INT, 0, 1, intercomm, MPI_STATUS_IGNORE);
+        failedTeam = true;
     }
     else
     {
+        //Check Team Comm and set failedTeam correctly
+        PMPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
+        if (flag != flag_result)
+            failedTeam = true;
+
+        
+        //Remove all failed procs from comm world --> comm_world_shrinked
         PMPIX_Comm_shrink(comm, &comm_world_shrinked);
 
         PMPI_Comm_size(comm, &size_comm_world);
@@ -257,7 +263,6 @@ redo:
         PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), MPI_ERRORS_RETURN);
 
         //Respwan Processes
-
         char **argValues = *getArgValues();
         int argCount = getArgCount();
 
@@ -286,22 +291,104 @@ redo:
         MPI_Group group_world, group_world_shrinked, group_failed;
         int diff_rank;
 
-        if (rank_new == 0)
+
+        //Calculate failed procs
+        PMPI_Comm_group(comm, &group_world);
+        PMPI_Comm_group(comm_world_shrinked, &group_world_shrinked);
+
+        //Processes that are in group_world but not group_world_shrinked have failed
+        PMPI_Group_difference(group_world, group_world_shrinked, &group_failed);
+
+        for (int i = 0; i < num_failed_procs; i++)
         {
-            PMPI_Comm_group(comm, &group_world);
-            PMPI_Comm_group(comm_world_shrinked, &group_world_shrinked);
-
-            //Processes that are in group_world but not group_world_shrinked have failed
-            PMPI_Group_difference(group_world, group_world_shrinked, &group_failed);
-
-            for (int i = 0; i < num_failed_procs; i++)
-            {
-                MPI_Group_translate_ranks(group_failed, 1, &i, group_world, &diff_rank);
-                MPI_Send(&diff_rank, 1, MPI_INT, i, 1, intercomm);
-            }
-            MPI_Group_free(&group_world);
-            MPI_Group_free(&group_world_shrinked);
-            MPI_Group_free(&group_failed);
+            //Get Ranks of procs in comm_world that have failed in comm_world
+            PMPI_Group_translate_ranks(group_failed, 1, &i, group_world, &diff_rank);
+            if (rank_new == 0)
+                //Send those ranks to new spawn
+                PMPI_Send(&diff_rank, 1, MPI_INT, i, 1, intercomm);
+            //Save teams that contain failed ranks
+            failed_teams.insert(mapRankToTeamNumber(diff_rank));
         }
+        PMPI_Group_free(&group_world);
+        PMPI_Group_free(&group_world_shrinked);
+        PMPI_Group_free(&group_failed);
+    }
+
+    //Merge intercomm to create new comm world
+    error = PMPI_Intercomm_merge(intercomm, 1, &merged_comm);
+    flag_result = flag = (MPI_SUCCESS == error);
+    PMPIX_Comm_agree(comm_world_shrinked, &flag);
+    if (MPI_COMM_WORLD != comm_world_shrinked)
+        PMPI_Comm_free(&comm_world_shrinked);
+    PMPIX_Comm_agree(intercomm, &flag_result);
+    PMPI_Comm_free(&intercomm);
+    if (!(flag && flag_result))
+    {
+        if (MPI_SUCCESS == error)
+        {
+            PMPI_Comm_free(&merged_comm);
+        }
+        goto redo;
+    }
+
+    //Reassign the ranks in correct order 
+    error = PMPI_Comm_split(merged_comm, 1, rank_new, &new_world_comm);
+    flag_result = flag = (MPI_SUCCESS == error);
+    PMPIX_Comm_agree(comm_world_shrinked, &flag);
+    if (MPI_COMM_WORLD != comm_world_shrinked)
+        PMPI_Comm_free(&comm_world_shrinked);
+    PMPIX_Comm_agree(intercomm, &flag_result);
+    PMPI_Comm_free(&intercomm);
+    if (!(flag && flag_result))
+    {
+        if (MPI_SUCCESS == error)
+        {
+            PMPI_Comm_free(&merged_comm);
+        }
+        goto redo;
+    }
+
+    int size_merged_comm;
+    PMPI_Comm_size(merged_comm, &size_merged_comm);
+    if (MPI_COMM_WORLD != comm)
+    {
+        assert(size_merged_comm == size_comm_world);
+    }
+
+    int teamSize = size_merged_comm / getNumberOfTeams();
+    int color = rank_new / getTeamSize();
+
+    if (MPI_COMM_WORLD != comm)
+    {
+        assert(teamSize == getTeamSize());
+        assert(rank_new == getWorldRank());
+        assert(color = mapWorldToTeamRank(rank_new));
+    }
+
+    //Recreate the team-communicators
+    PMPI_Comm_split(MPI_COMM_WORLD, color, rank_new, &new_comm_team);
+
+    if (MPI_COMM_NULL != comm)
+    {
+        MPI_Errhandler errh;
+        PMPI_Comm_get_errhandler(comm, &errh);
+        PMPI_Comm_set_errhandler(new_world_comm, errh);
+    }
+
+    //set world comm and team comm to new working comms
+    setWorldComm(new_world_comm);
+    setTeamComm(new_comm_team);
+
+    // find first team comm that did not suffer from a failure and let it write a checkpoint
+    int checkpoint_team;
+    for(checkpoint_team = 0; checkpoint_team < getNumberOfTeams(); checkpoint_team++){
+        if(failed_teams.count(checkpoint_team) == 0) break;
+    }
+    if(getTeam() == checkpoint_team) (*getCreateCheckpointCallback())();
+    PMPI_Barrier(new_world_comm);
+    //only teams with failures load checkpoints
+    if (failedTeam)
+    {
+        (*getLoadCheckpointCallback())();
     }
 }

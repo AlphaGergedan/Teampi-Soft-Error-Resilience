@@ -12,6 +12,7 @@
 #include <string>
 #include <stdint.h>
 #include <limits.h>
+#include <functional>
 
 #define MASTER 0
 
@@ -67,6 +68,7 @@ MPI_Comm getWorldComm();
 void setWorldComm(MPI_Comm newComm);
 
 /* The communicator used by this team */
+void setTeamComm(MPI_Comm comm);
 MPI_Comm getTeamComm(MPI_Comm comm);
 int freeTeamComm();
 
@@ -115,5 +117,10 @@ char*** getArgValues();
 
 MPI_Errhandler* getWorldErrhandler();
 
+std::function<void(void)>* getCreateCheckpointCallback();
+std::function<void(void)>* getLoadCheckpointCallback();
+
+void setCreateCheckpointCallback(std::function<void(void)>*);
+void setLoadCheckpointCallback(std::function<void(void)>*);
 
 #endif /* RANK_H_ */

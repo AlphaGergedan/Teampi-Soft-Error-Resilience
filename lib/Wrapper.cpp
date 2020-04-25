@@ -166,7 +166,15 @@ int MPI_Barrier(MPI_Comm comm) {
 int MPI_Bcast( void *buffer, int count, MPI_Datatype datatype, int root,
                MPI_Comm comm ) {
   //assert(comm == MPI_COMM_WORLD);
-  int err = PMPI_Bcast(buffer, count, datatype, root, getTeamComm(comm));
+  //TODO implement better error detection
+  int err;
+  if(comm = MPI_COMM_SELF){
+    int test = 1;
+    err = PMPI_Bcast(&test, 1, MPI_INT, 0, getWorldComm());
+  } else {
+    err = PMPI_Bcast(buffer, count, datatype, root, getTeamComm(comm));
+  }
+ 
   return err;
 }
 

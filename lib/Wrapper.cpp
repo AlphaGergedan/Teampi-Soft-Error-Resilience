@@ -2,11 +2,14 @@
 
 #include <cassert>
 #include <unistd.h>
+#include <mpi-ext.h>
 
 #include "Logging.h"
 #include "Rank.h"
 #include "Timing.h"
 #include "CommStats.h"
+
+#include <boost/stacktrace.hpp>
 
 int MPI_Init(int *argc, char*** argv) {
   int err = PMPI_Init(argc, argv);
@@ -168,7 +171,7 @@ int MPI_Bcast( void *buffer, int count, MPI_Datatype datatype, int root,
   //assert(comm == MPI_COMM_WORLD);
   //TODO implement better error detection
   int err;
-  if(comm = MPI_COMM_SELF){
+  if(comm == MPI_COMM_SELF){
     int test = 1;
     err = PMPI_Bcast(&test, 1, MPI_INT, 0, getWorldComm());
   } else {
@@ -181,7 +184,15 @@ int MPI_Bcast( void *buffer, int count, MPI_Datatype datatype, int root,
 int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
                   MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
   //assert(comm == MPI_COMM_WORLD);
-  int err = PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getTeamComm(comm));
+  int err;
+  if(comm == MPI_COMM_SELF){
+    int send = 1;
+    int recv = 0;
+    err = PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MAX, getWorldComm());
+
+  } else{
+    err = PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getTeamComm(comm));
+  }
   return err;
 }
 
@@ -229,8 +240,21 @@ int MPI_Finalize() {
   logInfo("Finalize");
   Timing::finaliseTiming();
   // Wait for all replicas before finalising
-  PMPI_Barrier(getWorldComm());
+  //std::cout << "Finalized Timing: Team:" << getTeam() << " Rank: " << getTeamRank() << std::endl;
+  //PMPI_Barrier(getWorldComm());
+  int send = 1000;
+  int recv = 0;
+  int err = 0;
+  std::cout << "Waiting: " << getWorldRank() << std::endl;
+  while(recv < 1000 || err != MPI_SUCCESS){
+    err = PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getWorldComm());
+    int size;
+    PMPI_Comm_size(getWorldComm(), &size);
+    std::cout << "Allred recv: "  << recv << " Size: " << size<< " error: " << err <<  std::endl;
+  }
+  std::cout << "Barrier finished" << std::endl;
   freeTeamComm();
+  //std::cout << "outputing Timing" << std::endl;
   Timing::outputTiming();
 #if COMM_STATS
   CommunicationStatistics::outputCommunicationStatistics();
@@ -243,6 +267,7 @@ int MPI_Finalize() {
 
 int MPI_Abort(MPI_Comm comm, int errorcode) {
   //assert(comm == MPI_COMM_WORLD);
+  std::cout << boost::stacktrace::stacktrace() << std::endl;
   int err = PMPI_Abort(getTeamComm(comm), errorcode);
   return err;
 }

@@ -12,8 +12,9 @@
 
 /*TeaMPI expects the application to reload a checkpoint from fs and be ready to continue
 *execution from saved state
+*Parameter: true if process is a new spawn
 */
-void TMPI_SetLoadCheckpointCallback(std::function<void(void)>*);
+void TMPI_SetLoadCheckpointCallback(std::function<void(bool)>*);
 /*TeaMPI expects the application to create a checkpoint that can be loaded with above function*/
 void TMPI_SetCreateCheckpointCallback(std::function<void(void)>*);
 MPI_Comm TMPI_GetInterTeamComm();

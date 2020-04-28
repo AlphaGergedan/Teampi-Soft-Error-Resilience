@@ -5,6 +5,8 @@
 #include "ErrorHandling.h"
 #include "Rank.h"
 
+#include "Timing.h"
+
 //Debugging only
 #include <boost/stacktrace.hpp>
 
@@ -18,7 +20,7 @@ void verbose_errh(MPI_Comm *pcomm, int *perr, ...)
     int *ranks_gc, *ranks_gf;
 
     PMPI_Error_class(err, &eclass);
-    if (MPIX_ERR_PROC_FAILED != eclass)
+    if (MPIX_ERR_PROC_FAILED != eclass  && MPIX_ERR_REVOKED != eclass)
     {
         MPI_Abort(comm, err);
     }
@@ -54,13 +56,12 @@ void verbose_errh(MPI_Comm *pcomm, int *perr, ...)
 */
 void kill_team_errh_comm_world(MPI_Comm *pcomm, int *perr, ...)
 {
-    MPI_Group group_failed, group_comm;
     int err = *perr;
     MPI_Comm comm = *pcomm, comm_shrinked, new_lib_comm;
-    int num_failed_procs, eclass, size_team, rank_team, team, num_teams, name_len;
+    int eclass, size_team, rank_team, team, name_len;
     int size_comm, size_shrinked_comm;
     int *ranks_failed, *ranks_comm;
-    int rank_old, rank_new;
+    int rank_old, rank_in_shrinked_world;
     int flag, flag_result;
     flag = flag_result = 1;
 
@@ -70,7 +71,6 @@ void kill_team_errh_comm_world(MPI_Comm *pcomm, int *perr, ...)
         MPI_Abort(comm, err);
     }
 
-    num_teams = getNumberOfTeams();
     size_team = getTeamSize();
     rank_team = getTeamRank();
     team = getTeam();
@@ -92,7 +92,6 @@ redo:
     PMPIX_Comm_shrink(comm, &comm_shrinked);
     PMPI_Comm_size(comm_shrinked, &size_shrinked_comm);
     PMPI_Comm_size(comm, &size_comm);
-    num_failed_procs = size_comm - size_shrinked_comm; /* number of deads */
 
     std::cout << "Size of shrinked comm: " << size_shrinked_comm << std::endl;
 
@@ -122,13 +121,13 @@ redo:
     }
 
     PMPI_Comm_rank(comm, &rank_old);
-    PMPI_Comm_rank(comm_shrinked, &rank_new);
+    PMPI_Comm_rank(comm_shrinked, &rank_in_shrinked_world);
 
     setNumberOfTeams(size_shrinked_comm / size_team);
-    setTeam(rank_new / size_team);
+    setTeam(rank_in_shrinked_world / size_team);
 
-    std::cout << "kill_team_errh finished on " << rank_team << " of team " << team << " now team: " << rank_new / size_team << " "
-              << ", now has global rank: " << rank_new << " was before: " << rank_old << std::endl;
+    std::cout << "kill_team_errh finished on " << rank_team << " of team " << team << " now team: " << rank_in_shrinked_world / size_team << " "
+              << ", now has global rank: " << rank_in_shrinked_world << " was before: " << rank_old << std::endl;
     std::cout << "Number of teams now: " << size_shrinked_comm / size_team << std::endl;
 
     PMPI_Comm_set_errhandler(comm_shrinked, *getWorldErrhandler());
@@ -189,6 +188,7 @@ void respawn_proc_errh_comm_team(MPI_Comm *pcomm, int *perr, ...)
     PMPI_Error_class(err, &eclass);
     if (MPIX_ERR_PROC_FAILED != eclass && MPIX_ERR_REVOKED != eclass)
     {
+        std::cout << "Abort 1" << std::endl;
         MPI_Abort(comm, err);
     }
 
@@ -208,31 +208,41 @@ void respawn_proc_errh_comm_world(MPI_Comm *pcomm, int *perr, ...)
     PMPI_Error_class(err, &eclass);
     if (MPIX_ERR_PROC_FAILED != eclass && MPIX_ERR_REVOKED != eclass)
     {
+        std::cout << "Abort 2" << std::endl;
         MPI_Abort(comm, err);
     }
 
     rank_team = getTeamRank();
     team = getTeam();
-
     std::cout << "Errorhandler respawn_proc_errh_comm_world invoked on " << rank_team << " of team: " << team << std::endl;
+    PMPIX_Comm_revoke(comm);
+    
+    int flag = MPI_SUCCESS;
+    std::cout << boost::stacktrace::stacktrace() << " Team: " << team  << " Rank: " << rank_team << std::endl << std::endl;
+    PMPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
+
+    if(flag != MPI_SUCCESS) PMPIX_Comm_revoke(getTeamComm(MPI_COMM_WORLD));
+
+    
     respawn_proc_recreate_comm_world(comm);
 }
 
 void respawn_proc_recreate_comm_world(MPI_Comm comm)
 {
     MPI_Group group_failed, group_comm;
-    MPI_Comm comm_world_shrinked, new_world_comm, intercomm, merged_comm, new_comm_team;
+    MPI_Comm comm_world_shrinked, new_comm_world, intercomm, merged_comm, new_comm_team;
     int num_failed_procs, eclass, size_team, rank_team, team, num_teams, name_len;
     int size_comm_world, size_comm_world_shrinked;
     int *ranks_failed, *ranks_comm;
-    int rank_old, rank_new;
+    int rank_in_new_world, rank_in_shrinked_world;
     int flag, flag_result;
     int teamCommRevoked = 0;
     int error;
-    bool failedTeam = false;
+    bool failed_team = false;
     flag = flag_result = 1;
     std::set<int> failed_teams;
 
+    int agree_error;
 redo:
     //if new spawn
     if (comm == MPI_COMM_NULL)
@@ -241,19 +251,20 @@ redo:
         PMPI_Comm_get_parent(&intercomm);
         comm_world_shrinked = MPI_COMM_WORLD;
         PMPI_Barrier(comm_world_shrinked);
-        std::cout << "plop" << std::endl;
-        PMPI_Recv(&rank_old, 1, MPI_INT, 0, 1, intercomm, MPI_STATUS_IGNORE);
-        std::cout << "Received new rank: " << rank_new << std::endl;
-        failedTeam = true;
+        PMPI_Recv(&rank_in_new_world, 1, MPI_INT, 0, 1, intercomm, MPI_STATUS_IGNORE);
+        std::cout << "Received new rank: " << rank_in_new_world << std::endl;
+        failed_team = true;
     }
     else
     {
+        //Processes here are survivors
         //Check Team Comm and set failedTeam correctly
-        PMPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
-        if (flag != flag_result)
-            failedTeam = true;
-
-        
+        PMPIX_Comm_is_revoked(getTeamComm(MPI_COMM_WORLD), &flag);
+        if (flag){
+            std::cout << "Failed Team true" << std::endl;
+            failed_team = true;
+        }
+            
         //Remove all failed procs from comm world --> comm_world_shrinked
         PMPIX_Comm_shrink(comm, &comm_world_shrinked);
 
@@ -290,13 +301,13 @@ redo:
         }
 
         //Ranks in original comm_world and shrunken comm_world
-        PMPI_Comm_rank(comm, &rank_old);
-        PMPI_Comm_rank(comm_world_shrinked, &rank_new);
+        PMPI_Comm_rank(comm, &rank_in_new_world);
+        PMPI_Comm_rank(comm_world_shrinked, &rank_in_shrinked_world);
 
         MPI_Group group_world, group_world_shrinked, group_failed;
         int diff_rank;
 
-        if(rank_new == 0){
+        if(rank_in_shrinked_world == 0){
             std::cout << size_comm_world_shrinked << " " << num_failed_procs << std::endl;
         }
 
@@ -311,7 +322,7 @@ redo:
         {
             //Get Ranks of procs in comm_world that have failed in comm_world
             PMPI_Group_translate_ranks(group_failed, 1, &i, group_world, &diff_rank);
-            if (rank_new == 0){
+            if (rank_in_shrinked_world == 0){
                 //Send those ranks to new spawn
                 PMPI_Send(&diff_rank, 1, MPI_INT, i, 1, intercomm);
             }
@@ -324,7 +335,7 @@ redo:
     }
 
     //Merge intercomm to create new comm world
-    std::cout << "Merging Intercomm" << std::endl;
+    //std::cout << "Merging Intercomm" << std::endl;
     error = PMPI_Intercomm_merge(intercomm, 1, &merged_comm);
     flag_result = flag = (MPI_SUCCESS == error);
     PMPIX_Comm_agree(comm_world_shrinked, &flag);
@@ -344,68 +355,72 @@ redo:
     //Reassign the ranks in correct order 
     int size_merged_comm;
     PMPI_Comm_size(merged_comm, &size_merged_comm);
-    std::cout << "Reassigin Ranks" << std::endl;
-    std::cout << "Size merged comm " << size_merged_comm << std::endl;
-    error = PMPI_Comm_split(merged_comm, 1, rank_new, &new_world_comm);
+    //std::cout << "Reassigin Ranks" << std::endl;
+    //std::cout << "Size merged comm " << size_merged_comm << std::endl;
+    error = PMPI_Comm_split(merged_comm, 1, rank_in_new_world, &new_comm_world);
  
     flag = (MPI_SUCCESS==error);
     MPIX_Comm_agree(merged_comm, &flag);
     MPI_Comm_free(&merged_comm);
     if( !flag ) {
         if( MPI_SUCCESS == error ) {
-            MPI_Comm_free(&new_world_comm);
+            MPI_Comm_free(&new_comm_world);
         }
         goto redo;
     }
 
-    int size_new_world_comm;
-    PMPI_Comm_size(new_world_comm, &size_new_world_comm);
-    if (MPI_COMM_NULL != comm)
-    {
-        //assert(size_new_world_comm == size_comm_world);
-        std::cout << "size new world: " << size_new_world_comm << " " << size_comm_world <<  std::endl;;
-    }
+    int size_new_comm_world;
+    PMPI_Comm_size(new_comm_world, &size_new_comm_world);
 
-    int team_size = size_new_world_comm / getNumberOfTeams();
-    int color = rank_new / team_size;
-
-    if (MPI_COMM_NULL != comm)
-    {
-        //assert(teamSize == getTeamSize());
-        //assert(rank_new == getWorldRank());
-        //assert(color = mapWorldToTeamRank(rank_new));
-        if(rank_new == 0){
-            std::cout << "teamSize: " << team_size << " " << getTeamSize() << std::endl;
-            std::cout << "rankNew: " << rank_new << " " << getWorldRank() << std::endl;
-            std::cout << "color: " << color << " " << mapRankToTeamNumber(rank_new) << std::endl;
-        }
-    }
+    int team_size = size_new_comm_world / getNumberOfTeams();
+    int color = rank_in_new_world / team_size;
 
     //Recreate the team-communicators
-    PMPI_Comm_split(new_world_comm, color, rank_old, &new_comm_team);
+    //std::cout << "Color: " << color << " Rank_old: " << rank_old << std::endl;
+    PMPI_Comm_split(new_comm_world, color, rank_in_new_world, &new_comm_team);
 
     MPI_Errhandler errh_world, errh_team;
     PMPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &errh_world);
-    PMPI_Comm_set_errhandler(new_world_comm, errh_world);
+    PMPI_Comm_set_errhandler(new_comm_world, errh_world);
 
     PMPI_Comm_create_errhandler(respawn_proc_errh_comm_team, &errh_team);
     PMPI_Comm_set_errhandler(new_comm_team, errh_team);
 
 
+    MPI_Comm new_lib_comm;
+    PMPI_Comm_dup(new_comm_world, &new_lib_comm);
     //set world comm and team comm to new working comms
-    setWorldComm(new_world_comm);
+    setWorldComm(new_comm_world);
     setTeamComm(new_comm_team);
+    setLibComm(new_lib_comm);
 
     // find first team comm that did not suffer from a failure and let it write a checkpoint
     int checkpoint_team;
     for(checkpoint_team = 0; checkpoint_team < getNumberOfTeams(); checkpoint_team++){
         if(failed_teams.count(checkpoint_team) == 0) break;
+        if(checkpoint_team == getNumberOfTeams()){
+            std::cerr << "No team without failures, aborting!!" << std::endl;
+            std::cout << "Abort 3" << std::endl;
+            MPI_Abort(new_comm_world, MPIX_ERR_PROC_FAILED);
+        }
     }
-    if(getTeam() == checkpoint_team) (*getCreateCheckpointCallback())();
-    PMPI_Barrier(new_world_comm);
+
+    team = getTeam();
+    int team_rank;
+    PMPI_Comm_rank(new_comm_team, &team_rank);
+    PMPI_Comm_size(new_comm_team, &team_size);
+    std::cout << "Finished repair: Team: " << team << " Rank: " << team_rank << " Global Rank: " << rank_in_new_world <<" Size: " << team_size << " Failed Team: " << failed_team << std::endl;
+
+    if(getTeam() == checkpoint_team && !failed_team) (*getCreateCheckpointCallback())();
+    PMPI_Barrier(new_comm_world);
     //only teams with failures load checkpoints
-    if (failedTeam)
-    {
-        (*getLoadCheckpointCallback())();
-    }
+    if (failed_team && comm != MPI_COMM_NULL){
+        std::cout << "Here" << std::endl;
+        Timing::initialiseTiming();
+        (*getLoadCheckpointCallback())(false);
+        
+    } 
+        
+    
+    
 }

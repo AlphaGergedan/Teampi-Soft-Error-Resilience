@@ -118,9 +118,9 @@ char*** getArgValues();
 MPI_Errhandler* getWorldErrhandler();
 
 std::function<void(void)>* getCreateCheckpointCallback();
-std::function<void(void)>* getLoadCheckpointCallback();
+std::function<void(bool)>* getLoadCheckpointCallback();
 
 void setCreateCheckpointCallback(std::function<void(void)>*);
-void setLoadCheckpointCallback(std::function<void(void)>*);
+void setLoadCheckpointCallback(std::function<void(bool)>*);
 
 #endif /* RANK_H_ */

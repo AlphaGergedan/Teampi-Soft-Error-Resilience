@@ -24,7 +24,7 @@ static int numTeams;
 static int team;
 static int argCount;
 static char ***argValues;
-static std::function<void(void)> *loadCheckpointCallback = nullptr;
+static std::function<void(bool)> *loadCheckpointCallback = nullptr;
 static std::function<void(void)> *createCheckpointCallback = nullptr;
 
 static MPI_Comm TMPI_COMM_TEAM;
@@ -46,7 +46,6 @@ int initialiseTMPI(int *argc, char ***argv)
 
   if (parent != MPI_COMM_NULL)
   {
-    std::cout << "newly spawned proc doing smoething" << std::endl;
     respawn_proc_recreate_comm_world(TMPI_COMM_WORLD);
 
     PMPI_Comm_size(TMPI_COMM_WORLD, &worldSize);
@@ -57,7 +56,14 @@ int initialiseTMPI(int *argc, char ***argv)
 
     PMPI_Comm_size(TMPI_COMM_TEAM, &teamSize);
 
+    teamSize = worldSize / numTeams;
     team = worldRank / teamSize;
+
+    Timing::initialiseTiming();
+
+    std::cout << "New Proc: Team: " << team << " TeamRank: " << teamRank << " World Rank: " << worldRank << " TeamSize: " << teamSize << std::endl;
+
+    (*loadCheckpointCallback)(true);
 
     return MPI_SUCCESS;
   }
@@ -307,7 +313,9 @@ void remapStatus(MPI_Status *status)
 
 int synchroniseRanksInTeam()
 {
-  return PMPI_Barrier(getTeamComm(MPI_COMM_WORLD));
+   int err = PMPI_Barrier(getTeamComm(MPI_COMM_WORLD));
+   std::cout << "Barrier complete: Team: " << getTeam() << " Rank: " << getTeamRank() << std::endl;
+   return err;
 }
 
 int synchroniseRanksGlobally()
@@ -335,7 +343,7 @@ std::function<void(void)> *getCreateCheckpointCallback()
   assert(createCheckpointCallback != nullptr);
   return createCheckpointCallback;
 }
-std::function<void(void)> *getLoadCheckpointCallback()
+std::function<void(bool)> *getLoadCheckpointCallback()
 {
   assert(loadCheckpointCallback != nullptr);
   return loadCheckpointCallback;
@@ -345,7 +353,7 @@ void setCreateCheckpointCallback(std::function<void(void)> *function)
 {
   createCheckpointCallback = function;
 }
-void setLoadCheckpointCallback(std::function<void(void)> *function)
+void setLoadCheckpointCallback(std::function<void(bool)> *function)
 {
   loadCheckpointCallback = function;
 }

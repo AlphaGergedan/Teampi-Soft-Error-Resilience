@@ -219,11 +219,7 @@ void respawn_proc_errh_comm_world(MPI_Comm *pcomm, int *perr, ...)
     
     int flag = MPI_SUCCESS;
     std::cout << boost::stacktrace::stacktrace() << " Team: " << team  << " Rank: " << rank_team << std::endl << std::endl;
-    PMPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
 
-    if(flag != MPI_SUCCESS) PMPIX_Comm_revoke(getTeamComm(MPI_COMM_WORLD));
-
-    
     respawn_proc_recreate_comm_world(comm);
 }
 
@@ -259,11 +255,14 @@ redo:
     {
         //Processes here are survivors
         //Check Team Comm and set failedTeam correctly
-        PMPIX_Comm_is_revoked(getTeamComm(MPI_COMM_WORLD), &flag);
-        if (flag){
-            std::cout << "Failed Team true" << std::endl;
+        flag = MPI_SUCCESS;
+        PMPIX_Comm_is_revoked(getTeamComm(MPI_COMM_WORLD), &teamCommRevoked);
+        PMPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
+        std::cout << "Flag: " << flag << std::endl;
+        if(flag != MPI_SUCCESS || teamCommRevoked){
             failed_team = true;
-        }
+            std::cout << "Failed team true" << std::endl;
+        } 
             
         //Remove all failed procs from comm world --> comm_world_shrinked
         PMPIX_Comm_shrink(comm, &comm_world_shrinked);

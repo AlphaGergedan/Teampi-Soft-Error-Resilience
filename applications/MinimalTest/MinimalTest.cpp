@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
             std::cout << "Received: Team " << team << " " << message[6] << std::endl;
         }
 
-        MPI_Barrier(MPI_COMM_WORLD);
+        //MPI_Barrier(MPI_COMM_WORLD);
         MPI_Allreduce(nullptr, nullptr, 0, MPI_INT, MPI_MIN, MPI_COMM_SELF);
         std::cout << "Reduced: Team " << team << std::endl;
         

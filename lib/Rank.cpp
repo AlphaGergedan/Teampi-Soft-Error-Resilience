@@ -100,6 +100,7 @@ int initialiseTMPI(int *argc, char ***argv)
     //Error Handling Stuff
     PMPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
     PMPI_Comm_set_errhandler(TMPI_COMM_WORLD, TMPI_ERRHANDLER_COMM_WORLD);
+    PMPI_Comm_set_errhandler(TMPI_COMM_LIB, TMPI_ERRHANDLER_COMM_WORLD);
 
     PMPI_Comm_create_errhandler(respawn_proc_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
     PMPI_Comm_set_errhandler(TMPI_COMM_TEAM, TMPI_ERRHANDLER_COMM_TEAM);
@@ -314,7 +315,7 @@ void remapStatus(MPI_Status *status)
 int synchroniseRanksInTeam()
 {
    int err = PMPI_Barrier(getTeamComm(MPI_COMM_WORLD));
-   std::cout << "Barrier complete: Team: " << getTeam() << " Rank: " << getTeamRank() << std::endl;
+   //std::cout << "Barrier complete: Team: " << getTeam() << " Rank: " << getTeamRank() << std::endl;
    return err;
 }
 

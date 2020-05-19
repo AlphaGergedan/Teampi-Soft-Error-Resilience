@@ -4,6 +4,8 @@
 #include <mpi.h>
 #include <mpi-ext.h>
 
+
+
 void verbose_errh(MPI_Comm* pcomm, int* perr, ...);
 void kill_team_errh_comm_world(MPI_Comm* pcomm, int* perr, ...);
 void kill_team_errh_comm_team(MPI_Comm* pcomm, int* perr, ...);

@@ -358,3 +358,7 @@ void setLoadCheckpointCallback(std::function<void(bool)> *function)
 {
   loadCheckpointCallback = function;
 }
+
+void setErrhandlingStrategy(TMPI_ErrorHandlingStrategy){
+  
+}

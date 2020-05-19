@@ -39,3 +39,7 @@ void TMPI_SetLoadCheckpointCallback(std::function<void(bool)> *function){
 void TMPI_SetCreateCheckpointCallback(std::function<void(void)> *function){
   setCreateCheckpointCallback(function);
 }
+
+void TMPI_SetErrorHandlingStrategy(TMPI_ErrorHandlingStrategy strategy){
+  setErrorHandlingStrategy(strategy);
+}

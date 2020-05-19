@@ -1,0 +1,315 @@
+------------TMPI SETTINGS------------
+Number of teams: 2
+Team size: 5
+Total ranks: 10
+
+Tshift(0->0->0) = 0
+Tshift(1->1->1) = -8.01e-06
+Tshift(2->2->2) = -8.391e-05
+Tshift(3->3->3) = -8.164e-05
+Tshift(4->4->4) = -0.00012244
+Tshift(5->0->5) = -1.185e-05
+Tshift(6->1->6) = -0.00012385
+Tshift(7->2->7) = 1.5611e-05
+Tshift(8->3->8) = -0.00013609
+Tshift(9->4->9) = -8.316e-05
+---------------------------------------
+
+Started init Timing
+Started init Timing
+Barrier complete: Team: 0 Rank: 1
+Started init Timing
+Barrier complete: Team: 0 Rank: 2
+Started init Timing
+Barrier complete: Team: 0 Rank: 3
+Started init Timing
+Barrier complete: Team: 0 Rank: 4
+Started init Timing
+Barrier complete: Team: 1 Rank: 0
+Started init Timing
+Barrier complete: Team: 1 Rank: 1
+Started init Timing
+Barrier complete: Team: 1 Rank: 2
+Started init Timing
+Barrier complete: Team: 1 Rank: 3
+Started init Timing
+Barrier complete: Team: 1 Rank: 4
+Barrier complete: Team: 0 Rank: 0
+Inited Timing
+Inited Timing
+Inited Timing
+Inited Timing
+Inited Timing
+Inited Timing
+Inited Timing
+Inited Timing
+Inited Timing
+Inited Timing
+Starting Team: 1 Rank: 3
+Starting Team: 0 Rank: 1
+Starting Team: 0 Rank: 2
+Starting Team: 0 Rank: 0
+Starting Team: 1 Rank: 4
+Received: Team 0 6
+Starting Team: 0 Rank: 4
+Starting Team: 1 Rank: 0
+Sent: Team 1
+Starting Team: 1 Rank: 1
+Received: Team 1 6
+Starting Team: 1 Rank: 2
+Sent: Team 0
+Reduced: Team 0
+Reduced: Team 1
+Reduced: Team 1
+Reduced: Team 1
+Starting Team: 0 Rank: 3
+Reduced: Team 0
+Reduced: Team 0
+Reduced: Team 0
+Reduced: Team 1
+Sent: Team 1
+Reduced: Team 1
+Received: Team 1 6
+Reduced: Team 0
+Sigkill Send
+Errorhandler respawn_proc_errh_comm_world invoked on 2 of team: 1
+Rank 1 / 5 of Team 0: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 0 }
+Errorhandler respawn_proc_errh_comm_team  invoked on: 1 of team: 0, Error: MPI_ERR_PROC_FAILED: Process Failure
+Errorhandler respawn_proc_errh_comm_world invoked on 2 of team: 0
+Errorhandler respawn_proc_errh_comm_world invoked on 0 of team: 1
+Errorhandler respawn_proc_errh_comm_world invoked on 3 of team: 0
+Errorhandler respawn_proc_errh_comm_world invoked on 1 of team: 1
+Errorhandler respawn_proc_errh_comm_world invoked on 3 of team: 1
+Errorhandler respawn_proc_errh_comm_world invoked on 4 of team: 1
+Errorhandler respawn_proc_errh_comm_world invoked on 4 of team: 0
+ 0# respawn_proc_errh_comm_world(ompi_communicator_t**, int*, ...) in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 1# ompi_errhandler_invoke in /opt/lib/libmpi.so.40
+ 2# PMPI_Allreduce in /opt/lib/libmpi.so.40
+ 3# MPI_Allreduce in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 4# 0x0000563D8D1D582A in bin/MinimalTest
+ 5# __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+ 6# 0x0000563D8D1D52EE in bin/MinimalTest
+ Team: 1 Rank: 3
+
+ 0# respawn_proc_errh_comm_world(ompi_communicator_t**, int*, ...) in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 1# ompi_errhandler_invoke in /opt/lib/libmpi.so.40
+ 2# PMPI_Allreduce in /opt/lib/libmpi.so.40
+ 3# MPI_Allreduce in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 4# 0x000055A39FE9B82A in bin/MinimalTest
+ 5# __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+ 6# 0x000055A39FE9B2EE in bin/MinimalTest
+ Team: 1 Rank: 0
+
+ 0# respawn_proc_errh_comm_world(ompi_communicator_t**, int*, ...) in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 1# ompi_errhandler_invoke in /opt/lib/libmpi.so.40
+ 2# PMPI_Allreduce in /opt/lib/libmpi.so.40
+ 3# MPI_Allreduce in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 4# 0x00005573B591F82A in bin/MinimalTest
+ 5# __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+ 6# 0x00005573B591F2EE in bin/MinimalTest
+ Team: 1 Rank: 2
+
+ 0# respawn_proc_errh_comm_world(ompi_communicator_t**, int*, ...) in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 1# ompi_errhandler_invoke in /opt/lib/libmpi.so.40
+ 2# PMPI_Allreduce in /opt/lib/libmpi.so.40
+ 3# MPI_Allreduce in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 4# 0x000055DF9AFA982A in bin/MinimalTest
+ 5# __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+ 6# 0x000055DF9AFA92EE in bin/MinimalTest
+ Team: 1 Rank: 4
+
+ 0# respawn_proc_errh_comm_world(ompi_communicator_t**, int*, ...) in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 1# ompi_errhandler_invoke in /opt/lib/libmpi.so.40
+ 2# PMPI_Allreduce in /opt/lib/libmpi.so.40
+ 3# MPI_Allreduce in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 4# 0x0000558D0571B82A in bin/MinimalTest
+ 5# __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+ 6# 0x0000558D0571B2EE in bin/MinimalTest
+ Team: 0 Rank: 2
+
+ 0# respawn_proc_errh_comm_world(ompi_communicator_t**, int*, ...) in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 1# ompi_errhandler_invoke in /opt/lib/libmpi.so.40
+ 2# PMPI_Allreduce in /opt/lib/libmpi.so.40
+ 3# MPI_Allreduce in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 4# 0x000055919B6E082A in bin/MinimalTest
+ 5# __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+ 6# 0x000055919B6E02EE in bin/MinimalTest
+ Team: 1 Rank: 1
+
+ 0# respawn_proc_errh_comm_world(ompi_communicator_t**, int*, ...) in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 1# ompi_errhandler_invoke in /opt/lib/libmpi.so.40
+ 2# PMPI_Allreduce in /opt/lib/libmpi.so.40
+ 3# MPI_Allreduce in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 4# 0x000055F98C77E82A in bin/MinimalTest
+ 5# __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+ 6# 0x000055F98C77E2EE in bin/MinimalTest
+ Team: 0 Rank: 3
+
+ 0# respawn_proc_errh_comm_world(ompi_communicator_t**, int*, ...) in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 1# ompi_errhandler_invoke in /opt/lib/libmpi.so.40
+ 2# PMPI_Allreduce in /opt/lib/libmpi.so.40
+ 3# MPI_Allreduce in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 4# 0x0000561DCADBE82A in bin/MinimalTest
+ 5# __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+ 6# 0x0000561DCADBE2EE in bin/MinimalTest
+ Team: 0 Rank: 4
+
+Rank 1 / 5 of Team 0: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 0 }
+Errorhandler respawn_proc_errh_comm_team  invoked on: 1 of team: 0, Error: MPI_ERR_PROC_FAILED: Process Failure
+Flag: 0
+Flag: 0
+Flag: 0
+Flag: 0
+Rank 4 / 5 of Team 0: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 0 }
+Errorhandler respawn_proc_errh_comm_team  invoked on: 4 of team: 0, Error: MPI_ERR_PROC_FAILED: Process Failure
+Flag: 0
+Flag: 0
+Failed team true
+Rank 2 / 5 of Team 0: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 0 }
+Errorhandler respawn_proc_errh_comm_team  invoked on: 2 of team: 0, Error: MPI_ERR_PROC_FAILED: Process Failure
+Flag: 0
+Failed team true
+Rank 3 / 5 of Team 0: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 0 }
+Errorhandler respawn_proc_errh_comm_team  invoked on: 3 of team: 0, Error: MPI_ERR_PROC_FAILED: Process Failure
+Flag: 0
+Failed team true
+Flag: 0
+Failed team true
+9 1
+Received new rank: 0
+Finished repair: Team: 0 Rank: 3 Global Rank: 3 Size: 5 Failed Team: 1
+Finished repair: Team: 1 Rank: 2 Global Rank: 7 Size: 5 Failed Team: 0
+Created Checkpoint
+Finished repair: Team: 1 Rank: 1 Global Rank: 6 Size: 5 Failed Team: 0
+Created Checkpoint
+Finished repair: Team: 0 Rank: 2 Global Rank: 2 Size: 5 Failed Team: 1
+Finished repair: Team: 1 Rank: 4 Global Rank: 9 Size: 5 Failed Team: 0
+Created Checkpoint
+Reduced: Team 1
+Finished repair: Team: 1 Rank: 3 Global Rank: 8 Size: 5 Failed Team: 0
+Created Checkpoint
+Finished repair: Team: 1 Rank: 0 Global Rank: 5 Size: 5 Failed Team: 0
+Created Checkpoint
+Reduced: Team 1
+Finished repair: Team: 0 Rank: 4 Global Rank: 4 Size: 5 Failed Team: 1
+Here
+Started init Timing
+Finished repair: Team: 0 Rank: 1 Global Rank: 1 Size: 5 Failed Team: 1
+Here
+Started init Timing
+Finished repair: Team: 0 Rank: 0 Global Rank: 0 Size: 5 Failed Team: 1
+Here
+Started init Timing
+Reduced: Team 1
+Reduced: Team 1
+Received: Team 1 6
+Here
+Started init Timing
+Started init Timing
+Barrier complete: Team: 0 Rank: 1
+Inited Timing
+Loaded Chekpoint
+Starting Team: 0 Rank: 1
+Reduced: Team 1
+Sent: Team 1
+Barrier complete: Team: 0 Rank: 0
+Barrier complete: Team: 0 Rank: 2
+Inited Timing
+Loaded Chekpoint
+Barrier complete: Team: 0 Rank: 3
+Inited Timing
+Loaded Chekpoint
+Barrier complete: Team: 0 Rank: 4
+Inited Timing
+Loaded Chekpoint
+Starting Team: 0 Rank: 2
+Starting Team: 0 Rank: 3
+Inited Timing
+New Proc: Team: 0 TeamRank: 0 World Rank: 0 TeamSize: 5
+Loaded Chekpoint
+Starting Team: 0 Rank: 4
+Starting Team: 0 Rank: 0
+Sent: Team 0
+Received: Team 0 6
+Reduced: Team 1
+Finalizing: Team: 1 Rank: 0
+Barrier complete: Team: 1 Rank: 0
+Waiting: 5
+Reduced: Team 0
+Reduced: Team 0
+Reduced: Team 1
+Finalizing: Team: 1 Rank: 2
+Barrier complete: Team: 1 Rank: 2
+Waiting: 7
+Reduced: Team 1
+Finalizing: Team: 1 Rank: 1
+Barrier complete: Team: 1 Rank: 1
+Waiting: 6
+Reduced: Team 1
+Finalizing: Team: 1 Rank: 4
+Barrier complete: Team: 1 Rank: 4
+Waiting: 9
+Reduced: Team 0
+Sent: Team 0
+Reduced: Team 1
+Finalizing: Team: 1 Rank: 3
+Barrier complete: Team: 1 Rank: 3
+Waiting: 8
+Reduced: Team 0
+Reduced: Team 0
+Received: Team 0 6
+Errorhandler respawn_proc_errh_comm_world invoked on 0 of team: 0
+Errorhandler respawn_proc_errh_comm_world invoked on 2 of team: 0
+Errorhandler respawn_proc_errh_comm_world invoked on 3 of team: 0
+Errorhandler respawn_proc_errh_comm_world invoked on 4 of team: 0
+Errorhandler respawn_proc_errh_comm_world invoked on 1 of team: 0
+ 0# respawn_proc_errh_comm_world(ompi_communicator_t**, int*, ...) in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 1# ompi_errhandler_invoke in /opt/lib/libmpi.so.40
+ 2# PMPI_Allreduce in /opt/lib/libmpi.so.40
+ 3# MPI_Allreduce in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 4# 0x0000558D0571B82A in bin/MinimalTest
+ 5# __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+ 6# 0x0000558D0571B2EE in bin/MinimalTest
+ Team: 0 Rank: 2
+
+ 0# respawn_proc_errh_comm_world(ompi_communicator_t**, int*, ...) in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 1# ompi_errhandler_invoke in /opt/lib/libmpi.so.40
+ 2# PMPI_Allreduce in /opt/lib/libmpi.so.40
+ 3# MPI_Allreduce in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 4# 0x0000561DCADBE82A in bin/MinimalTest
+ 5# __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+ 6# 0x0000561DCADBE2EE in bin/MinimalTest
+ Team: 0 Rank: 4
+
+ 0# respawn_proc_errh_comm_world(ompi_communicator_t**, int*, ...) in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 1# ompi_errhandler_invoke in /opt/lib/libmpi.so.40
+ 2# PMPI_Allreduce in /opt/lib/libmpi.so.40
+ 3# MPI_Allreduce in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 4# 0x000055F98C77E82A in bin/MinimalTest
+ 5# __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+ 6# 0x000055F98C77E2EE in bin/MinimalTest
+ Team: 0 Rank: 3
+
+ 0# respawn_proc_errh_comm_world(ompi_communicator_t**, int*, ...) in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 1# ompi_errhandler_invoke in /opt/lib/libmpi.so.40
+ 2# PMPI_Allreduce in /opt/lib/libmpi.so.40
+ 3# MPI_Allreduce in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 4# 0x000055B4E1AC182A in bin/MinimalTest
+ 5# __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+ 6# 0x000055B4E1AC12EE in bin/MinimalTest
+ Team: 0 Rank: 0
+
+ 0# respawn_proc_errh_comm_world(ompi_communicator_t**, int*, ...) in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 1# ompi_errhandler_invoke in /opt/lib/libmpi.so.40
+ 2# PMPI_Allreduce in /opt/lib/libmpi.so.40
+ 3# MPI_Allreduce in /home/xile273/HPC/Code/teaMPI/lib/libtmpi.so
+ 4# 0x000055C595EE982A in bin/MinimalTest
+ 5# __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+ 6# 0x000055C595EE92EE in bin/MinimalTest
+ Team: 0 Rank: 1
+
+Flag: 0
+Flag: 0
+Flag: 0
+Flag: 0
+Flag: 0

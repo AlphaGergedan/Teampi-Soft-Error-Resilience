@@ -11,11 +11,13 @@ jmp_buf buffer;
 
 
 void createCheckpoint(){
-    fail = false;
+    //fail = false;
     std::cout << "Created Checkpoint" << std::endl;
+    MPI_Barrier(MPI_COMM_WORLD);
 }
 
 void loadCheckpoint(bool newSpawn){
+    MPI_Barrier(MPI_COMM_WORLD);
     if(newSpawn) fail = false;
     std::cout << "Loaded Chekpoint" << std::endl;
     if(!newSpawn){
@@ -49,7 +51,7 @@ int main(int argc, char *argv[])
     std::cout << "Starting Team: " << team << " Rank: " << rank << std::endl;
     for (int i = 0; i <= 2; i++)
     {
-        if (rank == 0)
+        if (rank < size/2)
         {
             for (int i = 0; i < MESSAGE_LENGTH; i++)
             {
@@ -60,18 +62,18 @@ int main(int argc, char *argv[])
                 raise(SIGKILL);
             }
             //std::cout << "sending: " << team << std::endl;
-            MPI_Send(&message, MESSAGE_LENGTH, MPI_INT, 1, 0, MPI_COMM_WORLD);
+            if(rank == 0)MPI_Send(&message, MESSAGE_LENGTH, MPI_INT, size-1, 0, MPI_COMM_WORLD);
             std::cout << "Sent: Team " << team << std::endl;
         }
-        if (rank == 1)
+        if (rank >= size/2)
         {
-            if (team == 0 && i == 2 && fail){
+            if (team == 1 && i == 2 && fail){
                 std::cout << "Sigkill Recv" << std::endl;
                 raise(SIGKILL);
             }
             
             //std::cout << "receiving: " << team << std::endl;
-            MPI_Recv(&message, MESSAGE_LENGTH, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+            if(rank == size-1)MPI_Recv(&message, MESSAGE_LENGTH, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
             std::cout << "Received: Team " << team << " " << message[6] << std::endl;
         }
 

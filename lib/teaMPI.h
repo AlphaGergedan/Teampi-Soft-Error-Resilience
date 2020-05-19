@@ -9,6 +9,8 @@
 
 #include <mpi.h>
 #include <functional>
+#include "ErrorHandlingStrategies.h"
+
 
 /*TeaMPI expects the application to reload a checkpoint from fs and be ready to continue
 *execution from saved state
@@ -17,6 +19,8 @@
 void TMPI_SetLoadCheckpointCallback(std::function<void(bool)>*);
 /*TeaMPI expects the application to create a checkpoint that can be loaded with above function*/
 void TMPI_SetCreateCheckpointCallback(std::function<void(void)>*);
+/**/
+void TMPI_SetErrorHandlingStrategy(TMPI_ErrorHandlingStrategy strategy);
 MPI_Comm TMPI_GetInterTeamComm();
 int TMPI_GetTeamNumber();
 int TMPI_GetWorldRank();

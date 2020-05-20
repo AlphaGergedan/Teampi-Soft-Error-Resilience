@@ -4,11 +4,11 @@
 //#include <boost/stacktrace.hpp>
 #include <set>
 
-#include "Rank.h"
+#include "../Rank.h"
 #include "RespawnProcStrategy.h"
-#include "Timing.h"
+#include "../Timing.h"
 
-void respawn_proc_errh_comm_team(MPI_Comm *pcomm, int *perr, ...)
+void RespawnProcStrategy::respawn_proc_errh_comm_team(MPI_Comm *pcomm, int *perr, ...)
 {
     int err = *perr;
     MPI_Comm comm = *pcomm;
@@ -37,7 +37,7 @@ void respawn_proc_errh_comm_team(MPI_Comm *pcomm, int *perr, ...)
 }
 
 //Based on example from 2018 tutorial found on ULFM website
-void respawn_proc_errh_comm_world(MPI_Comm *pcomm, int *perr, ...)
+void RespawnProcStrategy::respawn_proc_errh_comm_world(MPI_Comm *pcomm, int *perr, ...)
 {
     int err = *perr;
     MPI_Comm comm = *pcomm;
@@ -57,19 +57,16 @@ void respawn_proc_errh_comm_world(MPI_Comm *pcomm, int *perr, ...)
     PMPIX_Comm_revoke(getLibComm());
     PMPIX_Comm_revoke(getTeamComm(MPI_COMM_WORLD));
     
-    int flag = MPI_SUCCESS;
     //std::cout << boost::stacktrace::stacktrace() << " Team: " << team  << " Rank: " << rank_team << std::endl << std::endl;
 
     respawn_proc_recreate_comm_world(comm);
 }
 
-void respawn_proc_recreate_comm_world(MPI_Comm comm)
+void RespawnProcStrategy::respawn_proc_recreate_comm_world(MPI_Comm comm)
 {
-    MPI_Group group_failed, group_comm;
     MPI_Comm comm_world_shrinked, new_comm_world, intercomm, merged_comm, new_comm_team;
-    int num_failed_procs, eclass, size_team, rank_team, num_teams, name_len;
+    int num_failed_procs;
     int size_comm_world, size_comm_world_shrinked;
-    int *ranks_failed, *ranks_comm;
     int rank_in_new_world, rank_in_shrinked_world;
     int flag, flag_result;
     bool failed_team;
@@ -78,8 +75,6 @@ void respawn_proc_recreate_comm_world(MPI_Comm comm)
     int checkpoint_team;
     flag = flag_result = 1;
     
-
-    int agree_error;
 redo:
     //if new spawn
     if (comm == MPI_COMM_NULL)
@@ -119,7 +114,6 @@ redo:
 
         //Respwan Processes
         char **argValues = *getArgValues();
-        int argCount = getArgCount();
 
         error = PMPI_Comm_spawn(argValues[0], &argValues[1], num_failed_procs, MPI_INFO_NULL, 0, comm_world_shrinked,
                                 &intercomm, MPI_ERRCODES_IGNORE);
@@ -245,7 +239,7 @@ redo:
     PMPI_Comm_dup(new_comm_world, &new_lib_comm);
 
     MPI_Errhandler errh_world, errh_team;
-    PMPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &errh_world);
+    PMPI_Comm_create_errhandler(RespawnProcStrategy::respawn_proc_errh_comm_world, &errh_world);
     PMPI_Comm_set_errhandler(new_comm_world, errh_world);
     PMPI_Comm_set_errhandler(new_lib_comm, errh_world);
 

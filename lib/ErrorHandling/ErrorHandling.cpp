@@ -3,9 +3,9 @@
 #include <iostream>
 #include <set>
 #include "ErrorHandling.h"
-#include "Rank.h"
+#include "../Rank.h"
 
-#include "Timing.h"
+#include "../Timing.h"
 
 //Debugging only
 #include <boost/stacktrace.hpp>

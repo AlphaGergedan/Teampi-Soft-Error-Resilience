@@ -14,6 +14,8 @@
 #include <limits.h>
 #include <functional>
 
+#include "ErrorHandling/ErrorHandlingStrategies.h"
+
 #define MASTER 0
 
 // From https://stackoverflow.com/questions/40807833/sending-size-t-type-data-with-mpi
@@ -115,6 +117,7 @@ int getArgCount();
 
 char*** getArgValues();
 
+void setErrorHandlingStrategy(TMPI_ErrorHandlingStrategy);
 MPI_Errhandler* getWorldErrhandler();
 
 std::function<void(void)>* getCreateCheckpointCallback();
@@ -122,5 +125,6 @@ std::function<void(bool)>* getLoadCheckpointCallback();
 
 void setCreateCheckpointCallback(std::function<void(void)>*);
 void setLoadCheckpointCallback(std::function<void(bool)>*);
+void cleanupTMPI();
 
 #endif /* RANK_H_ */

@@ -3,7 +3,7 @@
 
 #include <mpi.h>
 
-class ErrorHandlingStrategy{
+class ErrorHandler{
     public:
         MPI_Errhandler getErrhandlerTeam(){
             return teamErrorhandler;
@@ -13,9 +13,9 @@ class ErrorHandlingStrategy{
             return worldErrorhandler;
         };
 
-        ErrorHandlingStrategy();
+        ErrorHandler();
 
-        ~ErrorHandlingStrategy(){
+        ~ErrorHandler(){
             MPI_Errhandler_free(&teamErrorhandler);
             MPI_Errhandler_free(&worldErrorhandler);
         };

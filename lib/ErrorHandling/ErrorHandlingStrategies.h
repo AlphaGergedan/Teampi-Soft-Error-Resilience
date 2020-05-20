@@ -1,4 +1,4 @@
-#ifndef ERRORHANLDINGSTRATEGIES_H_
+#ifndef ERRORHANDLINGSTRATEGIES_H_
 #define ERRORHANDLINGSTRATEGIES_H_
 enum TMPI_ErrorHandlingStrategy{
     TMPI_KillTeamErrorHandler = 0,

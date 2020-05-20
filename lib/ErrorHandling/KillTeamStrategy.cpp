@@ -9,13 +9,12 @@
 *The Errorhandler for MPI_COMM_WORLD when using the KILL_FAILED_TEAMS statergy.
 *This Errorhandler shrinks MPI_COMM_WORLD / removes failed processes
 */
-void kill_team_errh_comm_world(MPI_Comm *pcomm, int *perr, ...)
+void KillTeamStrategy::kill_team_errh_comm_world(MPI_Comm *pcomm, int *perr, ...)
 {
     int err = *perr;
     MPI_Comm comm = *pcomm, comm_shrinked, new_lib_comm;
-    int eclass, size_team, rank_team, team, name_len;
+    int eclass, size_team, rank_team, team;
     int size_comm, size_shrinked_comm;
-    int *ranks_failed, *ranks_comm;
     int rank_old, rank_in_shrinked_world;
     int flag, flag_result;
     flag = flag_result = 1;
@@ -94,7 +93,7 @@ redo:
     refreshWorldSize();
 }
 
-void kill_team_errh_comm_team(MPI_Comm *pcomm, int *perr, ...)
+void KillTeamStrategy::kill_team_errh_comm_team(MPI_Comm *pcomm, int *perr, ...)
 {
     int err = *perr;
     MPI_Comm comm = *pcomm;

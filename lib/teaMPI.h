@@ -9,7 +9,7 @@
 
 #include <mpi.h>
 #include <functional>
-#include "ErrorHandlingStrategies.h"
+#include "ErrorHandling/ErrorHandlingStrategies.h"
 
 
 /*TeaMPI expects the application to reload a checkpoint from fs and be ready to continue

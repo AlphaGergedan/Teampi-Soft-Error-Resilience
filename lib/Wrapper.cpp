@@ -246,6 +246,7 @@ int MPI_Finalize() {
   int recv = 0;
   int err = 0;
   std::cout << "Waiting: " << getWorldRank() << std::endl;
+
   while(recv < 1000 || err != MPI_SUCCESS){
     send = 1000;
     err = PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getLibComm());
@@ -261,6 +262,7 @@ int MPI_Finalize() {
     PMPI_Comm_size(getWorldComm(), &size);
     std::cout << "Allred recv: "  << recv << " Size: " << size<< " error: " << err << " Rank: " << getWorldRank()<<  std::endl;
   }
+
   std::cout << "Barrier finished" << std::endl;
   freeTeamComm();
   //std::cout << "outputing Timing" << std::endl;
@@ -271,6 +273,7 @@ int MPI_Finalize() {
 #ifdef DirtyCleanUp
   return MPI_SUCCESS;
 #endif
+  cleanupTMPI();
   return PMPI_Finalize();
   }
 

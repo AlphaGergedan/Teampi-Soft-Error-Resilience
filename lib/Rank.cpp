@@ -14,7 +14,8 @@
 #include "RankControl.h"
 #include "Logging.h"
 #include "Timing.h"
-#include "ErrorHandling.h"
+#include "ErrorHandling/KillTeamStrategy.h"
+#include "ErrorHandling/RespawnProcStrategy.h"
 
 static int worldRank;
 static int worldSize;
@@ -34,6 +35,7 @@ static MPI_Comm TMPI_COMM_LIB;
 //TODO TMPI_COMM_WORLD should not be the same thing as libComm
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_WORLD;
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_TEAM;
+static ErrorHandler *errh_strategy = nullptr;
 int initialiseTMPI(int *argc, char ***argv)
 {
 
@@ -43,10 +45,16 @@ int initialiseTMPI(int *argc, char ***argv)
 
   MPI_Comm parent;
   PMPI_Comm_get_parent(&parent);
+  if(errh_strategy == nullptr){
+    errh_strategy = new KillTeamStrategy();
+  }
+  TMPI_ERRHANDLER_COMM_TEAM = errh_strategy->getErrhandlerTeam();
+  TMPI_ERRHANDLER_COMM_WORLD = errh_strategy->getErrhandlerWorld();
 
   if (parent != MPI_COMM_NULL)
   {
-    respawn_proc_recreate_comm_world(TMPI_COMM_WORLD);
+    //TODO rewrite this
+    //respawn_proc_recreate_comm_world(TMPI_COMM_WORLD);
 
     PMPI_Comm_size(TMPI_COMM_WORLD, &worldSize);
 
@@ -98,11 +106,11 @@ int initialiseTMPI(int *argc, char ***argv)
     assert(teamSize == (worldSize / numTeams));
 
     //Error Handling Stuff
-    PMPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
+    //PMPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
     PMPI_Comm_set_errhandler(TMPI_COMM_WORLD, TMPI_ERRHANDLER_COMM_WORLD);
     PMPI_Comm_set_errhandler(TMPI_COMM_LIB, TMPI_ERRHANDLER_COMM_WORLD);
 
-    PMPI_Comm_create_errhandler(respawn_proc_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
+    //PMPI_Comm_create_errhandler(respawn_proc_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
     PMPI_Comm_set_errhandler(TMPI_COMM_TEAM, TMPI_ERRHANDLER_COMM_TEAM);
 
     registerSignalHandler();
@@ -359,6 +367,21 @@ void setLoadCheckpointCallback(std::function<void(bool)> *function)
   loadCheckpointCallback = function;
 }
 
-void setErrhandlingStrategy(TMPI_ErrorHandlingStrategy){
-  
+void setErrorHandlingStrategy(TMPI_ErrorHandlingStrategy strategy){
+  switch(strategy){
+    case TMPI_KillTeamErrorHandler:
+      errh_strategy = new KillTeamStrategy();
+      break;
+    case TMPI_RespawnProcErrorHandler:
+      errh_strategy = new RespawnProcStrategy();
+      break;
+    case TMPI_WarmSpareErrorHandler:
+    //not yet implemented
+      assert(false);
+      break;
+  }
+}
+
+void cleanupTMPI(){
+  delete(errh_strategy);
 }

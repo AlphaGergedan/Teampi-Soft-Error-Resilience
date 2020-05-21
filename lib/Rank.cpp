@@ -10,6 +10,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
+#include <functional>
 
 #include "RankControl.h"
 #include "Logging.h"
@@ -35,6 +36,7 @@ static MPI_Comm TMPI_COMM_LIB;
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_WORLD;
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_TEAM;
 static TMPI_ErrorHandlingStrategy error_handler = TMPI_KillTeamErrorHandler;
+static std::function<void (MPI_Comm)> *rejoin_function = nullptr;
 int initialiseTMPI(int *argc, char ***argv)
 {
 
@@ -50,6 +52,7 @@ int initialiseTMPI(int *argc, char ***argv)
   case TMPI_RespawnProcErrorHandler:
     MPI_Comm_create_errhandler(respawn_proc_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
     MPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
+    rejoin_function = new std::function<void (MPI_Comm)>(respawn_proc_recreate_comm_world);
     break;
   case TMPI_KillTeamErrorHandler:
     MPI_Comm_create_errhandler(kill_team_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
@@ -61,8 +64,7 @@ int initialiseTMPI(int *argc, char ***argv)
 
   if (parent != MPI_COMM_NULL)
   {
-    //TODO rewrite this
-    //respawn_proc_recreate_comm_world(TMPI_COMM_WORLD);
+    (*rejoin_function)(TMPI_COMM_WORLD);
 
     PMPI_Comm_size(TMPI_COMM_WORLD, &worldSize);
 
@@ -81,7 +83,7 @@ int initialiseTMPI(int *argc, char ***argv)
 
     (*loadCheckpointCallback)(true);
 
-    return MPI_SUCCESS;
+    
   }
   else
   {
@@ -136,8 +138,9 @@ int initialiseTMPI(int *argc, char ***argv)
 
     synchroniseRanksGlobally();
 
-    return MPI_SUCCESS;
   }
+  delete(rejoin_function);
+  return MPI_SUCCESS;
 }
 
 int getWorldRank()

@@ -1,7 +1,7 @@
 #include <mpi.h>
 #include <mpi-ext.h>
 #include <iostream>
-//#include <boost/stacktrace.hpp>
+#include <boost/stacktrace.hpp>
 #include <set>
 
 #include "../Rank.h"
@@ -22,6 +22,7 @@ void respawn_proc_errh_comm_team(MPI_Comm *pcomm, int *perr, ...)
 
 
     std::cout << "Errorhandler respawn_proc_errh_comm_team  invoked on: " << rank_team << " of team: " << team << ", Error: " << errstr << std::endl;
+    std::cout << boost::stacktrace::stacktrace() << std::endl;
 
     PMPI_Error_class(err, &eclass);
     if (MPIX_ERR_PROC_FAILED != eclass && MPIX_ERR_REVOKED != eclass)
@@ -75,6 +76,7 @@ void respawn_proc_recreate_comm_world(MPI_Comm comm)
     int checkpoint_team;
     flag = flag_result = 1;
     
+    std::cout << "Recreating world comm" << std::endl;
 redo:
     //if new spawn
     if (comm == MPI_COMM_NULL)
@@ -96,12 +98,13 @@ redo:
         //Check Team Comm and set failedTeam correctly
         flag = MPI_SUCCESS;
         PMPIX_Comm_is_revoked(getTeamComm(MPI_COMM_WORLD), &teamCommRevoked);
-        PMPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
    
         //Remove all failed procs from comm world --> comm_world_shrinked
         PMPIX_Comm_shrink(comm, &comm_world_shrinked);
 
-        PMPI_Comm_size(comm, &size_comm_world);
+        std::cout << "size 2" << std::endl;
+        PMPI_Comm_size(getWorldComm(), &size_comm_world);
+        std::cout << "size 3" << std::endl;
         PMPI_Comm_size(comm_world_shrinked, &size_comm_world_shrinked);
 
         num_failed_procs = size_comm_world - size_comm_world_shrinked;
@@ -133,7 +136,9 @@ redo:
         }
 
         //Ranks in original comm_world and shrunken comm_world
-        PMPI_Comm_rank(comm, &rank_in_new_world);
+        std::cout << "rank 1" << std::endl;
+        PMPI_Comm_rank(getWorldComm(), &rank_in_new_world);
+        std::cout << "rank 2" << std::endl;
         PMPI_Comm_rank(comm_world_shrinked, &rank_in_shrinked_world);
 
         MPI_Group group_world, group_world_shrinked, group_failed;
@@ -210,6 +215,7 @@ redo:
 
     //Reassign the ranks in correct order 
     int size_merged_comm;
+    std::cout << "size 3" << std::endl;
     PMPI_Comm_size(merged_comm, &size_merged_comm);
     //std::cout << "Reassigin Ranks" << std::endl;
     //std::cout << "Size merged comm " << size_merged_comm << std::endl;
@@ -226,6 +232,7 @@ redo:
     }
 
     int size_new_comm_world;
+    std::cout << "size 4" << std::endl;
     PMPI_Comm_size(new_comm_world, &size_new_comm_world);
 
     int team_size = size_new_comm_world / getNumberOfTeams();
@@ -251,7 +258,9 @@ redo:
     setLibComm(new_lib_comm);
 
     int team_rank;
+    
     PMPI_Comm_rank(new_comm_team, &team_rank);
+    std::cout << "size 5" << std::endl;
     PMPI_Comm_size(new_comm_team, &team_size);
     std::cout << "Finished repair: Team: " << color << " Rank: " << team_rank << " Global Rank: " << rank_in_new_world <<" Size: " << team_size << " Failed Team: " << failed_team << std::endl;
     

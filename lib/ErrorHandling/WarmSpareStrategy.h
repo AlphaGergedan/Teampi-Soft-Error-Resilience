@@ -1,0 +1,5 @@
+#ifndef WARMSPARESTRATEGY_H_
+#define WARMSPARESTRATEGY_H_
+
+
+#endif

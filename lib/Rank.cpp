@@ -14,8 +14,7 @@
 #include "RankControl.h"
 #include "Logging.h"
 #include "Timing.h"
-#include "ErrorHandling/KillTeamStrategy.h"
-#include "ErrorHandling/RespawnProcStrategy.h"
+
 
 static int worldRank;
 static int worldSize;
@@ -35,7 +34,7 @@ static MPI_Comm TMPI_COMM_LIB;
 //TODO TMPI_COMM_WORLD should not be the same thing as libComm
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_WORLD;
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_TEAM;
-static ErrorHandler *errh_strategy = nullptr;
+static TMPI_ErrorHandlingStrategy error_handler = TMPI_KillTeamErrorHandler;
 int initialiseTMPI(int *argc, char ***argv)
 {
 
@@ -45,11 +44,20 @@ int initialiseTMPI(int *argc, char ***argv)
 
   MPI_Comm parent;
   PMPI_Comm_get_parent(&parent);
-  if(errh_strategy == nullptr){
-    errh_strategy = new KillTeamStrategy();
+
+  switch (error_handler)
+  {
+  case TMPI_RespawnProcErrorHandler:
+    MPI_Comm_create_errhandler(respawn_proc_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
+    MPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
+    break;
+  case TMPI_KillTeamErrorHandler:
+    MPI_Comm_create_errhandler(kill_team_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
+    MPI_Comm_create_errhandler(kill_team_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
+  default:
+  MPI_Abort(MPI_COMM_WORLD, MPI_ERR_ARG);
+    break;
   }
-  TMPI_ERRHANDLER_COMM_TEAM = errh_strategy->getErrhandlerTeam();
-  TMPI_ERRHANDLER_COMM_WORLD = errh_strategy->getErrhandlerWorld();
 
   if (parent != MPI_COMM_NULL)
   {
@@ -368,20 +376,7 @@ void setLoadCheckpointCallback(std::function<void(bool)> *function)
 }
 
 void setErrorHandlingStrategy(TMPI_ErrorHandlingStrategy strategy){
-  switch(strategy){
-    case TMPI_KillTeamErrorHandler:
-      errh_strategy = new KillTeamStrategy();
-      break;
-    case TMPI_RespawnProcErrorHandler:
-      errh_strategy = new RespawnProcStrategy();
-      break;
-    case TMPI_WarmSpareErrorHandler:
-    //not yet implemented
-      assert(false);
-      break;
-  }
+  if(strategy == TMPI_WarmSpareErrorHandler) assert(false);
+  error_handler = strategy;
 }
 
-void cleanupTMPI(){
-  delete(errh_strategy);
-}

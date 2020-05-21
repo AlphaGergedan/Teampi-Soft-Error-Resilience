@@ -14,7 +14,7 @@
 #include <limits.h>
 #include <functional>
 
-#include "ErrorHandling/ErrorHandlingStrategies.h"
+#include "ErrorHandling/ErrorHandlingFunctions.h"
 
 #define MASTER 0
 
@@ -125,6 +125,5 @@ std::function<void(bool)>* getLoadCheckpointCallback();
 
 void setCreateCheckpointCallback(std::function<void(void)>*);
 void setLoadCheckpointCallback(std::function<void(bool)>*);
-void cleanupTMPI();
 
 #endif /* RANK_H_ */

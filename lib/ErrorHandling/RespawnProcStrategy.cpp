@@ -8,7 +8,7 @@
 #include "RespawnProcStrategy.h"
 #include "../Timing.h"
 
-void RespawnProcStrategy::respawn_proc_errh_comm_team(MPI_Comm *pcomm, int *perr, ...)
+void respawn_proc_errh_comm_team(MPI_Comm *pcomm, int *perr, ...)
 {
     int err = *perr;
     MPI_Comm comm = *pcomm;
@@ -37,7 +37,7 @@ void RespawnProcStrategy::respawn_proc_errh_comm_team(MPI_Comm *pcomm, int *perr
 }
 
 //Based on example from 2018 tutorial found on ULFM website
-void RespawnProcStrategy::respawn_proc_errh_comm_world(MPI_Comm *pcomm, int *perr, ...)
+void respawn_proc_errh_comm_world(MPI_Comm *pcomm, int *perr, ...)
 {
     int err = *perr;
     MPI_Comm comm = *pcomm;
@@ -62,7 +62,7 @@ void RespawnProcStrategy::respawn_proc_errh_comm_world(MPI_Comm *pcomm, int *per
     respawn_proc_recreate_comm_world(comm);
 }
 
-void RespawnProcStrategy::respawn_proc_recreate_comm_world(MPI_Comm comm)
+void respawn_proc_recreate_comm_world(MPI_Comm comm)
 {
     MPI_Comm comm_world_shrinked, new_comm_world, intercomm, merged_comm, new_comm_team;
     int num_failed_procs;
@@ -97,7 +97,6 @@ redo:
         flag = MPI_SUCCESS;
         PMPIX_Comm_is_revoked(getTeamComm(MPI_COMM_WORLD), &teamCommRevoked);
         PMPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
-        std::cout << "Flag: " << flag << std::endl;
    
         //Remove all failed procs from comm world --> comm_world_shrinked
         PMPIX_Comm_shrink(comm, &comm_world_shrinked);
@@ -239,7 +238,7 @@ redo:
     PMPI_Comm_dup(new_comm_world, &new_lib_comm);
 
     MPI_Errhandler errh_world, errh_team;
-    PMPI_Comm_create_errhandler(RespawnProcStrategy::respawn_proc_errh_comm_world, &errh_world);
+    PMPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &errh_world);
     PMPI_Comm_set_errhandler(new_comm_world, errh_world);
     PMPI_Comm_set_errhandler(new_lib_comm, errh_world);
 
@@ -267,10 +266,4 @@ redo:
     } 
         
     
-}
-
-
-RespawnProcStrategy::RespawnProcStrategy(){
-    MPI_Comm_create_errhandler(respawn_proc_errh_comm_team, &teamErrorhandler);
-    MPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &worldErrorhandler);
 }

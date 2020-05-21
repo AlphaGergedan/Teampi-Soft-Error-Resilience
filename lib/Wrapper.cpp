@@ -273,7 +273,6 @@ int MPI_Finalize() {
 #ifdef DirtyCleanUp
   return MPI_SUCCESS;
 #endif
-  cleanupTMPI();
   return PMPI_Finalize();
   }
 

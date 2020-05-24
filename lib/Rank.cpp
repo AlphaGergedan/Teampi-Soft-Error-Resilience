@@ -22,8 +22,10 @@ static int worldSize;
 static int teamRank;
 static int teamSize;
 static int numTeams;
+static int numSpares;
 static int team;
 static int argCount;
+static bool isSpareRank;
 static char ***argValues;
 static std::function<void(bool)> *loadCheckpointCallback = nullptr;
 static std::function<void(void)> *createCheckpointCallback = nullptr;
@@ -36,7 +38,7 @@ static MPI_Comm TMPI_COMM_LIB;
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_WORLD;
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_TEAM;
 static TMPI_ErrorHandlingStrategy error_handler = TMPI_KillTeamErrorHandler;
-static std::function<void (MPI_Comm)> *rejoin_function = nullptr;
+static std::function<void (bool)> *rejoin_function = nullptr;
 int initialiseTMPI(int *argc, char ***argv)
 {
 
@@ -50,13 +52,16 @@ int initialiseTMPI(int *argc, char ***argv)
   switch (error_handler)
   {
   case TMPI_RespawnProcErrorHandler:
-    MPI_Comm_create_errhandler(respawn_proc_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
-    MPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
-    rejoin_function = new std::function<void (MPI_Comm)>(respawn_proc_recreate_comm_world);
+    MPI_Comm_create_errhandler(respawn_proc_errh, &TMPI_ERRHANDLER_COMM_TEAM);
+    MPI_Comm_create_errhandler(respawn_proc_errh, &TMPI_ERRHANDLER_COMM_WORLD);
+    rejoin_function = new std::function<void (bool)>(respawn_proc_recreate_comm_world);
     break;
   case TMPI_KillTeamErrorHandler:
     MPI_Comm_create_errhandler(kill_team_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
     MPI_Comm_create_errhandler(kill_team_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
+  case TMPI_WarmSpareErrorHandler:
+    MPI_Comm_create_errhandler(respawn_proc_errh, &TMPI_ERRHANDLER_COMM_TEAM);
+    MPI_Comm_create_errhandler(respawn_proc_errh, &TMPI_ERRHANDLER_COMM_WORLD);
   default:
   MPI_Abort(MPI_COMM_WORLD, MPI_ERR_ARG);
     break;
@@ -64,7 +69,7 @@ int initialiseTMPI(int *argc, char ***argv)
 
   if (parent != MPI_COMM_NULL)
   {
-    (*rejoin_function)(TMPI_COMM_WORLD);
+    (*rejoin_function)(true);
 
     PMPI_Comm_size(TMPI_COMM_WORLD, &worldSize);
 
@@ -94,11 +99,28 @@ int initialiseTMPI(int *argc, char ***argv)
     //TODO only if original spwan
     PMPI_Comm_size(MPI_COMM_WORLD, &worldSize);
     PMPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
-    teamSize = worldSize / numTeams;
+    int color, worldSizeWithSpares;
 
-    int color = worldRank / teamSize;
-    team = worldRank / teamSize;
+    if(error_handler == TMPI_WarmSpareErrorHandler){
+      PMPI_Comm_size(MPI_COMM_WORLD, &worldSizeWithSpares);
+      worldSize -= numSpares;
 
+      teamSize = worldSize / numTeams;
+      color = (worldRank >= worldSize) ? numTeams : worldRank / teamSize;
+      team = (worldRank >= worldSize) ? numTeams : worldRank / teamSize;
+      isSpareRank = (worldRank >= worldSize);
+
+      if(isSpareRank) (*rejoin_function)(true);
+      std::cout << worldRank << ": " << isSpareRank << std::endl;
+    } else {
+      teamSize = worldSize / numTeams;
+
+      color = worldRank / teamSize;
+      team = worldRank / teamSize;
+
+      isSpareRank = false;
+    }
+    
     PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_WORLD);
 
     PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_LIB);
@@ -111,9 +133,9 @@ int initialiseTMPI(int *argc, char ***argv)
 
     // Todo: free
     // Todo: failure clean
-    PMPI_Comm_split(MPI_COMM_WORLD, teamRank, worldRank, &TMPI_COMM_INTER_TEAM);
+    PMPI_Comm_split(MPI_COMM_WORLD, (isSpareRank) ? teamSize : teamRank, worldRank, &TMPI_COMM_INTER_TEAM);
 
-    assert(teamSize == (worldSize / numTeams));
+    if(!isSpareRank)assert(teamSize == (worldSize / numTeams));
 
     //Error Handling Stuff
     //PMPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
@@ -287,14 +309,19 @@ void outputEnvironment()
 
 void setEnvironment()
 {
-  std::string env(getEnvString("TEAMS"));
-  numTeams = env.empty() ? 2 : std::stoi(env);
+  std::string teamsStr(getEnvString("TEAMS"));
+  std::string sparesStr(getEnvString("SPARES"));
+  numTeams = teamsStr.empty() ? 2 : std::stoi(teamsStr);
+  numSpares = sparesStr.empty() ? 0 : std::stoi(sparesStr); 
+
 }
 
 //Kritisch
 int mapRankToTeamNumber(int rank)
 {
-  return rank / getTeamSize();
+  int ret = rank / getTeamSize();
+  if(ret >= numTeams) return numTeams;
+  return ret;
 }
 
 //Kritisch
@@ -348,6 +375,9 @@ MPI_Errhandler *getWorldErrhandler()
   return &TMPI_ERRHANDLER_COMM_WORLD;
 }
 
+MPI_Errhandler *getTeamErrhandler(){
+  return &TMPI_ERRHANDLER_COMM_TEAM;
+}
 int getArgCount()
 {
   return argCount;
@@ -379,7 +409,21 @@ void setLoadCheckpointCallback(std::function<void(bool)> *function)
 }
 
 void setErrorHandlingStrategy(TMPI_ErrorHandlingStrategy strategy){
-  if(strategy == TMPI_WarmSpareErrorHandler) assert(false);
   error_handler = strategy;
 }
 
+int getNumberOfSpares(){
+  return numSpares;
+}
+
+void setNumberOfSpares(int spares){
+  numSpares = spares;
+}
+
+bool isSpare(){
+  return isSpareRank;
+}
+
+void setSpare(bool status){
+  isSpareRank = status;
+}

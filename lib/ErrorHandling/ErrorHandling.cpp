@@ -235,7 +235,6 @@ void respawn_proc_recreate_comm_world(MPI_Comm comm)
     int rank_in_new_world, rank_in_shrinked_world;
     int flag, flag_result;
     bool failed_team;
-    int teamCommRevoked = 0;
     int error;
     int checkpoint_team;
     flag = flag_result = 1;
@@ -262,7 +261,6 @@ redo:
         //Processes here are survivors
         //Check Team Comm and set failedTeam correctly
         flag = MPI_SUCCESS;
-        PMPIX_Comm_is_revoked(getTeamComm(MPI_COMM_WORLD), &teamCommRevoked);
         PMPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
         std::cout << "Flag: " << flag << std::endl;
    

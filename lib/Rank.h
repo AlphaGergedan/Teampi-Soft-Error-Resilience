@@ -119,11 +119,18 @@ char*** getArgValues();
 
 void setErrorHandlingStrategy(TMPI_ErrorHandlingStrategy);
 MPI_Errhandler* getWorldErrhandler();
+MPI_Errhandler *getTeamErrhandler();
 
 std::function<void(void)>* getCreateCheckpointCallback();
 std::function<void(bool)>* getLoadCheckpointCallback();
 
 void setCreateCheckpointCallback(std::function<void(void)>*);
 void setLoadCheckpointCallback(std::function<void(bool)>*);
+
+
+int getNumberOfSpares();
+void setNumberOfSpares(int spares);
+bool isSpare();
+void setSpare(bool status);
 
 #endif /* RANK_H_ */

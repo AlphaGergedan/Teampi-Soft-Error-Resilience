@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
     std::function<void(bool)> load(loadCheckpoint);
     TMPI_SetCreateCheckpointCallback(&create);
     TMPI_SetLoadCheckpointCallback(&load);
-    TMPI_SetErrorHandlingStrategy(TMPI_RespawnProcErrorHandler);
+    TMPI_SetErrorHandlingStrategy(TMPI_WarmSpareErrorHandler);
 
 
     if(setjmp(buffer) == 0) MPI_Init(&argc, &argv);

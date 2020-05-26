@@ -38,7 +38,8 @@ static MPI_Comm TMPI_COMM_LIB;
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_WORLD;
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_TEAM;
 static TMPI_ErrorHandlingStrategy error_handler = TMPI_KillTeamErrorHandler;
-static std::function<void (bool)> *rejoin_function = nullptr;
+static std::function<void (bool)> rejoin_function;
+static std::function<void ()> wait_function;
 int initialiseTMPI(int *argc, char ***argv)
 {
 
@@ -54,14 +55,17 @@ int initialiseTMPI(int *argc, char ***argv)
   case TMPI_RespawnProcErrorHandler:
     MPI_Comm_create_errhandler(respawn_proc_errh, &TMPI_ERRHANDLER_COMM_TEAM);
     MPI_Comm_create_errhandler(respawn_proc_errh, &TMPI_ERRHANDLER_COMM_WORLD);
-    rejoin_function = new std::function<void (bool)>(respawn_proc_recreate_comm_world);
+    rejoin_function = std::function<void (bool)>(respawn_proc_recreate_world);
     break;
   case TMPI_KillTeamErrorHandler:
     MPI_Comm_create_errhandler(kill_team_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
     MPI_Comm_create_errhandler(kill_team_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
+    break;
   case TMPI_WarmSpareErrorHandler:
-    MPI_Comm_create_errhandler(respawn_proc_errh, &TMPI_ERRHANDLER_COMM_TEAM);
-    MPI_Comm_create_errhandler(respawn_proc_errh, &TMPI_ERRHANDLER_COMM_WORLD);
+    MPI_Comm_create_errhandler(warm_spare_errh, &TMPI_ERRHANDLER_COMM_TEAM);
+    MPI_Comm_create_errhandler(warm_spare_errh, &TMPI_ERRHANDLER_COMM_WORLD);
+    wait_function = std::function<void ()>(warm_spare_wait_function);
+    break;
   default:
   MPI_Abort(MPI_COMM_WORLD, MPI_ERR_ARG);
     break;
@@ -69,7 +73,7 @@ int initialiseTMPI(int *argc, char ***argv)
 
   if (parent != MPI_COMM_NULL)
   {
-    (*rejoin_function)(true);
+    rejoin_function(true);
 
     PMPI_Comm_size(TMPI_COMM_WORLD, &worldSize);
 
@@ -110,8 +114,7 @@ int initialiseTMPI(int *argc, char ***argv)
       team = (worldRank >= worldSize) ? numTeams : worldRank / teamSize;
       isSpareRank = (worldRank >= worldSize);
 
-      if(isSpareRank) (*rejoin_function)(true);
-      std::cout << worldRank << ": " << isSpareRank << std::endl;
+      std::cout << "Is Spare?" << worldRank << ": " << isSpareRank << std::endl;
     } else {
       teamSize = worldSize / numTeams;
 
@@ -159,9 +162,10 @@ int initialiseTMPI(int *argc, char ***argv)
     Timing::initialiseTiming();
 
     synchroniseRanksGlobally();
+    if(isSpareRank) wait_function();
 
   }
-  delete(rejoin_function);
+
   return MPI_SUCCESS;
 }
 

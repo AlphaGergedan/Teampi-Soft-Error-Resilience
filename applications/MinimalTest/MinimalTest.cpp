@@ -1,24 +1,25 @@
 #include <mpi.h>
 #include <signal.h>
+#include <unistd.h>
 #include "../../lib/teaMPI.h"
 #include <iostream>
 
 #include <csetjmp>
 #define MESSAGE_LENGTH 4096
 
-bool fail = true;
+int fail = 0;
 jmp_buf buffer;
 
 
 void createCheckpoint(){
-    //fail = false;
+    fail++;
     std::cout << "Created Checkpoint" << std::endl;
     MPI_Barrier(MPI_COMM_WORLD);
 }
 
 void loadCheckpoint(bool newSpawn){
     MPI_Barrier(MPI_COMM_WORLD);
-    if(newSpawn) fail = false;
+    fail++;
     std::cout << "Loaded Chekpoint" << std::endl;
     if(!newSpawn){
         longjmp(buffer, 1);
@@ -27,6 +28,12 @@ void loadCheckpoint(bool newSpawn){
 
 int main(int argc, char *argv[])
 {
+    volatile int i = 1;
+    char hostname[256];
+    gethostname(hostname, sizeof(hostname));
+    printf("PID %d on %s ready for attach\n", getpid(), hostname);
+    fflush(stdout);
+    while (0 == i) sleep(5);
     std::function<void(void)> create(createCheckpoint);
     std::function<void(bool)> load(loadCheckpoint);
     TMPI_SetCreateCheckpointCallback(&create);
@@ -58,7 +65,7 @@ int main(int argc, char *argv[])
             {
                 message[i] = i;
             }
-            if (team == 0 && i == 1 && fail){
+            if (team == 0 && i == 1 && fail < 2){
                 std::cout << "Sigkill Send" << std::endl;
                 raise(SIGKILL);
             }
@@ -68,7 +75,7 @@ int main(int argc, char *argv[])
         }
         if (rank >= size/2)
         {
-            if (team == 1 && i == 2 && fail){
+            if (team == 1 && i == 2 && fail < 2){
                 std::cout << "Sigkill Recv" << std::endl;
                 raise(SIGKILL);
             }

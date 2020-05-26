@@ -31,10 +31,10 @@ void respawn_proc_errh(MPI_Comm *pcomm, int *perr, ...)
     
     //std::cout << boost::stacktrace::stacktrace() << " Team: " << team  << " Rank: " << rank_team << std::endl << std::endl;
 
-    respawn_proc_recreate_comm_world(false);
+    respawn_proc_recreate_world(false);
 }
 
-void respawn_proc_recreate_comm_world(bool newSpawn)
+void respawn_proc_recreate_world(bool newSpawn)
 {
     MPI_Comm comm_world_shrinked, new_comm_world, intercomm, merged_comm, new_comm_team;
     int num_failed_procs;

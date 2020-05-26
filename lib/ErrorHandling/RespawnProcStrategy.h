@@ -4,6 +4,6 @@
 #include <mpi.h>
 
     void respawn_proc_errh(MPI_Comm *pcomm, int *perr, ...);
-    void respawn_proc_recreate_comm_world(bool newSpawn);
+    void respawn_proc_recreate_world(bool newSpawn);
 
 #endif

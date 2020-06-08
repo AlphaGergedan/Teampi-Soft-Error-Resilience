@@ -132,7 +132,7 @@ int initialiseTMPI(int *argc, char ***argv)
 
     PMPI_Comm_rank(TMPI_COMM_TEAM, &teamRank);
 
-    PMPI_Comm_size(TMPI_COMM_TEAM, &teamSize);
+    //PMPI_Comm_size(TMPI_COMM_TEAM, &teamSize);
 
     // Todo: free
     // Todo: failure clean
@@ -430,4 +430,8 @@ bool isSpare(){
 
 void setSpare(bool status){
   isSpareRank = status;
+}
+
+void setTeamRank(int rank){
+  teamRank = rank;
 }

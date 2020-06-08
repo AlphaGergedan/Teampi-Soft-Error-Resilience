@@ -278,7 +278,7 @@ int MPI_Finalize() {
 
 int MPI_Abort(MPI_Comm comm, int errorcode) {
   //assert(comm == MPI_COMM_WORLD);
-  std::cout << boost::stacktrace::stacktrace() << std::endl;
+  //std::cout << boost::stacktrace::stacktrace() << std::endl;
   int err = PMPI_Abort(getTeamComm(comm), errorcode);
   return err;
 }

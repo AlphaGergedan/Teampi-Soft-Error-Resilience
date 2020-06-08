@@ -22,6 +22,7 @@ void TMPI_SetCreateCheckpointCallback(std::function<void(void)>*);
 /**/
 void TMPI_SetErrorHandlingStrategy(TMPI_ErrorHandlingStrategy strategy);
 MPI_Comm TMPI_GetInterTeamComm();
+MPI_Comm TMPI_GetWorldComm();
 int TMPI_GetTeamNumber();
 int TMPI_GetWorldRank();
 int TMPI_GetInterTeamCommSize();

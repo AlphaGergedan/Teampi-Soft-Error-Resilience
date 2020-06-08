@@ -19,7 +19,7 @@ void respawn_proc_errh(MPI_Comm *pcomm, int *perr, ...)
     if (MPIX_ERR_PROC_FAILED != eclass && MPIX_ERR_REVOKED != eclass)
     {
         std::cout << "Aborting: Unexpected Error" << eclass << std::endl;
-        MPI_Abort(comm, err);
+        PMPI_Abort(comm, err);
     }
 
     rank_team = getTeamRank();
@@ -28,6 +28,7 @@ void respawn_proc_errh(MPI_Comm *pcomm, int *perr, ...)
     PMPIX_Comm_revoke(getWorldComm());
     PMPIX_Comm_revoke(getLibComm());
     PMPIX_Comm_revoke(getTeamComm(MPI_COMM_WORLD));
+    PMPIX_Comm_revoke(getTeamInterComm());
     
     //std::cout << boost::stacktrace::stacktrace() << " Team: " << team  << " Rank: " << rank_team << std::endl << std::endl;
 
@@ -224,6 +225,9 @@ redo:
     
     PMPI_Comm_rank(new_comm_team, &team_rank);
     PMPI_Comm_size(new_comm_team, &team_size);
+    setTeamRank(team_rank);
+    setTeam(color);
+    
     std::cout << "Finished repair: Team: " << color << " Rank: " << team_rank << " Global Rank: " << rank_in_new_world <<" Size: " << team_size << " Failed Team: " << failed_team << std::endl;
     
     PMPI_Barrier(new_comm_world);

@@ -48,7 +48,7 @@ void refreshWorldSize();
 
 /* Get the rank as seen by the application */
 int getTeamRank();
-
+void setTeamRank(int rank);
 /* Get the number of ranks as seen by the application */
 int getTeamSize();
 

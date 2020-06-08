@@ -32,6 +32,10 @@ MPI_Comm TMPI_GetInterTeamComm() {
   return getTeamInterComm();
 }
 
+MPI_Comm TMPI_GetWorldComm(){
+  return getWorldComm();
+}
+
 void TMPI_SetLoadCheckpointCallback(std::function<void(bool)> *function){
   setLoadCheckpointCallback(function);
 }

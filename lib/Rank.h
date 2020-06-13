@@ -121,7 +121,7 @@ void setErrorHandlingStrategy(TMPI_ErrorHandlingStrategy);
 MPI_Errhandler* getWorldErrhandler();
 MPI_Errhandler *getTeamErrhandler();
 
-std::function<void(void)>* getCreateCheckpointCallback();
+std::function<void(std::vector<int>)>* getCreateCheckpointCallback();
 std::function<void(int)>* getLoadCheckpointCallback();
 
 void setCreateCheckpointCallback(std::function<void(void)>*);

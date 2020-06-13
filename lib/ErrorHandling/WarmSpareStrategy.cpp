@@ -190,16 +190,21 @@ redo:
     if(failed_teams[getTeam()] == 0)assert(getTeamSize() == size_without_spares / getNumberOfTeams());
 
     if(failed_normal == 0) return;
+
+    std::vector<int> failed_team_vector;
+    for(const auto& i : failed_teams){
+        if(i.second > 0) failed_team_vector.push_back(i.first);
+    }
     
     if (getTeam() == reload_team)
     {
-        (*(getCreateCheckpointCallback()))();
+        (*(getCreateCheckpointCallback()))(failed_team_vector);
     }
 
     if (failed_teams[getTeam()] > 0)
     {
         Timing::initialiseTiming();
-        (*(getLoadCheckpointCallback()))(false);
+        (*(getLoadCheckpointCallback()))(reload_team);
     }
 }
 

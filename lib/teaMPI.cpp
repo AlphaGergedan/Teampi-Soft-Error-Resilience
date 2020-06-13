@@ -40,10 +40,14 @@ void TMPI_SetLoadCheckpointCallback(std::function<void(int)> *function){
   setLoadCheckpointCallback(function);
 }
 
-void TMPI_SetCreateCheckpointCallback(std::function<void(void)> *function){
+void TMPI_SetCreateCheckpointCallback(std::function<void(std::vector<int>)> *function){
   setCreateCheckpointCallback(function);
 }
 
 void TMPI_SetErrorHandlingStrategy(TMPI_ErrorHandlingStrategy strategy){
   setErrorHandlingStrategy(strategy);
+}
+
+int TMPI_TeamToWorldRank(int team_rank, int team){
+  return mapTeamToWorldRank(team_rank, team);
 }

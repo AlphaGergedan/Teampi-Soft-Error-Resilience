@@ -27,5 +27,6 @@ int TMPI_GetTeamNumber();
 int TMPI_GetWorldRank();
 int TMPI_GetInterTeamCommSize();
 int TMPI_IsLeadingRank();
+int TMPI_TeamToWorldRank(int team_rank, int team);
 
 #endif

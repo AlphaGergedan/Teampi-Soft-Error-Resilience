@@ -9,6 +9,7 @@
 
 #include <mpi.h>
 #include <functional>
+#include <vector>
 #include "ErrorHandling/ErrorHandlingStrategies.h"
 
 
@@ -18,7 +19,7 @@
 */
 void TMPI_SetLoadCheckpointCallback(std::function<void(int)>*);
 /*TeaMPI expects the application to create a checkpoint that can be loaded with above function*/
-void TMPI_SetCreateCheckpointCallback(std::function<void(void)>*);
+void TMPI_SetCreateCheckpointCallback(std::function<void(std::vector<int>)>*);
 /**/
 void TMPI_SetErrorHandlingStrategy(TMPI_ErrorHandlingStrategy strategy);
 MPI_Comm TMPI_GetInterTeamComm();

@@ -230,8 +230,10 @@ redo:
     
     std::cout << "Finished repair: Team: " << color << " Rank: " << team_rank << " Global Rank: " << rank_in_new_world <<" Size: " << team_size << " Failed Team: " << failed_team << std::endl;
     
+    //TODO this needs to be fixed
+    std::vector<int> failed_team_vector;
     PMPI_Barrier(new_comm_world);
-    if(getTeam() == checkpoint_team && !failed_team) (*getCreateCheckpointCallback())();
+    if(getTeam() == checkpoint_team && !failed_team) (*getCreateCheckpointCallback())(failed_team_vector);
     
     //only teams with failures load checkpoints
     if(failed_team && !newSpawn){

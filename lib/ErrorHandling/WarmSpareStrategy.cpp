@@ -188,6 +188,8 @@ redo:
     //Falsch bei spares
     if(failed_teams[getTeam()] == 0)assert(getTeamSize() == size_without_spares / getNumberOfTeams());
 
+    if(failed_normal == 0) return;
+    
     if (getTeam() == reload_team)
     {
         (*(getCreateCheckpointCallback()))();

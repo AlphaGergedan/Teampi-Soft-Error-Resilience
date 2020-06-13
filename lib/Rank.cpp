@@ -27,7 +27,7 @@ static int team;
 static int argCount;
 static bool isSpareRank;
 static char ***argValues;
-static std::function<void(bool)> *loadCheckpointCallback = nullptr;
+static std::function<void(int)> *loadCheckpointCallback = nullptr;
 static std::function<void(void)> *createCheckpointCallback = nullptr;
 
 static MPI_Comm TMPI_COMM_TEAM;
@@ -397,7 +397,7 @@ std::function<void(void)> *getCreateCheckpointCallback()
   assert(createCheckpointCallback != nullptr);
   return createCheckpointCallback;
 }
-std::function<void(bool)> *getLoadCheckpointCallback()
+std::function<void(int)> *getLoadCheckpointCallback()
 {
   assert(loadCheckpointCallback != nullptr);
   return loadCheckpointCallback;
@@ -407,7 +407,7 @@ void setCreateCheckpointCallback(std::function<void(void)> *function)
 {
   createCheckpointCallback = function;
 }
-void setLoadCheckpointCallback(std::function<void(bool)> *function)
+void setLoadCheckpointCallback(std::function<void(int)> *function)
 {
   loadCheckpointCallback = function;
 }

@@ -122,10 +122,10 @@ MPI_Errhandler* getWorldErrhandler();
 MPI_Errhandler *getTeamErrhandler();
 
 std::function<void(void)>* getCreateCheckpointCallback();
-std::function<void(bool)>* getLoadCheckpointCallback();
+std::function<void(int)>* getLoadCheckpointCallback();
 
 void setCreateCheckpointCallback(std::function<void(void)>*);
-void setLoadCheckpointCallback(std::function<void(bool)>*);
+void setLoadCheckpointCallback(std::function<void(int)>*);
 
 
 int getNumberOfSpares();

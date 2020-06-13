@@ -16,7 +16,7 @@
 *execution from saved state
 *Parameter: true if process is a new spawn
 */
-void TMPI_SetLoadCheckpointCallback(std::function<void(bool)>*);
+void TMPI_SetLoadCheckpointCallback(std::function<void(int)>*);
 /*TeaMPI expects the application to create a checkpoint that can be loaded with above function*/
 void TMPI_SetCreateCheckpointCallback(std::function<void(void)>*);
 /**/

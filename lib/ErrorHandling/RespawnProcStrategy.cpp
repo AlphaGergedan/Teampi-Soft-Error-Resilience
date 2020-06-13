@@ -1,7 +1,7 @@
 #include <mpi.h>
 #include <mpi-ext.h>
 #include <iostream>
-#include <boost/stacktrace.hpp>
+//#include <boost/stacktrace.hpp>
 #include <set>
 
 #include "../Rank.h"

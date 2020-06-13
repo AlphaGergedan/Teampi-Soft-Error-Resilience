@@ -18,11 +18,12 @@
 
 
 static int worldRank;
-static int worldSize;
+static int worldSizeNoSpares;
+static int worldSizeSpares;
 static int teamRank;
 static int teamSize;
 static int numTeams;
-static int numSpares;
+static int numSpares = 0;
 static int team;
 static int argCount;
 static bool isSpareRank;
@@ -75,7 +76,7 @@ int initialiseTMPI(int *argc, char ***argv)
   {
     rejoin_function(true);
 
-    PMPI_Comm_size(TMPI_COMM_WORLD, &worldSize);
+    PMPI_Comm_size(TMPI_COMM_WORLD, &worldSizeNoSpares);
 
     PMPI_Comm_rank(TMPI_COMM_WORLD, &worldRank);
     
@@ -83,13 +84,14 @@ int initialiseTMPI(int *argc, char ***argv)
 
     PMPI_Comm_size(TMPI_COMM_TEAM, &teamSize);
 
-    teamSize = worldSize / numTeams;
+    teamSize = worldSizeNoSpares / numTeams;
     team = worldRank / teamSize;
 
     Timing::initialiseTiming();
 
     std::cout << "New Proc: Team: " << team << " TeamRank: " << teamRank << " World Rank: " << worldRank << " TeamSize: " << teamSize << std::endl;
 
+    registerSignalHandler();
     (*loadCheckpointCallback)(true);
 
     
@@ -101,22 +103,22 @@ int initialiseTMPI(int *argc, char ***argv)
    * The application should have no knowledge of the world_size or world_rank
    */
     //TODO only if original spwan
-    PMPI_Comm_size(MPI_COMM_WORLD, &worldSize);
+    PMPI_Comm_size(MPI_COMM_WORLD, &worldSizeNoSpares);
     PMPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
     int color, worldSizeWithSpares;
 
     if(error_handler == TMPI_WarmSpareErrorHandler){
       PMPI_Comm_size(MPI_COMM_WORLD, &worldSizeWithSpares);
-      worldSize -= numSpares;
+      worldSizeNoSpares -= numSpares;
 
-      teamSize = worldSize / numTeams;
-      color = (worldRank >= worldSize) ? numTeams : worldRank / teamSize;
-      team = (worldRank >= worldSize) ? numTeams : worldRank / teamSize;
-      isSpareRank = (worldRank >= worldSize);
+      teamSize = worldSizeNoSpares / numTeams;
+      color = (worldRank >= worldSizeNoSpares) ? numTeams : worldRank / teamSize;
+      team = (worldRank >= worldSizeNoSpares) ? numTeams : worldRank / teamSize;
+      isSpareRank = (worldRank >= worldSizeNoSpares);
 
       std::cout << "Is Spare?" << worldRank << ": " << isSpareRank << std::endl;
     } else {
-      teamSize = worldSize / numTeams;
+      teamSize = worldSizeNoSpares / numTeams;
 
       color = worldRank / teamSize;
       team = worldRank / teamSize;
@@ -138,7 +140,7 @@ int initialiseTMPI(int *argc, char ***argv)
     // Todo: failure clean
     PMPI_Comm_split(MPI_COMM_WORLD, (isSpareRank) ? teamSize : teamRank, worldRank, &TMPI_COMM_INTER_TEAM);
 
-    if(!isSpareRank)assert(teamSize == (worldSize / numTeams));
+    if(!isSpareRank)assert(teamSize == (worldSizeNoSpares / numTeams));
 
     //Error Handling Stuff
     //PMPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
@@ -181,12 +183,13 @@ void refreshWorldRank()
 
 int getWorldSize()
 {
-  return worldSize;
+  return worldSizeNoSpares;
 }
 
 void refreshWorldSize()
 {
-  PMPI_Comm_size(TMPI_COMM_WORLD, &worldSize);
+  PMPI_Comm_size(TMPI_COMM_WORLD, &worldSizeSpares);
+  worldSizeNoSpares = worldSizeSpares - numSpares;
 }
 
 int getTeamRank()
@@ -272,19 +275,19 @@ std::string getEnvString(std::string const &key)
 
 void outputEnvironment()
 {
-  if (worldSize % numTeams != 0)
+  if (worldSizeNoSpares % numTeams != 0)
   {
     std::cerr << "Wrong choice of world size and number of teams!\n";
     std::cerr << "Number of teams: " << numTeams << "\n";
-    std::cerr << "Total ranks: " << worldSize << "\n";
+    std::cerr << "Total ranks no spare ranks: " << worldSizeNoSpares << "\n";
   }
 
-  assert(worldSize % numTeams == 0);
+  assert(worldSizeNoSpares % numTeams == 0);
 
   PMPI_Barrier(TMPI_COMM_WORLD);
   double my_time = MPI_Wtime();
   PMPI_Barrier(TMPI_COMM_WORLD);
-  double times[worldSize];
+  double times[worldSizeSpares];
 
   PMPI_Gather(&my_time, 1, MPI_DOUBLE, times, 1, MPI_DOUBLE, MASTER, TMPI_COMM_WORLD);
 
@@ -296,11 +299,11 @@ void outputEnvironment()
     std::cout << "Number of teams: " << numTeams << "\n";
 
     std::cout << "Team size: " << teamSize << "\n";
-    std::cout << "Total ranks: " << worldSize << "\n\n";
+    std::cout << "Total ranks: " << worldSizeSpares << "\n\n";
 
     if (worldRank == MASTER)
     {
-      for (int i = 0; i < worldSize; i++)
+      for (int i = 0; i < worldSizeSpares; i++)
       {
         std::cout << "Tshift(" << i << "->" << mapWorldToTeamRank(i) << "->" << mapTeamToWorldRank(mapWorldToTeamRank(i), mapRankToTeamNumber(i)) << ") = " << times[i] - times[0] << "\n";
       }

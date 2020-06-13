@@ -9,7 +9,7 @@
 #include "Timing.h"
 #include "CommStats.h"
 
-#include <boost/stacktrace.hpp>
+//#include <boost/stacktrace.hpp>
 
 int MPI_Init(int *argc, char*** argv) {
   int err = PMPI_Init(argc, argv);

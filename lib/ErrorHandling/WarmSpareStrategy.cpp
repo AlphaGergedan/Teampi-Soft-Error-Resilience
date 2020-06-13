@@ -247,12 +247,12 @@ int get_reload_team(std::unordered_map<int, int> *failed_teams){
         if ((*failed_teams)[i] == 0)
         {
             std::cout << "Reload Team: " << i << std::endl;
+            if (i == getNumberOfTeams())
+            {
+            MPI_Abort(MPI_COMM_WORLD, MPI_ERR_INTERN);
+            }
             return i;
             
-        }
-        if (i == getNumberOfTeams())
-        {
-            MPI_Abort(MPI_COMM_WORLD, MPI_ERR_INTERN);
         }
     }
     return 0;

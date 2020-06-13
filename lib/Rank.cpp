@@ -105,10 +105,10 @@ int initialiseTMPI(int *argc, char ***argv)
     //TODO only if original spwan
     PMPI_Comm_size(MPI_COMM_WORLD, &worldSizeNoSpares);
     PMPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
-    int color, worldSizeWithSpares;
+    int color;
 
     if(error_handler == TMPI_WarmSpareErrorHandler){
-      PMPI_Comm_size(MPI_COMM_WORLD, &worldSizeWithSpares);
+      PMPI_Comm_size(MPI_COMM_WORLD, &worldSizeSpares);
       worldSizeNoSpares -= numSpares;
 
       teamSize = worldSizeNoSpares / numTeams;

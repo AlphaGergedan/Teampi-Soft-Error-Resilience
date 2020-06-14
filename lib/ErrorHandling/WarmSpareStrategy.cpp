@@ -187,7 +187,7 @@ redo:
     refreshWorldSize();
     refreshWorldRank();
 
-    printf("New Rank: %d/%d\n", team_rank, rank_world);
+    printf("New Rank: %d/%d/%d\n", team_rank, getWorldRank(), rank_world);
 
     //Falsch bei spares
     if(failed_teams[getTeam()] == 0)assert(getTeamSize() == size_without_spares / getNumberOfTeams());

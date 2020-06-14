@@ -25,7 +25,7 @@ void warm_spare_errh(MPI_Comm *pcomm, int *perr, ...)
 
     rank_team = getTeamRank();
     team = getTeam();
-    std::cout << "Errorhandler warm_spare_errh invoked on " << rank_team << " of team: " << team << std::endl;
+    std::cout << "Errorhandler warm_spare_errh invoked on " << rank_team << " of team: " << team  << std::endl;
     PMPIX_Comm_revoke(getWorldComm());
     PMPIX_Comm_revoke(getLibComm());
     PMPIX_Comm_revoke(getTeamComm(MPI_COMM_WORLD));
@@ -187,7 +187,7 @@ redo:
     refreshWorldSize();
     refreshWorldRank();
 
-    printf("New Rank: %d\n", team_rank);
+    printf("New Rank: %d/%d\n", team_rank, rank_world);
 
     //Falsch bei spares
     if(failed_teams[getTeam()] == 0)assert(getTeamSize() == size_without_spares / getNumberOfTeams());

@@ -75,8 +75,8 @@ void warm_spare_recreate_world(bool isSpareRank)
     int rank_world, rank_world_shrinked, rank_new;
     int flag = 1;
     int error;
-    bool used_spare = false;
     int reload_team;
+    bool spare = isSpare();
     std::unordered_map<int, int> failed_teams;
 
 redo:
@@ -122,7 +122,7 @@ redo:
 
     current_num_spares = getNumberOfSpares() - failed_spares;
     
-    printf("%d/%d/%d/%d/%d/%d\n", current_num_spares, size_without_spares, failed_normal, failed_spares, getTeamSize(), getNumberOfTeams());
+    printf("Status 1: %d/%d/%d/%d/%d/%d\n", current_num_spares, size_without_spares, failed_normal, failed_spares, getTeamSize(), getNumberOfTeams());
     if (failed_normal > current_num_spares)
     {
         printf("%d failed (%d, %d), but only %d spares exist, aborting...\n",num_failed, failed_normal, failed_spares, current_num_spares);
@@ -160,7 +160,7 @@ redo:
     size_without_spares = size_world_shrinked - current_num_spares;
     setNumberOfSpares(current_num_spares);
 
-    printf("%d/%d/%d/%d/%d/%d\n", current_num_spares, size_without_spares, failed_normal, failed_spares, getTeamSize(), getNumberOfTeams());
+    printf("Status 2: %d/%d/%d/%d/%d/%d\n", current_num_spares, size_without_spares, failed_normal, failed_spares, getTeamSize(), getNumberOfTeams());
    
 
     PMPI_Comm_rank(comm_world_cleaned, &rank_new);
@@ -184,7 +184,7 @@ redo:
     setLibComm(comm_lib_new);
     refreshWorldSize();
 
-    printf("New Rank: %d", team_rank);
+    printf("New Rank: %d\n", team_rank);
 
     //Falsch bei spares
     if(failed_teams[getTeam()] == 0)assert(getTeamSize() == size_without_spares / getNumberOfTeams());
@@ -198,6 +198,10 @@ redo:
     
     if (getTeam() == reload_team)
     {
+        if(spare){
+            std::cout << "spare attempting to load checkpoint" << std::endl;
+            MPI_Abort(MPI_COMM_WORLD, MPI_ERR_INTERN);
+        } 
         (*(getCreateCheckpointCallback()))(failed_team_vector);
     }
 
@@ -254,7 +258,7 @@ int get_reload_team(std::unordered_map<int, int> *failed_teams){
             std::cout << "Reload Team: " << i << std::endl;
             if (i == getNumberOfTeams())
             {
-            MPI_Abort(MPI_COMM_WORLD, MPI_ERR_INTERN);
+                MPI_Abort(MPI_COMM_WORLD, MPI_ERR_INTERN);
             }
             return i;
             

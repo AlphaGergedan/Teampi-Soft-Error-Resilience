@@ -31,6 +31,8 @@ void warm_spare_errh(MPI_Comm *pcomm, int *perr, ...)
     PMPIX_Comm_revoke(getTeamComm(MPI_COMM_WORLD));
 
     warm_spare_recreate_world(false);
+    std::cout << "Errh returning" << std::endl;
+    return;
 }
 
 void warm_spare_wait_function()
@@ -190,7 +192,10 @@ redo:
     //Falsch bei spares
     if(failed_teams[getTeam()] == 0)assert(getTeamSize() == size_without_spares / getNumberOfTeams());
 
-    if(failed_normal == 0) return;
+    if(failed_normal == 0){
+        std::cout << "only spares failed, returning..." << std::endl;
+        return;
+    } 
 
     std::vector<int> failed_team_vector;
     for(const auto& i : failed_teams){

@@ -183,6 +183,7 @@ redo:
     setWorldComm(comm_world_cleaned);
     setLibComm(comm_lib_new);
     refreshWorldSize();
+    refreshWorldRank();
 
     printf("New Rank: %d\n", team_rank);
 

@@ -188,7 +188,7 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
   if(comm == MPI_COMM_SELF){
     int send = 1;
     int recv = 0;
-    err = PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MAX, getLibComm());
+    err = PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getLibComm());
 
   } else{
     err = PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getTeamComm(comm));

@@ -25,7 +25,8 @@ void warm_spare_errh(MPI_Comm *pcomm, int *perr, ...)
 
     rank_team = getTeamRank();
     team = getTeam();
-    std::cout << "Errorhandler warm_spare_errh invoked on " << rank_team << " of team: " << team  << std::endl;
+    std::cout << "Errorhandler warm_spare_errh invoked on " << rank_team << " of team: " << team  <<
+    " with error: " << eclass <<   std::endl;
     PMPIX_Comm_revoke(getWorldComm());
     PMPIX_Comm_revoke(getLibComm());
     PMPIX_Comm_revoke(getTeamComm(MPI_COMM_WORLD));

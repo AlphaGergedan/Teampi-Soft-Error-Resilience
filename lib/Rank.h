@@ -119,13 +119,15 @@ char*** getArgValues();
 
 void setErrorHandlingStrategy(TMPI_ErrorHandlingStrategy);
 MPI_Errhandler* getWorldErrhandler();
-MPI_Errhandler *getTeamErrhandler();
+MPI_Errhandler* getTeamErrhandler();
 
 std::function<void(std::vector<int>)>* getCreateCheckpointCallback();
 std::function<void(int)>* getLoadCheckpointCallback();
 
 void setCreateCheckpointCallback(std::function<void(std::vector<int>)>*);
 void setLoadCheckpointCallback(std::function<void(int)>*);
+
+std::function<void(bool)>* getRecreateWorldFunction(); 
 
 
 int getNumberOfSpares();

@@ -39,7 +39,7 @@ static MPI_Comm TMPI_COMM_LIB;
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_WORLD;
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_TEAM;
 static TMPI_ErrorHandlingStrategy error_handler = TMPI_KillTeamErrorHandler;
-static std::function<void (bool)> rejoin_function;
+static std::function<void (bool)> recreate_function;
 static std::function<void ()> wait_function;
 int initialiseTMPI(int *argc, char ***argv)
 {
@@ -56,7 +56,7 @@ int initialiseTMPI(int *argc, char ***argv)
   case TMPI_RespawnProcErrorHandler:
     MPI_Comm_create_errhandler(respawn_proc_errh, &TMPI_ERRHANDLER_COMM_TEAM);
     MPI_Comm_create_errhandler(respawn_proc_errh, &TMPI_ERRHANDLER_COMM_WORLD);
-    rejoin_function = std::function<void (bool)>(respawn_proc_recreate_world);
+    recreate_function = std::function<void (bool)>(respawn_proc_recreate_world);
     break;
   case TMPI_KillTeamErrorHandler:
     MPI_Comm_create_errhandler(kill_team_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
@@ -65,6 +65,7 @@ int initialiseTMPI(int *argc, char ***argv)
   case TMPI_WarmSpareErrorHandler:
     MPI_Comm_create_errhandler(warm_spare_errh, &TMPI_ERRHANDLER_COMM_TEAM);
     MPI_Comm_create_errhandler(warm_spare_errh, &TMPI_ERRHANDLER_COMM_WORLD);
+    recreate_function = std::function<void(bool)>(warm_spare_recreate_world);
     wait_function = std::function<void ()>(warm_spare_wait_function);
     break;
   default:
@@ -74,7 +75,7 @@ int initialiseTMPI(int *argc, char ***argv)
 
   if (parent != MPI_COMM_NULL)
   {
-    rejoin_function(true);
+    recreate_function(true);
 
     PMPI_Comm_size(TMPI_COMM_WORLD, &worldSizeNoSpares);
 
@@ -437,4 +438,8 @@ void setSpare(bool status){
 
 void setTeamRank(int rank){
   teamRank = rank;
+}
+
+std::function<void(bool)>* getRecreateWorldFunction(){
+  return recreate_function;
 }

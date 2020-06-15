@@ -189,6 +189,8 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
     int send = 1;
     int recv = 0;
     PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), MPI_ERRORS_RETURN);
+    PMPI_Comm_set_errhandler(getLibComm(), MPI_ERRORS_RETURN);
+
     err = PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getLibComm());
     int flag = (err == MPI_SUCCESS);
     PMPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
@@ -197,6 +199,8 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
       (*getRecreateWorldFunction())(false);
     }
     PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), *getTeamErrhandler());
+    PMPI_Comm_set_errhandler(getLibComm(), *getTeamErrhandler());
+
   } else{
     err = PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getTeamComm(comm));
   }

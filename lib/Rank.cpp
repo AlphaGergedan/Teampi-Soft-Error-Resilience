@@ -441,5 +441,5 @@ void setTeamRank(int rank){
 }
 
 std::function<void(bool)>* getRecreateWorldFunction(){
-  return recreate_function;
+  return &recreate_function;
 }

@@ -194,7 +194,7 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
     err = PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getLibComm());
     int flag = (err == MPI_SUCCESS);
     PMPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
-    printf("Rank: %d, Team: %d, flag: %d, error: %d", getWorldRank(), getTeam(), flag, err);
+    //printf("Rank: %d, Team: %d, flag: %d, error: %d", getWorldRank(), getTeam(), flag, err);
     if(!flag){
       (*getRecreateWorldFunction())(false);
     }

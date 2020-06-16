@@ -25,8 +25,7 @@ void warm_spare_errh(MPI_Comm *pcomm, int *perr, ...)
 
     rank_team = getTeamRank();
     team = getTeam();
-    std::cout << "Errorhandler warm_spare_errh invoked on " << rank_team << " of team: " << team  <<
-    " with error: " << eclass <<   std::endl;
+    std::cout << "Errorhandler warm_spare_errh invoked on " << rank_team << " of team: " << team << " with error: " << eclass << std::endl;
     PMPIX_Comm_revoke(getWorldComm());
     PMPIX_Comm_revoke(getLibComm());
     PMPIX_Comm_revoke(getTeamComm(MPI_COMM_WORLD));
@@ -45,7 +44,20 @@ void warm_spare_wait_function()
 
     while (recv < 1000 || err != MPI_SUCCESS)
     {
-        send = 1000;
+        int size;
+        PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), MPI_ERRORS_RETURN);
+        PMPI_Comm_set_errhandler(getLibComm(), MPI_ERRORS_RETURN);
+
+        err = PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getLibComm());
+        int flag = (err == MPI_SUCCESS);
+        PMPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
+        if (!flag)
+        {
+            (*getRecreateWorldFunction())(false);
+        }
+        PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), *getTeamErrhandler());
+        PMPI_Comm_set_errhandler(getLibComm(), *getTeamErrhandler());
+        /*         send = 1000;
         err = PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getLibComm());
         int revoked;
         int size;
@@ -56,7 +68,7 @@ void warm_spare_wait_function()
             continue;
         }
         send = recv;
-        PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getTeamComm(MPI_COMM_WORLD));
+        PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getTeamComm(MPI_COMM_WORLD));*/
         PMPI_Comm_size(getWorldComm(), &size);
         std::cout << "(Spare) Allred recv: " << recv << " Size: " << size << " error: " << err << " Rank: " << getWorldRank() << std::endl;
     }
@@ -93,7 +105,6 @@ redo:
     PMPI_Comm_set_errhandler(getWorldComm(), MPI_ERRORS_RETURN);
     PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), MPI_ERRORS_RETURN);
 
-
     PMPIX_Comm_agree(comm_world_shrinked, &flag);
     if (!flag)
     {
@@ -109,26 +120,26 @@ redo:
     PMPI_Group_difference(group_world, group_world_shrinked, &group_failed);
 
     std::vector<int> failed_ranks;
-    
+
     for (int i = 0; i <= getNumberOfTeams(); i++)
     {
         failed_teams[i] = 0;
     }
 
     get_failed_teams_and_ranks(&failed_ranks, &failed_teams, comm_world_shrinked);
-    get_failed_proc_type(&failed_teams ,&failed_normal, &failed_spares);
+    get_failed_proc_type(&failed_teams, &failed_normal, &failed_spares);
     reload_team = get_reload_team(&failed_teams);
-   
+
     MPI_Group_free(&group_failed);
     MPI_Group_free(&group_world);
     MPI_Group_free(&group_world_shrinked);
 
     current_num_spares = getNumberOfSpares() - failed_spares;
-    
+
     //printf("Status 1: %d/%d/%d/%d/%d/%d\n", current_num_spares, size_without_spares, failed_normal, failed_spares, getTeamSize(), getNumberOfTeams());
     if (failed_normal > current_num_spares)
     {
-        printf("%d failed (%d, %d), but only %d spares exist, aborting...\n",num_failed, failed_normal, failed_spares, current_num_spares);
+        printf("%d failed (%d, %d), but only %d spares exist, aborting...\n", num_failed, failed_normal, failed_spares, current_num_spares);
         MPI_Abort(comm_world_shrinked, MPI_ERR_INTERN);
         assert(false);
     }
@@ -141,8 +152,9 @@ redo:
         if (teamRank < num_failed)
         {
             key = failed_ranks.at(teamRank);
-            std::cout << "(Spare) rank: " << rank_world << " going to become: " << key << std::endl; 
-            if(key < getNumberOfTeams() * getTeamSize())setSpare(false);
+            std::cout << "(Spare) rank: " << rank_world << " going to become: " << key << std::endl;
+            if (key < getNumberOfTeams() * getTeamSize())
+                setSpare(false);
         }
         else
         {
@@ -164,7 +176,6 @@ redo:
     setNumberOfSpares(current_num_spares);
 
     printf("Status 2: %d/%d/%d/%d/%d/%d\n", current_num_spares, size_without_spares, failed_normal, failed_spares, getTeamSize(), getNumberOfTeams());
-   
 
     PMPI_Comm_rank(comm_world_cleaned, &rank_new);
     int color = (rank_new >= size_without_spares) ? getNumberOfTeams() : rank_new / getTeamSize();
@@ -191,24 +202,29 @@ redo:
     printf("New Rank: %d/%d/%d\n", team_rank, getWorldRank(), rank_world);
 
     //Falsch bei spares
-    if(failed_teams[getTeam()] == 0)assert(getTeamSize() == size_without_spares / getNumberOfTeams());
+    if (failed_teams[getTeam()] == 0)
+        assert(getTeamSize() == size_without_spares / getNumberOfTeams());
 
-    if(failed_normal == 0){
+    if (failed_normal == 0)
+    {
         std::cout << "only spares failed, returning..." << std::endl;
         return;
-    } 
+    }
 
     std::vector<int> failed_team_vector;
-    for(const auto& i : failed_teams){
-        if(i.second > 0) failed_team_vector.push_back(i.first);
+    for (const auto &i : failed_teams)
+    {
+        if (i.second > 0)
+            failed_team_vector.push_back(i.first);
     }
-    
+
     if (getTeam() == reload_team)
     {
-        if(spare){
+        if (spare)
+        {
             std::cout << "spare attempting to load checkpoint" << std::endl;
             MPI_Abort(MPI_COMM_WORLD, MPI_ERR_INTERN);
-        } 
+        }
         (*(getCreateCheckpointCallback()))(failed_team_vector);
     }
 
@@ -219,7 +235,8 @@ redo:
     }
 }
 
-void get_failed_teams_and_ranks(std::vector<int> *failed_ranks, std::unordered_map<int, int> *failed_teams, MPI_Comm shrinked_comm){
+void get_failed_teams_and_ranks(std::vector<int> *failed_ranks, std::unordered_map<int, int> *failed_teams, MPI_Comm shrinked_comm)
+{
     MPI_Group group_world, group_world_shrinked, group_failed;
     int world_size, failed_size;
 
@@ -230,7 +247,7 @@ void get_failed_teams_and_ranks(std::vector<int> *failed_ranks, std::unordered_m
     MPI_Group_size(group_failed, &failed_size);
 
     for (int i = 0; i < failed_size; i++)
-    {   
+    {
         int diff_rank;
         PMPI_Group_translate_ranks(group_failed, 1, &i, group_world, &diff_rank);
         failed_ranks->push_back(diff_rank);
@@ -241,24 +258,29 @@ void get_failed_teams_and_ranks(std::vector<int> *failed_ranks, std::unordered_m
     }
 }
 
-void get_failed_proc_type(std::unordered_map<int, int> *failed_teams, int *failed_normal, int *failed_spares){
-    for(auto const &i : *failed_teams){
+void get_failed_proc_type(std::unordered_map<int, int> *failed_teams, int *failed_normal, int *failed_spares)
+{
+    for (auto const &i : *failed_teams)
+    {
         auto key = i.first;
         auto val = i.second;
 
-        if(key == getNumberOfTeams()){
+        if (key == getNumberOfTeams())
+        {
             std::cout << "Team: " << key << " Failed: " << val << std::endl;
             *failed_spares += val;
-        } 
-        else{
+        }
+        else
+        {
             std::cout << "Team: " << key << " Failed: " << val << std::endl;
             *failed_normal += val;
         }
     }
 }
 
-int get_reload_team(std::unordered_map<int, int> *failed_teams){
- for (int i = 0; i <= getNumberOfTeams(); i++)
+int get_reload_team(std::unordered_map<int, int> *failed_teams)
+{
+    for (int i = 0; i <= getNumberOfTeams(); i++)
     {
         if ((*failed_teams)[i] == 0)
         {
@@ -268,7 +290,6 @@ int get_reload_team(std::unordered_map<int, int> *failed_teams){
                 MPI_Abort(MPI_COMM_WORLD, MPI_ERR_INTERN);
             }
             return i;
-            
         }
     }
     return 0;

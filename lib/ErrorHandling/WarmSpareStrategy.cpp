@@ -125,7 +125,7 @@ redo:
 
     current_num_spares = getNumberOfSpares() - failed_spares;
     
-    printf("Status 1: %d/%d/%d/%d/%d/%d\n", current_num_spares, size_without_spares, failed_normal, failed_spares, getTeamSize(), getNumberOfTeams());
+    //printf("Status 1: %d/%d/%d/%d/%d/%d\n", current_num_spares, size_without_spares, failed_normal, failed_spares, getTeamSize(), getNumberOfTeams());
     if (failed_normal > current_num_spares)
     {
         printf("%d failed (%d, %d), but only %d spares exist, aborting...\n",num_failed, failed_normal, failed_spares, current_num_spares);
@@ -142,7 +142,7 @@ redo:
         {
             key = failed_ranks.at(teamRank);
             std::cout << "(Spare) rank: " << rank_world << " going to become: " << key << std::endl; 
-            setSpare(false);
+            if(key < getNumberOfTeams() * getTeamSize())setSpare(false);
         }
         else
         {

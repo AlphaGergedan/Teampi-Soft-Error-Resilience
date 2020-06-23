@@ -111,8 +111,9 @@ int initialiseTMPI(int *argc, char ***argv)
     if(error_handler == TMPI_WarmSpareErrorHandler){
       PMPI_Comm_size(MPI_COMM_WORLD, &worldSizeSpares);
       worldSizeNoSpares -= numSpares;
-
+      assert(worldSizeNoSpares > 0);
       teamSize = worldSizeNoSpares / numTeams;
+      assert(teamSize > 0);
       color = (worldRank >= worldSizeNoSpares) ? numTeams : worldRank / teamSize;
       team = (worldRank >= worldSizeNoSpares) ? numTeams : worldRank / teamSize;
       isSpareRank = (worldRank >= worldSizeNoSpares);

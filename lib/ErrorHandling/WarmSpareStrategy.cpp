@@ -73,10 +73,18 @@ void warm_spare_wait_function()
         std::cout << "(Spare) Allred recv: " << recv << " Size: " << size << " error: " << err << " Rank: " << getWorldRank() << std::endl;
     }
 
+    std::cout << "(Spare) finished" << std::endl;
     Timing::outputTiming();
+    #ifdef DirtyCleanUp
+    return MPI_SUCCESS;
+    std::cout << "Spare Finalized and is now exiting" << std::endl;
+    std::exit(0);
+    #else
     PMPI_Finalize();
     std::cout << "Spare Finalized and is now exiting" << std::endl;
     std::exit(0);
+    #endif
+    
 }
 
 void warm_spare_recreate_world(bool isSpareRank)

@@ -282,6 +282,8 @@ int MPI_Finalize() {
   CommunicationStatistics::outputCommunicationStatistics();
 #endif
 #ifdef DirtyCleanUp
+  MPI_Barrier(getLibComm());
+  std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " finalized and is now exiting" << std::endl;
   return MPI_SUCCESS;
 #endif
   return PMPI_Finalize();

@@ -77,7 +77,8 @@ void warm_spare_wait_function()
     Timing::outputTiming();
     #ifdef DirtyCleanUp
     return MPI_SUCCESS;
-    std::cout << "Spare Finalized and is now exiting" << std::endl;
+    MPI_Barrier(getLibComm());
+    std::cout << "Spare: " << getTeamRank() << " finalized and is now exiting" << std::endl;
     std::exit(0);
     #else
     PMPI_Finalize();

@@ -200,7 +200,7 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
     }
     PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), *getTeamErrhandler());
     PMPI_Comm_set_errhandler(getLibComm(), *getTeamErrhandler());
-
+    std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " returning from hearbeat" << std::endl;
   } else{
     err = PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getTeamComm(comm));
   }
@@ -271,10 +271,10 @@ int MPI_Finalize() {
     send = recv;
     PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getTeamComm(MPI_COMM_WORLD));
     PMPI_Comm_size(getWorldComm(), &size);
-    std::cout << "Allred recv: "  << recv << " Size: " << size<< " error: " << err << " Rank: " << getWorldRank()<<  std::endl;
+    //std::cout << "Allred recv: "  << recv << " Size: " << size<< " error: " << err << " Rank: " << getWorldRank()<<  std::endl;
   }
 
-  std::cout << "Barrier finished" << std::endl;
+  //std::cout << "Barrier finished" << std::endl;
   freeTeamComm();
   //std::cout << "outputing Timing" << std::endl;
   Timing::outputTiming();
@@ -282,6 +282,7 @@ int MPI_Finalize() {
   CommunicationStatistics::outputCommunicationStatistics();
 #endif
 #ifdef DirtyCleanUp
+  std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " finalizing" << std::endl;
   MPI_Barrier(getLibComm());
   std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " finalized and is now exiting" << std::endl;
   return MPI_SUCCESS;

@@ -70,12 +70,12 @@ void warm_spare_wait_function()
         send = recv;
         PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getTeamComm(MPI_COMM_WORLD));*/
         PMPI_Comm_size(getWorldComm(), &size);
-        std::cout << "(Spare) Allred recv: " << recv << " Size: " << size << " error: " << err << " Rank: " << getWorldRank() << std::endl;
+        //std::cout << "(Spare) Allred recv: " << recv << " Size: " << size << " error: " << err << " Rank: " << getWorldRank() << std::endl;
     }
 
-    std::cout << "(Spare) finished" << std::endl;
     Timing::outputTiming();
     #ifdef DirtyCleanUp
+    std::cout << "Spare: " << getTeamRank() << " finalizing" << std::endl;
     MPI_Barrier(getLibComm());
     std::cout << "Spare: " << getTeamRank() << " finalized and is now exiting" << std::endl;
     std::exit(0);

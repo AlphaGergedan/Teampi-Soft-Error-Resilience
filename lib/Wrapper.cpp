@@ -287,7 +287,9 @@ int MPI_Finalize() {
   std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " finalized and is now exiting" << std::endl;
   return MPI_SUCCESS;
 #endif
+  std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " finalizing" << std::endl;
   return PMPI_Finalize();
+  std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " finalized and is now exiting" << std::endl;
   }
 
 int MPI_Abort(MPI_Comm comm, int errorcode) {

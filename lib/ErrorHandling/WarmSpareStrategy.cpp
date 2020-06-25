@@ -80,6 +80,7 @@ void warm_spare_wait_function()
     std::cout << "Spare: " << getTeamRank() << " finalized and is now exiting" << std::endl;
     std::exit(0);
     #else
+    std::cout << "Spare: " << getTeamRank() << " finalizing" << std::endl;
     PMPI_Finalize();
     std::cout << "Spare Finalized and is now exiting" << std::endl;
     std::exit(0);

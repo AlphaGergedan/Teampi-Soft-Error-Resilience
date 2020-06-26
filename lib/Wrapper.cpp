@@ -283,7 +283,7 @@ int MPI_Finalize() {
 #endif
 #ifdef DirtyCleanUp
   std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " finalizing" << std::endl;
-  MPI_Barrier(getLibComm());
+  PMPI_Barrier(getLibComm());
   std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " finalized and is now exiting" << std::endl;
   return MPI_SUCCESS;
 #endif

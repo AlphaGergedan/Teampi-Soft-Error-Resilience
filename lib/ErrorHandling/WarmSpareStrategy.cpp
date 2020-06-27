@@ -37,6 +37,8 @@ void warm_spare_errh(MPI_Comm *pcomm, int *perr, ...)
 
 void warm_spare_wait_function()
 {
+    
+    //Change this to simple call to mpi_finalize
     int send = 1000;
     int recv = 0;
     int err = 0;
@@ -57,18 +59,7 @@ void warm_spare_wait_function()
         }
         PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), *getTeamErrhandler());
         PMPI_Comm_set_errhandler(getLibComm(), *getTeamErrhandler());
-        /*         send = 1000;
-        err = PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getLibComm());
-        int revoked;
-        int size;
-        PMPIX_Comm_is_revoked(getLibComm(), &revoked);
-        if (revoked)
-        {
-            std::cout << revoked << std::endl;
-            continue;
-        }
-        send = recv;
-        PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getTeamComm(MPI_COMM_WORLD));*/
+    
         PMPI_Comm_size(getWorldComm(), &size);
         //std::cout << "(Spare) Allred recv: " << recv << " Size: " << size << " error: " << err << " Rank: " << getWorldRank() << std::endl;
     }

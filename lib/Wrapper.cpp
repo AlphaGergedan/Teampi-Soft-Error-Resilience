@@ -257,22 +257,27 @@ int MPI_Finalize() {
   int recv = 0;
   int err = 0;
   std::cout << "Waiting: " << getWorldRank() << std::endl;
+  
+  
+    while (recv < 1000 || err != MPI_SUCCESS)
+    {
+        int size;
+        PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), MPI_ERRORS_RETURN);
+        PMPI_Comm_set_errhandler(getLibComm(), MPI_ERRORS_RETURN);
 
-  while(recv < 1000 || err != MPI_SUCCESS){
-    send = 1000;
-    err = PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getLibComm());
-    int revoked;
-    int size;
-    PMPIX_Comm_is_revoked(getLibComm(), &revoked);
-    if(revoked){
-      std::cout << revoked << std::endl;
-      continue;
+        err = PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getLibComm());
+        int flag = (err == MPI_SUCCESS);
+        PMPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
+        if (!flag)
+        {
+            (*getRecreateWorldFunction())(false);
+        }
+        PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), *getTeamErrhandler());
+        PMPI_Comm_set_errhandler(getLibComm(), *getTeamErrhandler());
+
+        PMPI_Comm_size(getWorldComm(), &size);
+        //std::cout << "(Spare) Allred recv: " << recv << " Size: " << size << " error: " << err << " Rank: " << getWorldRank() << std::endl;
     }
-    send = recv;
-    PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getTeamComm(MPI_COMM_WORLD));
-    PMPI_Comm_size(getWorldComm(), &size);
-    //std::cout << "Allred recv: "  << recv << " Size: " << size<< " error: " << err << " Rank: " << getWorldRank()<<  std::endl;
-  }
 
   //std::cout << "Barrier finished" << std::endl;
   freeTeamComm();

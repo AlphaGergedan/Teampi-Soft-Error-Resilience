@@ -190,9 +190,14 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
     int recv = 0;
     PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), MPI_ERRORS_RETURN);
     PMPI_Comm_set_errhandler(getLibComm(), MPI_ERRORS_RETURN);
-
+    
+   
+    PMPI_Comm_set_errhandler(getLibComm(), *getTeamErrhandler());
+    std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " allreducing" << std::endl;
     err = PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getLibComm());
     int flag = (err == MPI_SUCCESS);
+    PMPI_Comm_set_errhandler(getLibComm(), *getTeamErrhandler());
+    std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " agreeing" << std::endl;
     PMPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
     //printf("Rank: %d, Team: %d, flag: %d, error: %d", getWorldRank(), getTeam(), flag, err);
     if(!flag){

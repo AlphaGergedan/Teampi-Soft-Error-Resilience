@@ -1,4 +1,4 @@
-CC=/opt/bin/mpic++
+CC=/opt/ulfm2/bin/mpic++
 CFLAGS += -fPIC -g -Wall -std=c++11
 LDFLAGS += -shared
 

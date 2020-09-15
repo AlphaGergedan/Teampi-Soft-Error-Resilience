@@ -38,7 +38,7 @@ static MPI_Comm TMPI_COMM_LIB;
 //TODO TMPI_COMM_WORLD should not be the same thing as libComm
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_WORLD;
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_TEAM;
-static TMPI_ErrorHandlingStrategy error_handler = TMPI_KillTeamErrorHandler;
+static TMPI_ErrorHandlingStrategy error_handler = TMPI_NoErrorHandler;
 static std::function<void (bool)> recreate_function;
 static std::function<void ()> wait_function;
 int initialiseTMPI(int *argc, char ***argv)
@@ -68,8 +68,13 @@ int initialiseTMPI(int *argc, char ***argv)
     recreate_function = std::function<void(bool)>(warm_spare_recreate_world);
     wait_function = std::function<void ()>(warm_spare_wait_function);
     break;
+  case TMPI_NoErrorHandler:
+    TMPI_ERRHANDLER_COMM_TEAM = MPI_ERRORS_ARE_FATAL;
+    TMPI_ERRHANDLER_COMM_WORLD = MPI_ERRORS_ARE_FATAL;
+    break;
   default:
-  MPI_Abort(MPI_COMM_WORLD, MPI_ERR_ARG);
+    TMPI_ERRHANDLER_COMM_TEAM = MPI_ERRORS_ARE_FATAL;
+    TMPI_ERRHANDLER_COMM_WORLD = MPI_ERRORS_ARE_FATAL;
     break;
   }
 
@@ -105,6 +110,7 @@ int initialiseTMPI(int *argc, char ***argv)
    */
     //TODO only if original spwan
     PMPI_Comm_size(MPI_COMM_WORLD, &worldSizeNoSpares);
+    PMPI_Comm_size(MPI_COMM_WORLD, &worldSizeSpares);
     PMPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
     int color;
 
@@ -442,5 +448,6 @@ void setTeamRank(int rank){
 }
 
 std::function<void(bool)>* getRecreateWorldFunction(){
+  if(error_handler == TMPI_NoErrorHandler) return nullptr;
   return &recreate_function;
 }

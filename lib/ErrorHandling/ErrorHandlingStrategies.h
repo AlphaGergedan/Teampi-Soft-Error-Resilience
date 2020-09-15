@@ -4,6 +4,7 @@
 enum TMPI_ErrorHandlingStrategy{
     TMPI_KillTeamErrorHandler = 0,
     TMPI_RespawnProcErrorHandler = 1,
-    TMPI_WarmSpareErrorHandler = 2
+    TMPI_WarmSpareErrorHandler = 2,
+    TMPI_NoErrorHandler = 3
 };
 #endif

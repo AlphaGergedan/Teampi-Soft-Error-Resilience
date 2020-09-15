@@ -45,7 +45,7 @@ struct Timer {
 } timer;
 
 void Timing::initialiseTiming() {
-  std::cout << "Started init Timing" << std::endl;
+  //std::cout << "Started init Timing" << std::endl;
   synchroniseRanksInTeam();
   timer.startTime = PMPI_Wtime();
   for (int i=0; i < getNumberOfTeams(); i++) {
@@ -55,7 +55,7 @@ void Timing::initialiseTiming() {
     timer.heartbeatHashes.insert({i, std::list<std::size_t>()});
     timer.heartbeatHashRequests.insert({i, std::list<MPI_Request>()});
   }
-  std::cout << "Inited Timing" << std::endl;
+  //std::cout << "Inited Timing" << std::endl;
 }
 
 void Timing::finaliseTiming() {

@@ -191,10 +191,10 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
     PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), MPI_ERRORS_RETURN);
     PMPI_Comm_set_errhandler(getLibComm(), MPI_ERRORS_RETURN);
     
-    std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " allreducing" << std::endl;
+    //std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " allreducing" << std::endl;
     err = PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getLibComm());
     int flag = (err == MPI_SUCCESS);
-    std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " agreeing" << std::endl;
+    //std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " agreeing" << std::endl;
     PMPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
     //printf("Rank: %d, Team: %d, flag: %d, error: %d", getWorldRank(), getTeam(), flag, err);
     if(!flag){
@@ -202,7 +202,7 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
     }
     PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), *getTeamErrhandler());
     PMPI_Comm_set_errhandler(getLibComm(), *getTeamErrhandler());
-    std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " returning from hearbeat" << std::endl;
+    //std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " returning from hearbeat" << std::endl;
   } else{
     err = PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getTeamComm(comm));
   }
@@ -258,7 +258,7 @@ int MPI_Finalize() {
   int send = 1000;
   int recv = 0;
   int err = 0;
-  std::cout << "Waiting: " << getWorldRank() << std::endl;
+  //std::cout << "Waiting: " << getWorldRank() << std::endl;
   
   
     while (recv < 1000 || err != MPI_SUCCESS)
@@ -272,6 +272,7 @@ int MPI_Finalize() {
         PMPIX_Comm_agree(getTeamComm(MPI_COMM_WORLD), &flag);
         if (!flag)
         {
+            if(getRecreateWorldFunction() == nullptr) MPI_Abort(MPI_COMM_WORLD, MPI_ERR_UNKNOWN);
             (*getRecreateWorldFunction())(false);
         }
         PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), *getTeamErrhandler());
@@ -294,9 +295,9 @@ int MPI_Finalize() {
   std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " finalized and is now exiting" << std::endl;
   return MPI_SUCCESS;
 #endif
-  std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " finalizing" << std::endl;
+  //std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " finalizing" << std::endl;
   return PMPI_Finalize();
-  std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " finalized and is now exiting" << std::endl;
+  //std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " finalized and is now exiting" << std::endl;
   }
 
 int MPI_Abort(MPI_Comm comm, int errorcode) {

@@ -31,7 +31,7 @@ void warm_spare_errh(MPI_Comm *pcomm, int *perr, ...)
     PMPIX_Comm_revoke(getTeamComm(MPI_COMM_WORLD));
 
     warm_spare_recreate_world(false);
-    std::cout << "Errh returning" << std::endl;
+    //std::cout << "Errh returning" << std::endl;
     return;
 }
 
@@ -152,7 +152,7 @@ redo:
         if (teamRank < num_failed)
         {
             key = failed_ranks.at(teamRank);
-            std::cout << "(Spare) rank: " << rank_world << " going to become: " << key << std::endl;
+            std::cout << "(Spare) with world rank: " << rank_world << " going to replace world rank: " << key << std::endl;
             if (key < getNumberOfTeams() * getTeamSize())
                 setSpare(false);
         }
@@ -175,7 +175,7 @@ redo:
     size_without_spares = size_world_shrinked - current_num_spares;
     setNumberOfSpares(current_num_spares);
 
-    printf("Status 2: %d/%d/%d/%d/%d/%d\n", current_num_spares, size_without_spares, failed_normal, failed_spares, getTeamSize(), getNumberOfTeams());
+    //printf("Status 2: %d/%d/%d/%d/%d/%d\n", current_num_spares, size_without_spares, failed_normal, failed_spares, getTeamSize(), getNumberOfTeams());
 
     PMPI_Comm_rank(comm_world_cleaned, &rank_new);
     int color = (rank_new >= size_without_spares) ? getNumberOfTeams() : rank_new / getTeamSize();
@@ -199,7 +199,7 @@ redo:
     refreshWorldSize();
     refreshWorldRank();
 
-    printf("New Rank: %d/%d/%d\n", team_rank, getWorldRank(), rank_world);
+    //printf("New Rank: %d/%d/%d\n", team_rank, getWorldRank(), rank_world);
 
     //Falsch bei spares
     if (failed_teams[getTeam()] == 0)
@@ -207,7 +207,7 @@ redo:
 
     if (failed_normal == 0)
     {
-        std::cout << "only spares failed, returning..." << std::endl;
+        std::cout << "Only spares failed, returning..." << std::endl;
         return;
     }
 
@@ -252,7 +252,7 @@ void get_failed_teams_and_ranks(std::vector<int> *failed_ranks, std::unordered_m
         PMPI_Group_translate_ranks(group_failed, 1, &i, group_world, &diff_rank);
         failed_ranks->push_back(diff_rank);
         int current_team = mapRankToTeamNumber(diff_rank);
-        std::cout << "Failed Rank:" << diff_rank << " failed Team " << current_team << std::endl;
+        //std::cout << "Failed Rank:" << diff_rank << " failed Team " << current_team << std::endl;
         //(*failed_teams)[current_team]++;
         (*failed_teams)[current_team] = (failed_teams->at(current_team)) + 1;
     }
@@ -267,12 +267,12 @@ void get_failed_proc_type(std::unordered_map<int, int> *failed_teams, int *faile
 
         if (key == getNumberOfTeams())
         {
-            std::cout << "Team: " << key << " Failed: " << val << std::endl;
+            //std::cout << "Of team: " << key << ", " << val << "processes failed" << std::endl;
             *failed_spares += val;
         }
         else
         {
-            std::cout << "Team: " << key << " Failed: " << val << std::endl;
+            //std::cout << "Of team: " << key << ", " << val << "processes failed" << std::endl;
             *failed_normal += val;
         }
     }
@@ -284,7 +284,7 @@ int get_reload_team(std::unordered_map<int, int> *failed_teams)
     {
         if ((*failed_teams)[i] == 0)
         {
-            std::cout << "Reload Team: " << i << std::endl;
+            std::cout << "Team to reload from: " << i << std::endl;
             if (i == getNumberOfTeams())
             {
                 MPI_Abort(MPI_COMM_WORLD, MPI_ERR_INTERN);

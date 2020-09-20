@@ -10,6 +10,9 @@
 #include "../Rank.h"
 #include "../Timing.h"
 
+#define HEARTBEAT_MSG_FINISHED 1000
+#define HEARTBEAT_MSG_UNFINISHED 1
+
 void warm_spare_errh(MPI_Comm *pcomm, int *perr, ...)
 {
     int err = *perr;
@@ -39,12 +42,12 @@ void warm_spare_wait_function()
 {
     
     //Change this to simple call to mpi_finalize
-    int send = 1000;
+    int send = HEARTBEAT_MSG_FINISHED;
     int recv = 0;
     int err = 0;
     std::cout << "Waiting: " << getWorldRank() << std::endl;
 
-    while (recv < 1000 || err != MPI_SUCCESS)
+    while (recv < HEARTBEAT_MSG_FINISHED || err != MPI_SUCCESS)
     {
         int size;
         PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), MPI_ERRORS_RETURN);

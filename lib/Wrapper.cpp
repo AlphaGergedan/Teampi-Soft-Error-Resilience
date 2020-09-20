@@ -10,6 +10,8 @@
 #include "CommStats.h"
 
 //#include <boost/stacktrace.hpp>
+#define HEARTBEAT_MSG_FINISHED 1000
+#define HEARTBEAT_MSG_UNFINISHED 1
 
 int MPI_Init(int *argc, char*** argv) {
   int err = PMPI_Init(argc, argv);
@@ -171,13 +173,7 @@ int MPI_Bcast( void *buffer, int count, MPI_Datatype datatype, int root,
   //assert(comm == MPI_COMM_WORLD);
   //TODO implement better error detection
   int err;
-  if(comm == MPI_COMM_SELF){
-    int test = 1;
-    err = PMPI_Bcast(&test, 1, MPI_INT, 0, getWorldComm());
-  } else {
-    err = PMPI_Bcast(buffer, count, datatype, root, getTeamComm(comm));
-  }
- 
+  err = PMPI_Bcast(buffer, count, datatype, root, getTeamComm(comm));
   return err;
 }
 
@@ -186,7 +182,7 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
   //assert(comm == MPI_COMM_WORLD);
   int err;
   if(comm == MPI_COMM_SELF){
-    int send = 1;
+    int send = HEARTBEAT_MSG_UNFINISHED;
     int recv = 0;
     PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), MPI_ERRORS_RETURN);
     PMPI_Comm_set_errhandler(getLibComm(), MPI_ERRORS_RETURN);
@@ -255,13 +251,13 @@ int MPI_Finalize() {
   // Wait for all replicas before finalising
   //std::cout << "Finalized Timing: Team:" << getTeam() << " Rank: " << getTeamRank() << std::endl;
   //PMPI_Barrier(getWorldComm());
-  int send = 1000;
+  int send = HEARTBEAT_MSG_FINISHED;
   int recv = 0;
   int err = 0;
   //std::cout << "Waiting: " << getWorldRank() << std::endl;
   
   
-    while (recv < 1000 || err != MPI_SUCCESS)
+    while (recv < HEARTBEAT_MSG_FINISHED || err != MPI_SUCCESS)
     {
         int size;
         PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), MPI_ERRORS_RETURN);

@@ -118,8 +118,7 @@ int getArgCount();
 char*** getArgValues();
 
 void setErrorHandlingStrategy(TMPI_ErrorHandlingStrategy);
-MPI_Errhandler* getWorldErrhandler();
-MPI_Errhandler* getTeamErrhandler();
+MPI_Errhandler* getErrhandler();
 
 std::function<void(std::vector<int>)>* getCreateCheckpointCallback();
 std::function<void(int)>* getLoadCheckpointCallback();

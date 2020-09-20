@@ -97,7 +97,7 @@ redo:
               << ", now has global rank: " << rank_in_shrinked_world << " was before: " << rank_old << std::endl;
     std::cout << "Number of teams now: " << size_shrinked_comm / getTeamSize() << std::endl;
 
-    PMPI_Comm_set_errhandler(comm_shrinked, *getWorldErrhandler());
+    PMPI_Comm_set_errhandler(comm_shrinked, *getErrhandler());
     PMPI_Comm_dup(comm_shrinked, &new_lib_comm);
     setWorldComm(comm_shrinked);
     setLibComm(new_lib_comm);

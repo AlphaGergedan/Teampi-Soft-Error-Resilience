@@ -35,8 +35,7 @@ static MPI_Comm TMPI_COMM_TEAM;
 static MPI_Comm TMPI_COMM_INTER_TEAM;
 static MPI_Comm TMPI_COMM_WORLD = MPI_COMM_NULL;
 static MPI_Comm TMPI_COMM_LIB;
-static MPI_Errhandler TMPI_ERRHANDLER_COMM_WORLD;
-static MPI_Errhandler TMPI_ERRHANDLER_COMM_TEAM;
+static MPI_Errhandler TMPI_ERRHANDLER;
 static TMPI_ErrorHandlingStrategy error_handler = TMPI_NoErrorHandler;
 static std::function<void (bool)> recreate_function;
 static std::function<void ()> wait_function;
@@ -54,28 +53,28 @@ int initialiseTMPI(int *argc, char ***argv)
   switch (error_handler)
   {
   case TMPI_RespawnProcErrorHandler:
-    MPI_Comm_create_errhandler(respawn_proc_errh, &TMPI_ERRHANDLER_COMM_TEAM);
-    MPI_Comm_create_errhandler(respawn_proc_errh, &TMPI_ERRHANDLER_COMM_WORLD);
+    MPI_Comm_create_errhandler(respawn_proc_errh, &TMPI_ERRHANDLER);
+    MPI_Comm_create_errhandler(respawn_proc_errh, &TMPI_ERRHANDLER);
     recreate_function = std::function<void (bool)>(respawn_proc_recreate_world);
     break;
   case TMPI_KillTeamErrorHandler:
-    MPI_Comm_create_errhandler(kill_team_errh_comm_world, &TMPI_ERRHANDLER_COMM_TEAM);
-    MPI_Comm_create_errhandler(kill_team_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
+    MPI_Comm_create_errhandler(kill_team_errh_comm_world, &TMPI_ERRHANDLER);
+    MPI_Comm_create_errhandler(kill_team_errh_comm_world, &TMPI_ERRHANDLER);
     recreate_function = std::function<void(bool)>(kill_team_recreate_world);
     break;
   case TMPI_WarmSpareErrorHandler:
-    MPI_Comm_create_errhandler(warm_spare_errh, &TMPI_ERRHANDLER_COMM_TEAM);
-    MPI_Comm_create_errhandler(warm_spare_errh, &TMPI_ERRHANDLER_COMM_WORLD);
+    MPI_Comm_create_errhandler(warm_spare_errh, &TMPI_ERRHANDLER);
+    MPI_Comm_create_errhandler(warm_spare_errh, &TMPI_ERRHANDLER);
     recreate_function = std::function<void(bool)>(warm_spare_recreate_world);
     wait_function = std::function<void ()>(warm_spare_wait_function);
     break;
   case TMPI_NoErrorHandler:
-    TMPI_ERRHANDLER_COMM_TEAM = MPI_ERRORS_ARE_FATAL;
-    TMPI_ERRHANDLER_COMM_WORLD = MPI_ERRORS_ARE_FATAL;
+    TMPI_ERRHANDLER = MPI_ERRORS_ARE_FATAL;
+    TMPI_ERRHANDLER = MPI_ERRORS_ARE_FATAL;
     break;
   default:
-    TMPI_ERRHANDLER_COMM_TEAM = MPI_ERRORS_ARE_FATAL;
-    TMPI_ERRHANDLER_COMM_WORLD = MPI_ERRORS_ARE_FATAL;
+    TMPI_ERRHANDLER = MPI_ERRORS_ARE_FATAL;
+    TMPI_ERRHANDLER = MPI_ERRORS_ARE_FATAL;
     break;
   }
 
@@ -152,12 +151,12 @@ int initialiseTMPI(int *argc, char ***argv)
     if(!isSpareRank)assert(teamSize == (worldSizeNoSpares / numTeams));
 
     //Error Handling Stuff
-    //PMPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
-    PMPI_Comm_set_errhandler(TMPI_COMM_WORLD, TMPI_ERRHANDLER_COMM_WORLD);
-    PMPI_Comm_set_errhandler(TMPI_COMM_LIB, TMPI_ERRHANDLER_COMM_WORLD);
+    //PMPI_Comm_create_errhandler(respawn_proc_errh_comm_world, &TMPI_ERRHANDLER);
+    PMPI_Comm_set_errhandler(TMPI_COMM_WORLD, TMPI_ERRHANDLER);
+    PMPI_Comm_set_errhandler(TMPI_COMM_LIB, TMPI_ERRHANDLER);
 
-    //PMPI_Comm_create_errhandler(respawn_proc_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
-    PMPI_Comm_set_errhandler(TMPI_COMM_TEAM, TMPI_ERRHANDLER_COMM_TEAM);
+    //PMPI_Comm_create_errhandler(respawn_proc_errh_comm_team, &TMPI_ERRHANDLER);
+    PMPI_Comm_set_errhandler(TMPI_COMM_TEAM, TMPI_ERRHANDLER);
 
     registerSignalHandler();
     outputEnvironment();
@@ -386,14 +385,11 @@ int synchroniseRanksGlobally()
   return PMPI_Barrier(getLibComm());
 }
 
-MPI_Errhandler *getWorldErrhandler()
+MPI_Errhandler *getErrhandler()
 {
-  return &TMPI_ERRHANDLER_COMM_WORLD;
+  return &TMPI_ERRHANDLER;
 }
 
-MPI_Errhandler *getTeamErrhandler(){
-  return &TMPI_ERRHANDLER_COMM_TEAM;
-}
 int getArgCount()
 {
   return argCount;

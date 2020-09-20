@@ -196,8 +196,8 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
     if(!flag){
       (*getRecreateWorldFunction())(false);
     }
-    PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), *getTeamErrhandler());
-    PMPI_Comm_set_errhandler(getLibComm(), *getTeamErrhandler());
+    PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), *getErrhandler());
+    PMPI_Comm_set_errhandler(getLibComm(), *getErrhandler());
     //std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " returning from hearbeat" << std::endl;
   } else{
     err = PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getTeamComm(comm));
@@ -271,8 +271,8 @@ int MPI_Finalize() {
             if(getRecreateWorldFunction() == nullptr) MPI_Abort(MPI_COMM_WORLD, MPI_ERR_UNKNOWN);
             (*getRecreateWorldFunction())(false);
         }
-        PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), *getTeamErrhandler());
-        PMPI_Comm_set_errhandler(getLibComm(), *getTeamErrhandler());
+        PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), *getErrhandler());
+        PMPI_Comm_set_errhandler(getLibComm(), *getErrhandler());
 
         PMPI_Comm_size(getWorldComm(), &size);
         //std::cout << "(Spare) Allred recv: " << recv << " Size: " << size << " error: " << err << " Rank: " << getWorldRank() << std::endl;

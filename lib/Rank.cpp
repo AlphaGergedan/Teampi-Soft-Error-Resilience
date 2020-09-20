@@ -35,12 +35,12 @@ static MPI_Comm TMPI_COMM_TEAM;
 static MPI_Comm TMPI_COMM_INTER_TEAM;
 static MPI_Comm TMPI_COMM_WORLD = MPI_COMM_NULL;
 static MPI_Comm TMPI_COMM_LIB;
-//TODO TMPI_COMM_WORLD should not be the same thing as libComm
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_WORLD;
 static MPI_Errhandler TMPI_ERRHANDLER_COMM_TEAM;
 static TMPI_ErrorHandlingStrategy error_handler = TMPI_NoErrorHandler;
 static std::function<void (bool)> recreate_function;
 static std::function<void ()> wait_function;
+
 int initialiseTMPI(int *argc, char ***argv)
 {
 
@@ -59,8 +59,9 @@ int initialiseTMPI(int *argc, char ***argv)
     recreate_function = std::function<void (bool)>(respawn_proc_recreate_world);
     break;
   case TMPI_KillTeamErrorHandler:
-    MPI_Comm_create_errhandler(kill_team_errh_comm_team, &TMPI_ERRHANDLER_COMM_TEAM);
+    MPI_Comm_create_errhandler(kill_team_errh_comm_world, &TMPI_ERRHANDLER_COMM_TEAM);
     MPI_Comm_create_errhandler(kill_team_errh_comm_world, &TMPI_ERRHANDLER_COMM_WORLD);
+    recreate_function = std::function<void(bool)>(kill_team_recreate_world);
     break;
   case TMPI_WarmSpareErrorHandler:
     MPI_Comm_create_errhandler(warm_spare_errh, &TMPI_ERRHANDLER_COMM_TEAM);

@@ -17,8 +17,9 @@ is also compared with the other replicas.
 
 ### How do I get set up? ##
 To build the library:  
-1. Run `make` in the lib directory  
-2. set the number of teams with the `TEAMS` environment variable (default: 2)  
+1. Set compiler in the makefile to the path of your ULFM compiler
+2. Run `make` in the lib directory  
+3. set the number of teams with the `TEAMS` environment variable (default: 2)  
 
 To use some example provided miniapps:  
 1. run `make` in the applications folder  
@@ -28,6 +29,12 @@ To use with an existing application:
 1. Link with `-ltmpi -L"path to teaMPI"`   
 2. Add "path to teaMPI" to `LD_LIBRARY_PATH`   
 
+To try out fault tolerance functionality:  
+1. Fault tolerance features used in applications/MinimalTest  
+2. Change ErrorHandler to desired mode  
+3. For Warm-Spares make sure to launch with enough processes and set number of spares with `SPARES` environment var  
+4. For Cold-Spares make sure that you have enough slots available. Easiest way to achieve this is by using the --oversubscribe option.  
+5. When implementing own fault tolerant code be sure to call the hearbeat `using MPI_Allreduce` as demonstrated in the example.  
 ### Example Heartbeat Usage ###
 This application models many scientific applications. Per loop, the two `MPI_Sendrecv` calls act as heartbeats.   
 The first starts the timer for this rank and the second stops it. Additionally the second heartbeat passes   

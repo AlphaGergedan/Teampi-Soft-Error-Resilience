@@ -1,4 +1,4 @@
-CC=/opt/ulfm2/bin/mpic++
+CC=/opt/bin/mpic++
 CFLAGS += -fPIC -g -Wall -std=c++11
 LDFLAGS += -shared
 
@@ -6,8 +6,6 @@ LDFLAGS += -shared
 #DEP = Rank.h RankControl.h Timing.h Wrapper.h Logging.h teaMPI.h CommStats.h ErrorHandling/ErrorHandling.h
 SRC := $(wildcard *.cpp) $(wildcard ErrorHandling/*.cpp)
 DEP := $(wildcard *.h) $(wildcard ErrorHandling/*.h)
-SRC := $(filter-out ErrorHandling/ErrorHandling.cpp, $(SRC))
-DEP := $(filter-out ErrorHandling/ErrorHandling.h, $(DEP))
 
 OBJECTS = $(SRC:.cpp=.o)
 

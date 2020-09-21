@@ -142,7 +142,6 @@ redo:
             if(failed_teams.count(checkpoint_team) == 0) break;
             if(checkpoint_team == getNumberOfTeams()){
                 std::cerr << "No team without failures, aborting!!" << std::endl;
-                std::cout << "Abort 3" << std::endl;
                 MPI_Abort(new_comm_world, MPIX_ERR_PROC_FAILED);
             }
         }
@@ -228,7 +227,7 @@ redo:
     setTeamRank(team_rank);
     setTeam(color);
     
-    std::cout << "Finished repair: Team: " << color << " Rank: " << team_rank << " Global Rank: " << rank_in_new_world <<" Size: " << team_size << " Failed Team: " << failed_team << std::endl;
+    std::cout << "Finished repair: Team: " << color << " Rank: " << team_rank << " Global Rank: " << rank_in_new_world  << std::endl;
     
     //TODO this needs to be fixed
     std::vector<int> failed_team_vector;

@@ -74,6 +74,7 @@ void setTeamComm(MPI_Comm comm);
 MPI_Comm getTeamComm(MPI_Comm comm);
 int freeTeamComm();
 
+void setTeamInterComm(MPI_Comm comm);
 MPI_Comm getTeamInterComm();
 
 /* The duplicate MPI_COMM_WORLD used by the library*/

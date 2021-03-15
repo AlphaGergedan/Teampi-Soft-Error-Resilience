@@ -32,6 +32,7 @@ void warm_spare_errh(MPI_Comm *pcomm, int *perr, ...)
     PMPIX_Comm_revoke(getWorldComm());
     PMPIX_Comm_revoke(getLibComm());
     PMPIX_Comm_revoke(getTeamComm(MPI_COMM_WORLD));
+    PMPIX_Comm_revoke(getTeamInterComm());
 
     warm_spare_recreate_world(false);
     //std::cout << "Errh returning" << std::endl;
@@ -86,6 +87,7 @@ void warm_spare_recreate_world(bool isSpareRank)
 {
     MPI_Comm comm_world_shrinked, comm_world_cleaned;
     MPI_Comm comm_team_new, comm_lib_new;
+    MPI_Comm comm_inter_team_new;
     MPI_Group group_world, group_world_shrinked, group_failed;
     int size_world, size_world_shrinked, num_failed, current_num_spares;
     int failed_normal = 0, failed_spares = 0;
@@ -188,11 +190,17 @@ redo:
     PMPI_Comm_dup(comm_world_cleaned, &comm_lib_new);
     PMPI_Comm_rank(comm_team_new, &team_rank);
 
+     PMPI_Comm_split(comm_world_cleaned,
+                     (isSpare()) ? getTeamSize() : team_rank,
+                     rank_new,
+                     &comm_inter_team_new);
+
     MPI_Errhandler errh;
     PMPI_Comm_create_errhandler(warm_spare_errh, &errh);
     PMPI_Comm_set_errhandler(comm_lib_new, errh);
     PMPI_Comm_set_errhandler(comm_world_cleaned, errh);
     PMPI_Comm_set_errhandler(comm_team_new, errh);
+    PMPI_Comm_set_errhandler(comm_inter_team_new, errh);
 
     setTeam(color);
     setTeamRank(team_rank);

@@ -158,6 +158,8 @@ int initialiseTMPI(int *argc, char ***argv)
     //PMPI_Comm_create_errhandler(respawn_proc_errh_comm_team, &TMPI_ERRHANDLER);
     PMPI_Comm_set_errhandler(TMPI_COMM_TEAM, TMPI_ERRHANDLER);
 
+    PMPI_Comm_set_errhandler(TMPI_COMM_INTER_TEAM, TMPI_ERRHANDLER);
+
     registerSignalHandler();
     outputEnvironment();
 
@@ -238,6 +240,11 @@ void setTeamComm(MPI_Comm comm)
 MPI_Comm getTeamComm(MPI_Comm comm)
 {
   return (comm == MPI_COMM_WORLD) ? TMPI_COMM_TEAM : comm;
+}
+
+void setTeamInterComm(MPI_Comm comm)
+{
+  TMPI_COMM_INTER_TEAM = comm;
 }
 
 MPI_Comm getTeamInterComm()

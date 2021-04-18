@@ -1,4 +1,5 @@
-CC=/opt/bin/mpic++
+#CC=/opt/bin/mpic++
+CC=$(MPI_CXX)
 CFLAGS += -fPIC -g -Wall -std=c++11
 LDFLAGS += -shared
 
@@ -18,7 +19,7 @@ all: $(TARGET)
 %.o: %.cpp $(DEP)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-	
+
 $(TARGET) : $(OBJECTS)
 	$(CC) $(LDFLAGS) $^ -o $@
 

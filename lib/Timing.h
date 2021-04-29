@@ -30,6 +30,10 @@ void pollForAndReceiveHeartbeat(int targetTeam);
 
 void progressOutstandingRequests(int targetTeam);
 
+// TODO
+void progressOutstandingHashRequests(int targetTeam);
+void pollForAndReceiveHash(int targetTeam);
+
 void sleepRankRaised();
 
 void outputTiming();

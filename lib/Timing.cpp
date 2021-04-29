@@ -12,6 +12,7 @@
 
 #include <fstream>
 #include <map>
+#include <ostream>
 #include <set>
 #include <sstream>
 #include <string>
@@ -40,7 +41,7 @@ struct Timer {
 
   // Hash for each heartbeat buffer (per replica)
   std::map<int, std::list<std::size_t> > heartbeatHashes;
-  // Store the MPI_Requests for each heartbeat (per replica) 
+  // Store the MPI_Requests for each heartbeat (per replica)
   std::map<int, std::list<MPI_Request> > heartbeatHashRequests;
 } timer;
 
@@ -48,7 +49,7 @@ void Timing::initialiseTiming() {
   //std::cout << "Started init Timing" << std::endl;
   synchroniseRanksInTeam();
   timer.startTime = PMPI_Wtime();
-  for (int i=0; i < getNumberOfTeams(); i++) {
+  for (int i=0; i < getNumberOfTeams(); i++) { /* for each replica */
     timer.heartbeatTimes.insert({i, std::list<double>()});
     timer.heartbeatTimeRequests.insert({i, std::list<MPI_Request>()});
 
@@ -64,22 +65,29 @@ void Timing::finaliseTiming() {
 }
 
 void Timing::markTimeline(int tag) {
+  /* positive tag means sending before task execution */
   if (tag > 0) {
     timer.heartbeatTimes.at(getTeam()).push_back(PMPI_Wtime());
-  } else if (tag < 0) {
+  } else if (tag < 0) { /* negative tag means sending after task execution */
     if (timer.heartbeatTimes.at(getTeam()).size()) {
       timer.heartbeatTimes.at(getTeam()).back() = PMPI_Wtime() - timer.heartbeatTimes.at(getTeam()).back();
-      //printf("World Rank: %d, team rank: %d, team: %d, submitted time %f\n", getWorldRank(), getTeamRank(), getTeam(),timer.heartbeatTimes.at(getTeam()).back());
+      /* TODO for debugging */
+      printf("World Rank: %d, team rank: %d, team: %d, submitted time %f\n", getWorldRank(), getTeamRank(), getTeam(),timer.heartbeatTimes.at(getTeam()).back());
       compareProgressWithReplicas();
     }
   } else {
     // TODO: if tag == 0 then single heartbeat mode not deltas
+
+    /* If tag == 0, this means that we only sent the hash
+     * A possible single heartbeat mode ?
+     * see below, compareBufferWithReplicas
+     */
   }
 }
 
 void Timing::markTimeline(int tag, const void *sendbuf, int sendcount, MPI_Datatype sendtype) {
   markTimeline(tag);
-  //compareBufferWithReplicas(sendbuf, sendcount, sendtype);
+  compareBufferWithReplicas(sendbuf, sendcount, sendtype); /* TODO */
 }
 
 
@@ -87,14 +95,16 @@ void Timing::progressOutstandingRequests(int targetTeam) {
 
     // Progress on outstanding receives and sends
     auto it = timer.heartbeatTimeRequests.at(targetTeam).begin();
-    while (it != timer.heartbeatTimeRequests.at(targetTeam).end()) {
+    while (it != timer.heartbeatTimeRequests.at(targetTeam).end()) { /* iterate all the pending send/receive requests */
         int flag;
-        PMPI_Test(&(*it), &flag, MPI_STATUS_IGNORE);
+        PMPI_Test(&(*it),             /* Request */
+                  &flag,              /* Flag    */
+                  MPI_STATUS_IGNORE); /* Status  */
         if (flag) {
           if (!((*it) == MPI_REQUEST_NULL)){
             MPI_Request_free(&(*it));
           }
-          it = timer.heartbeatTimeRequests.at(targetTeam).erase(it);
+          it = timer.heartbeatTimeRequests.at(targetTeam).erase(it); /* request finished, so we remove it */
         }
         ++it;
     }
@@ -102,31 +112,119 @@ void Timing::progressOutstandingRequests(int targetTeam) {
 
 void Timing::pollForAndReceiveHeartbeat(int targetTeam) {
     int received = 0;
-    PMPI_Iprobe(mapTeamToWorldRank(getTeamRank(),targetTeam), targetTeam, getLibComm(), &received, MPI_STATUS_IGNORE);
+    PMPI_Iprobe(mapTeamToWorldRank(getTeamRank(),targetTeam), /* Source */
+                targetTeam,                                   /* Receive tag */
+                getLibComm(),                                 /* Communicator */
+                &received,                                    /* Flag */
+                MPI_STATUS_IGNORE);                           /* Status */
     if(received) {
       timer.heartbeatTimes.at(targetTeam).push_back(0.0);
       timer.heartbeatTimeRequests.at(targetTeam).push_back(MPI_Request());
-      PMPI_Irecv(&timer.heartbeatTimes.at(targetTeam).back(), 1, MPI_DOUBLE,
-               mapTeamToWorldRank(getTeamRank(), targetTeam), targetTeam, getLibComm(), &timer.heartbeatTimeRequests.at(targetTeam).back());
+      PMPI_Irecv(&timer.heartbeatTimes.at(targetTeam).back(),         /* Receive buffer */
+                 1,                                                   /* Receive count  */
+                 MPI_DOUBLE,                                          /* Receive type   */
+                 mapTeamToWorldRank(getTeamRank(), targetTeam),       /* Receive source */
+                 targetTeam,                                          /* Receive tag    */
+                 getLibComm(),                                        /* Communicator   */
+                 &timer.heartbeatTimeRequests.at(targetTeam).back()); /* Request        */
     }
 }
 
 void Timing::compareProgressWithReplicas() {
-  for (int r=0; r < getNumberOfTeams(); r++) {
+  for (int r=0; r < getNumberOfTeams(); r++) { /* for each other replica */
     if (r != getTeam()) {
       // Send out this replica's delta
       timer.heartbeatTimeRequests.at(r).push_back(MPI_Request());
-      PMPI_Isend(&timer.heartbeatTimes.at(getTeam()).back(), 1, MPI_DOUBLE,
-                mapTeamToWorldRank(getTeamRank(), r), getTeam(),
-                getLibComm(), &timer.heartbeatTimeRequests.at(r).back());
+      PMPI_Isend(&timer.heartbeatTimes.at(getTeam()).back(), /* Send buffer  */
+                 1,                                          /* Send count   */
+                 MPI_DOUBLE,                                 /* Send type    */
+                 mapTeamToWorldRank(getTeamRank(), r),       /* Destination  */
+                 getTeam(),                                  /* Send tag     */
+                 getLibComm(),                               /* Communicator */
+                 &timer.heartbeatTimeRequests.at(r).back()); /* Request      */
+      /* Why not free here ? */
 
 
       // Receive deltas from other replicas
-      pollForAndReceiveHeartbeat(r); 
+      pollForAndReceiveHeartbeat(r);
       progressOutstandingRequests(r);
     }
   }
 }
+
+
+/* TODO */
+void Timing::progressOutstandingHashRequests(int targetTeam) {
+    // Progress on outstanding receives and sends
+    auto it = timer.heartbeatHashRequests.at(targetTeam).begin();
+    while (it != timer.heartbeatHashRequests.at(targetTeam).end()) { /* iterate all the pending send/receive requests */
+        int flag;
+        PMPI_Test(&(*it),             /* Request */
+                  &flag,              /* Flag    */
+                  MPI_STATUS_IGNORE); /* Status  */
+        if (flag) {
+          if (!((*it) == MPI_REQUEST_NULL)){
+            MPI_Request_free(&(*it));
+          }
+          // compare the hashes
+          // ASSUMPTION : If a request is finished, then we should have the hash
+          //              as well. TODO check this assumption
+          if (timer.heartbeatHashes.at(getTeam()).front() == timer.heartbeatHashes.at(targetTeam).front()) {
+            std::cout << "\n" << "-----------------------------> Hash buffers equal : "
+                      << timer.heartbeatHashes.at(getTeam()).front()
+                      << std::endl;
+          } else {
+            std::cout << "\n" << "-----------------------------> Hash buffers NOT EQUAL : "
+                      << timer.heartbeatHashes.at(getTeam()).front() << " (replica: "
+                      << getTeam() << ")" << " != "
+                      << timer.heartbeatHashes.at(targetTeam).front() << " (replica: "
+                      << targetTeam << ")" << std::endl;
+
+            std::cout << "Aborting.." << std::endl;
+            PMPI_Abort(getLibComm(), MPI_ERR_BUFFER);
+          }
+          /* pop? or do we need them later?? */
+          timer.heartbeatHashes.at(getTeam()).pop_front();
+          timer.heartbeatHashes.at(targetTeam).pop_front();
+
+          it = timer.heartbeatHashRequests.at(targetTeam).erase(it); /* request finished, so we remove it */
+        }
+        ++it;
+    }
+}
+
+/* TODO */
+void Timing::pollForAndReceiveHash(int targetTeam) {
+    int received = 0;
+    PMPI_Iprobe(mapTeamToWorldRank(getTeamRank(),targetTeam), /* Source */
+                targetTeam+getNumberOfTeams(),                /* Receive tag */ // with the offset
+                getLibComm(),                                 /* Communicator */
+                &received,                                    /* Flag */
+                MPI_STATUS_IGNORE);                           /* Status */
+    if(received) {
+      timer.heartbeatHashes.at(targetTeam).push_back(0.0);
+      timer.heartbeatHashRequests.at(targetTeam).push_back(MPI_Request());
+      PMPI_Irecv(&timer.heartbeatHashes.at(targetTeam).back(),        /* Receive buffer */
+                 1,                                                   /* Receive count  */
+                 MPI_DOUBLE,                                          /* Receive type   */
+                 mapTeamToWorldRank(getTeamRank(), targetTeam),       /* Receive source */
+                 targetTeam+getNumberOfTeams(),                       /* Receive tag    */ // with the offset TODO
+                 getLibComm(),                                        /* Communicator   */
+                 &timer.heartbeatHashRequests.at(targetTeam).back()); /* Request        */
+      std::cout << "\nSTATUS: self (" << getTeam() << ") : ";
+      for (const size_t &tmp : timer.heartbeatHashes.at(getTeam())) {
+        std::cout << tmp << ", ";
+      }
+      std::cout << " END" << std::endl;
+      std::cout << "STATUS: replica (" << targetTeam << ") : ";
+      for (const size_t &tmp : timer.heartbeatHashes.at(targetTeam)) {
+        std::cout << tmp << ", ";
+      }
+      std::cout << " END" << std::endl;
+    }
+}
+
+
 
 void Timing::compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_Datatype sendtype) {
   if (getShouldCorruptData()) {
@@ -135,40 +233,46 @@ void Timing::compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_D
     setShouldCorruptData(false);
   }
 
+  /* TODO it is already hashed */
+
   int typeSize;
   MPI_Type_size(sendtype, &typeSize);
 
   std::string bits((const char*)sendbuf, sendcount*typeSize);
-  std::hash<std::string> hash_fn;
+
+  std::hash<std::string> hash_fn; /* TODO: we already hashed the results, don't have to hash here */
   std::size_t hash = hash_fn(bits);
+
+  // for debugging TODO
+  std::cout << "\n\n-------------------------->"
+            << "HASH FROM REPLICA: " << getTeam() << " = " << *((size_t*) sendbuf)
+            << "\n-------------------------->"
+            << " is hashed in tmpi --> " << hash
+            << std::endl;
+
+  /* Store this replica's hash */
   timer.heartbeatHashes.at(getTeam()).push_back((std::size_t)hash);
 
   for (int r=0; r < getNumberOfTeams(); r++) {
     if (r != getTeam()) {
-      // Send out this replica's times
+      // Send out this replica's hashes
       MPI_Request request;
-      PMPI_Isend(&timer.heartbeatHashes.at(getTeam()).back(), 1, TMPI_SIZE_T,
-                mapTeamToWorldRank(getTeamRank(), r), getTeam(),
-                getLibComm(), &request);
-      MPI_Request_free(&request);
+      PMPI_Isend(&timer.heartbeatHashes.at(getTeam()).back(), /* Send buffer  */
+                 1,                                           /* Send count   */
+                 TMPI_SIZE_T,                                 /* Send type    */
+                 mapTeamToWorldRank(getTeamRank(), r),        /* Destination  */
+                 getTeam()+getNumberOfTeams(),                /* Send tag     */ // TODO is this differentiation good? With offset numTeams
+                 getLibComm(),                                /* Communicator */
+                 &request);                                   /* Request      */
+      MPI_Request_free(&request); // TODO why free here ? We did not free in compare buffer func.
 
-      // Receive times from other replicas
-      timer.heartbeatHashes.at(r).push_back(0);
-      timer.heartbeatHashRequests.at(r).push_back(MPI_Request());
-      PMPI_Irecv(&timer.heartbeatHashes.at(r).back(), 1, TMPI_SIZE_T,
-                 mapTeamToWorldRank(getTeamRank(), r), r, getLibComm(), &timer.heartbeatHashRequests.at(r).back());
-
-      // // Test for completion of Irecv's
-      // int numPending = 0;
-      // for (int i=0; i < timer.heartbeatHashRequests.at(r).size(); i++) {
-      //   int flag = 0;
-      //   PMPI_Test(&timer.heartbeatHashRequests.at(r).at(i), &flag, MPI_STATUS_IGNORE);
-      //   numPending += 1 - flag;
-      // }
-      // std::cout << "Num pending: " << numPending << "\n";
+      // Receive hashes from other replicas
+      pollForAndReceiveHash(r);
+      progressOutstandingHashRequests(r);
     }
   }
 }
+
 
 void Timing::sleepRankRaised() {
   timer.sleepPoints.push_back(PMPI_Wtime());
@@ -185,10 +289,18 @@ void Timing::outputTiming() {
     finished_all = true;
     for(int r=0; r<getNumberOfTeams(); r++) {
       if(r!=getTeam()) {
+        /* Receive remaining heartbeats */
         pollForAndReceiveHeartbeat(r);
         progressOutstandingRequests(r);
-        finished_all &= timer.heartbeatTimeRequests.at(r).empty();
-      }     
+
+        /* Receive remaining hashes */
+        pollForAndReceiveHash(r);
+        progressOutstandingHashRequests(r);
+
+        /* check if both are finished */
+        finished_all &=
+            timer.heartbeatTimeRequests.at(r).empty() && timer.heartbeatHashRequests.at(r).empty();
+      }
     }
   }
 
@@ -243,6 +355,12 @@ void Timing::outputTiming() {
     f << "heartbeatTimes";
     for (const double& t : timer.heartbeatTimes.at(getTeam())) {
       f << sep << t;
+    }
+    f << "\n";
+
+    f << "hashes";
+    for (const size_t& h : timer.heartbeatHashes.at(getTeam())) {
+        f << sep << h;
     }
     f << "\n";
 

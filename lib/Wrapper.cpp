@@ -36,9 +36,9 @@ int MPI_Is_thread_main(int* flag) {
 int MPI_Comm_rank(MPI_Comm comm, int *rank) {
   // todo: assert that a team comm is used
   //assert(comm == MPI_COMM_WORLD);
-  if(comm==MPI_COMM_WORLD) 
+  if(comm==MPI_COMM_WORLD)
    *rank = getTeamRank();
-  else 
+  else
    PMPI_Comm_rank(comm, rank);
   return MPI_SUCCESS;
 }
@@ -91,7 +91,7 @@ int MPI_Allgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                   MPI_Comm comm) {
   int err = PMPI_Allgather(sendbuf, sendcount, sendtype,
                            recvbuf, recvcount, recvtype,
-                           getTeamComm(comm)); 
+                           getTeamComm(comm));
   return err;
 }
 
@@ -186,7 +186,7 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
     int recv = 0;
     PMPI_Comm_set_errhandler(getTeamComm(MPI_COMM_WORLD), MPI_ERRORS_RETURN);
     PMPI_Comm_set_errhandler(getLibComm(), MPI_ERRORS_RETURN);
-    
+
     //std::cout << "Rank: " << getTeamRank()  << " of team: " << getTeam() << " allreducing" << std::endl;
     err = PMPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MIN, getLibComm());
     int flag = (err == MPI_SUCCESS);
@@ -232,10 +232,10 @@ int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                 void *recvbuf, int recvcount, MPI_Datatype recvtype,
                 int source, int recvtag,
                 MPI_Comm comm, MPI_Status *status) {
-  if (comm == MPI_COMM_SELF) {
-    if (sendcount == 0) {
+  if (comm == MPI_COMM_SELF) { /* if heartbeat */
+    if (sendcount == 0) { /* no hashes */
       Timing::markTimeline(sendtag);
-    } else {
+    } else { /* sending hashes for compare */
       Timing::markTimeline(sendtag, sendbuf, sendcount, sendtype);
     }
   } else {
@@ -255,8 +255,8 @@ int MPI_Finalize() {
   int recv = 0;
   int err = 0;
   //std::cout << "Waiting: " << getWorldRank() << std::endl;
-  
-  
+
+
     while (recv < HEARTBEAT_MSG_FINISHED || err != MPI_SUCCESS)
     {
         int size;

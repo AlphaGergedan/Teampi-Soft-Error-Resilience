@@ -45,12 +45,12 @@ int initialiseTMPI(int *argc, char ***argv)
 
   argCount = *argc;
   argValues = argv;
-  setEnvironment();
+  setEnvironment(); /* read TEAMS and SPARES from env. store in numTeams, numSpares */
 
   MPI_Comm parent;
   PMPI_Comm_get_parent(&parent);
 
-  switch (error_handler)
+  switch (error_handler)        /* did application set TMPI_SetErrorHandlingStrategy ? */
   {
   case TMPI_RespawnProcErrorHandler:
     MPI_Comm_create_errhandler(respawn_proc_errh, &TMPI_ERRHANDLER);
@@ -78,14 +78,14 @@ int initialiseTMPI(int *argc, char ***argv)
     break;
   }
 
-  if (parent != MPI_COMM_NULL)
+  if (parent != MPI_COMM_NULL) /* process created by TMPI, not by the application ! */
   {
     recreate_function(true);
 
     PMPI_Comm_size(TMPI_COMM_WORLD, &worldSizeNoSpares);
 
     PMPI_Comm_rank(TMPI_COMM_WORLD, &worldRank);
-    
+
     PMPI_Comm_rank(TMPI_COMM_TEAM, &teamRank);
 
     PMPI_Comm_size(TMPI_COMM_TEAM, &teamSize);
@@ -100,9 +100,9 @@ int initialiseTMPI(int *argc, char ***argv)
     registerSignalHandler();
     (*loadCheckpointCallback)(true);
 
-    
+
   }
-  else
+  else /* process created by application (no parent communicator) */
   {
 
     /**
@@ -133,7 +133,7 @@ int initialiseTMPI(int *argc, char ***argv)
 
       isSpareRank = false;
     }
-    
+
     PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_WORLD);
 
     PMPI_Comm_dup(MPI_COMM_WORLD, &TMPI_COMM_LIB);
@@ -334,7 +334,7 @@ void setEnvironment()
   std::string teamsStr(getEnvString("TEAMS"));
   std::string sparesStr(getEnvString("SPARES"));
   numTeams = teamsStr.empty() ? 2 : std::stoi(teamsStr);
-  numSpares = sparesStr.empty() ? 0 : std::stoi(sparesStr); 
+  numSpares = sparesStr.empty() ? 0 : std::stoi(sparesStr);
 
 }
 

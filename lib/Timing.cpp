@@ -153,7 +153,20 @@ void Timing::compareProgressWithReplicas() {
 }
 
 
-/* TODO */
+/**
+ * Similar to the heartbeats without hashes,
+ * checks if the issued non-blocking receives
+ * are completed.
+ *
+ * Compares the received hashes with the current
+ * replica's hashes (front) and removes them if
+ * they match. We can detect a silent error here
+ * if the hashes don't match.
+ *
+ * @see Timing::compareBufferWithReplicas
+ *
+ * @param targetTeam Number of the replica, from which we want to receive hash
+ */
 void Timing::progressOutstandingHashRequests(int targetTeam) {
     // Progress on outstanding receives and sends
     auto it = timer.heartbeatHashRequests.at(targetTeam).begin();
@@ -166,9 +179,10 @@ void Timing::progressOutstandingHashRequests(int targetTeam) {
           if (!((*it) == MPI_REQUEST_NULL)){
             MPI_Request_free(&(*it));
           }
+          /* We are sured that the hashes are received in the correct order */
+
+
           // compare the hashes
-          // ASSUMPTION : If a request is finished, then we should have the hash
-          //              as well. TODO check this assumption
           if (timer.heartbeatHashes.at(getTeam()).front() == timer.heartbeatHashes.at(targetTeam).front()) {
             std::cout << "\n" << "-----------------------------> Hash buffers equal : "
                       << timer.heartbeatHashes.at(getTeam()).front()
@@ -193,7 +207,20 @@ void Timing::progressOutstandingHashRequests(int targetTeam) {
     }
 }
 
-/* TODO */
+/**
+ * Checks the incoming hash message from other replicas
+ * using Iprobe call and issues non-blocking MPI receive
+ * operations (PMPI_Irecv) accordingly. If the Iprobe
+ * operation fails, then we skip that specific receive
+ * operation.
+ *
+ * TODO issue more Iprobe depending on the current hashes
+ * and the received hashes from the replicas
+ *
+ * @see Timing::compareBufferWithReplicas
+ *
+ * @param targetTeam Number of the replica, from which we want to receive hash
+ */
 void Timing::pollForAndReceiveHash(int targetTeam) {
     int received = 0;
     PMPI_Iprobe(mapTeamToWorldRank(getTeamRank(),targetTeam), /* Source */
@@ -225,7 +252,19 @@ void Timing::pollForAndReceiveHash(int targetTeam) {
 }
 
 
-
+/**
+ * Hashes the send buffer of the heartbeat and sends it to
+ * all the replicas. Then calls the related functions to
+ * receive and compare the hashes from the other replicas
+ * using non-blocking communications.
+ *
+ * @see Timing::pollForAndReceiveHash
+ *      Timing::progressOutstandingHashRequests
+ *
+ * @param sendbuf Send buffer of the heartbeat
+ * @param sendcount Number of data that has been sent
+ * @param sendtype MPI type of the data
+ */
 void Timing::compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_Datatype sendtype) {
   if (getShouldCorruptData()) {
     //TODO can remove const here via cast (assuming data was originally non-const) and corrupt properly, no need for now
@@ -253,7 +292,16 @@ void Timing::compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_D
   /* Store this replica's hash */
   timer.heartbeatHashes.at(getTeam()).push_back((std::size_t)hash);
 
-  for (int r=0; r < getNumberOfTeams(); r++) {
+  int numTeams = getNumberOfTeams();
+
+  /* TODO currently only testing with 2 TEAMS */
+  if (numTeams != 2) {
+      std::cout << "\ncurrently testing with 2 TEAMS only."
+                << "\nTeam number : " << numTeams << std::endl;
+      PMPI_Abort(getLibComm(), MPI_ERR_UNKNOWN);
+  }
+
+  for (int r=0; r < numTeams; r++) {
     if (r != getTeam()) {
       // Send out this replica's hashes
       MPI_Request request;
@@ -261,13 +309,15 @@ void Timing::compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_D
                  1,                                           /* Send count   */
                  TMPI_SIZE_T,                                 /* Send type    */
                  mapTeamToWorldRank(getTeamRank(), r),        /* Destination  */
-                 getTeam()+getNumberOfTeams(),                /* Send tag     */ // TODO is this differentiation good? With offset numTeams
+                 getTeam()+numTeams,                          /* Send tag     */ // TODO is this differentiation good? With offset numTeams
                  getLibComm(),                                /* Communicator */
                  &request);                                   /* Request      */
       MPI_Request_free(&request); // TODO why free here ? We did not free in compare buffer func.
 
-      // Receive hashes from other replicas
+      /* check for incoming hashes */
       pollForAndReceiveHash(r);
+
+      /* compare the buffers if pending requests are completed */
       progressOutstandingHashRequests(r);
     }
   }

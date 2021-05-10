@@ -40,8 +40,10 @@ struct Timer {
   // Store the MPI_Requests for each heartbeat delta (per replica)
   std::map< int, std::list<MPI_Request> > heartbeatTimeRequests;
 
-  // Hash for each heartbeat buffer (per replica)
-  std::map<int, std::list<std::size_t> > heartbeatHashes;
+  // Hash for each heartbeat buffer (per replica), using vectors for better
+  // performance (we don't remove the hashes after comparison)
+  std::map<int, std::vector<std::size_t> > heartbeatHashes;
+
   // Store the MPI_Requests for each heartbeat (per replica)
   std::map<int, std::list<MPI_Request> > heartbeatHashRequests;
 
@@ -70,7 +72,7 @@ void Timing::initialiseTiming() {
     timer.heartbeatTimes.insert({i, std::list<double>()});
     timer.heartbeatTimeRequests.insert({i, std::list<MPI_Request>()});
 
-    timer.heartbeatHashes.insert({i, std::list<std::size_t>()});
+    timer.heartbeatHashes.insert({i, std::vector<std::size_t>()});
     timer.heartbeatHashRequests.insert({i, std::list<MPI_Request>()});
 
     timer.numHashes = 0;
@@ -204,7 +206,10 @@ void Timing::progressOutstandingHashRequests(int targetTeam) {
 
           /* Get the current hashes to be compared
            * TODO for this reason, we can remove the hashes or use
-           * vector instead of list to avoid iterating */
+           * vector instead of list to avoid iterating. After debugging we can
+           * remove the vector and use list
+           */
+/*
           std::list<size_t>::iterator it1 = timer.heartbeatHashes.at(getTeam()).begin();
           std::list<size_t>::iterator it2 = timer.heartbeatHashes.at(targetTeam).begin();
 
@@ -216,6 +221,11 @@ void Timing::progressOutstandingHashRequests(int targetTeam) {
 
           const size_t h1 = *it1;
           const size_t h2 = *it2;
+
+*/
+
+          const size_t h1 = timer.heartbeatHashes.at(getTeam()).at(timer.compareIndex);
+          const size_t h2 = timer.heartbeatHashes.at(targetTeam).at(timer.compareIndex);
 
           if (h1 == h2) {
             std::cout << "\n" << "-----------------------------> Hash buffers equal : "

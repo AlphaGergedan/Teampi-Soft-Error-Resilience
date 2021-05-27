@@ -33,8 +33,6 @@ struct Timer {
   // Mark when an application sleeps
   std::vector<double> sleepPoints;
 
-
-  // TODO: add support for multiple tags (or do we need this?)
   // Delta times for each heartbeat (per replica)
   std::map< int, std::list<double> > heartbeatTimes;
   // Store the MPI_Requests for each heartbeat delta (per replica)
@@ -93,8 +91,7 @@ void Timing::markTimeline(int tag) {
   } else if (tag < 0) { /* negative tag means sending after task execution */
     if (timer.heartbeatTimes.at(getTeam()).size()) {
       timer.heartbeatTimes.at(getTeam()).back() = PMPI_Wtime() - timer.heartbeatTimes.at(getTeam()).back();
-      /* TODO for debugging */
-      printf("World Rank: %d, team rank: %d, team: %d, submitted time %f\n", getWorldRank(), getTeamRank(), getTeam(),timer.heartbeatTimes.at(getTeam()).back());
+      //printf("World Rank: %d, team rank: %d, team: %d, submitted time %f\n", getWorldRank(), getTeamRank(), getTeam(),timer.heartbeatTimes.at(getTeam()).back());
       compareProgressWithReplicas();
     }
   } else {
@@ -109,7 +106,7 @@ void Timing::markTimeline(int tag) {
 
 void Timing::markTimeline(int tag, const void *sendbuf, int sendcount, MPI_Datatype sendtype) {
   markTimeline(tag);
-  compareBufferWithReplicas(sendbuf, sendcount, sendtype); /* TODO */
+  compareBufferWithReplicas(sendbuf, sendcount, sendtype);
 }
 
 
@@ -310,7 +307,7 @@ void Timing::pollForAndReceiveHash(int targetTeam) {
                        1,                                                   /* Receive count  */
                        MPI_DOUBLE,                                          /* Receive type   */
                        mapTeamToWorldRank(getTeamRank(), targetTeam),       /* Receive source */
-                       targetTeam+getNumberOfTeams(),                       /* Receive tag    */ // with the offset TODO
+                       targetTeam+getNumberOfTeams(),                       /* Receive tag    */
                        getLibComm(),                                        /* Communicator   */
                        &timer.heartbeatHashRequests.at(targetTeam).back()); /* Request        */
             std::cout << "\nSTATUS: self (" << getTeam() << ") : ";
@@ -350,17 +347,16 @@ void Timing::compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_D
     setShouldCorruptData(false);
   }
 
-  /* TODO it is already hashed */
+  /* if the sendbuf already hashed, don't hash it again
+  size_t hash = *((size_t*) sendbuf);
+  */
 
   int typeSize;
   MPI_Type_size(sendtype, &typeSize);
-
   std::string bits((const char*)sendbuf, sendcount*typeSize);
-
   std::hash<std::string> hash_fn; /* TODO: we already hashed the results, don't have to hash here */
   std::size_t hash = hash_fn(bits);
 
-  // for debugging TODO
   std::cout << "\n\n-------------------------->"
             << "HASH FROM REPLICA: " << getTeam() << " = " << *((size_t*) sendbuf)
             << "\n-------------------------->"
@@ -373,7 +369,8 @@ void Timing::compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_D
 
   int numTeams = getNumberOfTeams();
 
-  /* TODO currently only testing with 2 TEAMS */
+  /* TODO currently only testing with 2 TEAMS, more teams can be useful for
+   *      voting mechanisms in case of SDC */
   if (numTeams != 2) {
       std::cout << "\ncurrently testing with 2 TEAMS only."
                 << "\nTeam number : " << numTeams << std::endl;
@@ -388,10 +385,10 @@ void Timing::compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_D
                  1,                                           /* Send count   */
                  TMPI_SIZE_T,                                 /* Send type    */
                  mapTeamToWorldRank(getTeamRank(), r),        /* Destination  */
-                 getTeam()+numTeams,                          /* Send tag     */ // TODO is this differentiation good? With offset numTeams
+                 getTeam()+numTeams,                          /* Send tag     */
                  getLibComm(),                                /* Communicator */
                  &request);                                   /* Request      */
-      MPI_Request_free(&request); // TODO why free here ? We did not free in compare buffer func.
+      MPI_Request_free(&request);
 
       /* check for incoming hashes */
       pollForAndReceiveHash(r);

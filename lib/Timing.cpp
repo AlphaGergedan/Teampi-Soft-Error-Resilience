@@ -301,7 +301,7 @@ void Timing::pollForAndReceiveHash(int targetTeam) {
                     &received,                                    /* Flag */
                     MPI_STATUS_IGNORE);                           /* Status */
         if(received) {
-            timer.heartbeatHashes.at(targetTeam).push_back(0.0);
+            timer.heartbeatHashes.at(targetTeam).push_back(0);
             timer.heartbeatHashRequests.at(targetTeam).push_back(MPI_Request());
             PMPI_Irecv(&timer.heartbeatHashes.at(targetTeam).back(),        /* Receive buffer */
                        1,                                                   /* Receive count  */
@@ -321,7 +321,6 @@ void Timing::pollForAndReceiveHash(int targetTeam) {
             }
             std::cout << " END" << std::endl;
         }
-
         remainingHashes--;
     }
 }
@@ -388,11 +387,18 @@ void Timing::compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_D
                  getTeam()+numTeams,                          /* Send tag     */
                  getLibComm(),                                /* Communicator */
                  &request);                                   /* Request      */
-      MPI_Request_free(&request);
 
       /* check for incoming hashes */
       pollForAndReceiveHash(r);
 
+      int messageSent = 1;
+
+      /* if the message is still not sent */
+      while (!messageSent) {
+        /* check for incoming hashes */
+        pollForAndReceiveHash(r);
+        MPI_Test(&request, &messageSent, MPI_STATUS_IGNORE);
+      }
       /* compare the buffers if pending requests are completed */
       progressOutstandingHashRequests(r);
     }

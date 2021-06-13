@@ -391,8 +391,7 @@ void Timing::compareBufferWithReplicas(const void *sendbuf, int sendcount, MPI_D
       /* check for incoming hashes */
       pollForAndReceiveHash(r);
 
-      int messageSent = 1;
-
+      int messageSent = 0;
       /* if the message is still not sent */
       while (!messageSent) {
         /* check for incoming hashes */

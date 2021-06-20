@@ -1,6 +1,11 @@
 /*
  * Timing.cpp
  *
+ * Edited by Atamert Rahma (rahma@in.tum.de)
+ *   - hash support is added for two teams (single HB mode)
+ *   - times not saved in hashing mode because heartbeats are not
+ *     bound to wtime in swe in that case
+ *
  *  Created on: 2 Mar 2018
  *      Author: Ben Hazelwood
  */

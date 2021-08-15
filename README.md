@@ -5,23 +5,10 @@ See the original repository here: https://gitlab.lrz.de/hpcsoftware/teaMPI
 This repository tries to integrate soft error resilience to the teaMPI library. <br>
 (updating on branch ulfm\_failure\_tolerance)
 
-## Soft Error Resilience ##
-
-Increased error rates in high performance computing due to multiple cores and
-memories may lead to silent data corruptions. In such a case, we are unable to
-detect the error without observing the application's results.
-
-Keep in mind:
-- don't break teaMPI's asynchronization
-- don't break warmSpares. So we don't break fault tolerance
-
-### First Method: Comparing Hashes using Heartbeats ###
-
-TODO
-
-### Second Method: ###
-
-TODO
+We have added a single heartbeat option to send hash values of the results of the
+replicas. TeaMPI handles the comparison of the hash values transparent to the application.
+The user can create hash value from the biggest data structures of the application that
+is being used, and include them in the single heartbeats (see [here](https://gitlab.lrz.de/AtamertRahma/towards-soft-error-resilience-in-swe-with-teampi) for usage).
 
 ## teaMPI library ###
 
@@ -64,7 +51,6 @@ The first starts the timer for this rank and the second stops it. Additionally t
 the data buffer for comparison with other teams. Only a hash of the data is sent.
 
 At the end of the application, the heartbeat times will be written to CSV files.
-
 
 
 ```C++
